@@ -17,10 +17,11 @@ import java.util.Objects;
  *     icon(Symbol.TABLE, Icon.Variant.MUTED), label("orders"));
  * }</pre>
  *
- * <p>A {@link Symbol} uses {@link Font#icons()}, which needs the artifact {@code rethinkj-ui-icons}
- * and is loaded when the first symbol is built. A {@link Glyph} takes the variant's or component's
- * color just as a symbol does; a {@link Picture} keeps its own colors and dims to 40 % opacity
- * while disabled. A symbol or glyph has no role; a picture is an image element ({@code role=img}).
+ * <p>A {@link Symbol} uses the theme's {@link Theme.Type#icons}, by default {@link Font#icons()},
+ * which needs the artifact {@code rethinkj-ui-icons} and is loaded when the first symbol is built.
+ * A {@link Glyph} takes the variant's or component's color just as a symbol does; a {@link
+ * Picture} keeps its own colors and dims to 40 % opacity while disabled. A symbol or glyph has no
+ * role; a picture is an image element ({@code role=img}).
  * Its {@link #label} names it in a tree dump (for a symbol, its name in lower case, {@code
  * label="chevron_right"}); one that means something by itself, such as a button with no text, gets
  * a {@code label} on the element that takes the press.
@@ -144,13 +145,20 @@ public sealed interface Icon permits Symbol, Icon.Glyph, Icon.Picture {
       case ACCENT -> theme.accent().edge();
     };
     return switch (icon) {
-      case Symbol symbol ->
-        El.text(Character.toString(symbol.codePoint(size)))
+      case Symbol symbol -> {
+        String text = Character.toString(symbol.codePoint(size));
+        Font font = theme.type().icons().get();
+        float advance = font.shape(text, Glyph.MEASURED, 1).width() / Glyph.MEASURED;
+        El el = El.text(text)
             .label(symbol.label())
-            .font(Font.icons())
-            .fontSize(size)
+            .font(font)
+            .fontSize(size / Math.max(1, advance))
             .color(color)
             .shrink(0);
+        // The bundled font's symbols are one em wide, as wide as the size. Another font's symbol
+        // takes that width: a wider one shrinks to it, a narrower one lies in its middle.
+        yield advance == 1 ? el : el.w(size).textAlign(Style.Align.CENTER);
+      }
       case Glyph glyph -> {
         String text = Character.toString(glyph.codePoint());
         Font font = glyph.font();

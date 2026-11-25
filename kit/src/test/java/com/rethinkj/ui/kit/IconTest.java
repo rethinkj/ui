@@ -10,6 +10,7 @@ import static com.rethinkj.ui.kit.Workbench.find;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
@@ -300,6 +301,32 @@ class IconTest {
             List.of(ComboBox.item("Table").icon(Symbol.TABLE)), 0, new ComboBox.State(), null));
     assertTrue(symbol.dump().contains("label=\"table\""), symbol.dump());
     assertEquals(T.text().disabled(), labelled(symbol, "table").text().color());
+  }
+
+  @Test
+  void symbolAndAppIconCountUseThemeFonts() {
+    TextLibraries.assumeLoaded();
+    Font customIcons = Font.mono();
+    Font customCount = Font.sansMedium();
+    Theme.Type base = Theme.DARK.type();
+    Theme theme = Theme.DARK.withType(new Theme.Type(
+        base.body(),
+        base.mono(),
+        base.heading(),
+        base.title(),
+        base.strong(),
+        base.dialog(),
+        base.small(),
+        base.section(),
+        () -> customIcons,
+        () -> customCount));
+    El symbol = Theme.CURRENT.with(theme, () -> icon(Symbol.TABLE));
+    assertSame(customIcons, symbol.text().font());
+    // The replacement's glyph is not one em wide, yet the symbol keeps the icon's width.
+    Headless.render(row().child(symbol), 100, 40, 1, TextRendering.LINUX);
+    assertEquals(T.size().icon(), symbol.width());
+    El count = Theme.CURRENT.with(theme, () -> AppIcon.count(16, 0xFF000000, 3));
+    assertSame(customCount, count.children().getFirst().text().font());
   }
 
   /** The first element in the tree under {@code el} with this label, or null. */

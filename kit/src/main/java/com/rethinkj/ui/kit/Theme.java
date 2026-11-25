@@ -1156,6 +1156,9 @@ public record Theme(
    *     details of a status bar, the kind of a completion, the count of a find bar; the regular
    *     weight, so that it recedes, where a badge's text is medium to hold on its fill
    * @param section the heading of a section of a page, between {@code heading} and {@code title}
+   * @param icons the font of an {@link Icon}'s {@link Symbol}s, sized to {@link Sizes#icon} or the
+   *     size the view gives
+   * @param count the font of the count an {@link AppIcon#count} draws, sized to the image
    */
   public record Type(
       TextStyle body,
@@ -1165,7 +1168,9 @@ public record Theme(
       TextStyle strong,
       TextStyle dialog,
       TextStyle small,
-      TextStyle section) {}
+      TextStyle section,
+      Supplier<Font> icons,
+      Supplier<Font> count) {}
 
   /**
    * @param control the height of a button and a text field
@@ -1825,7 +1830,9 @@ public record Theme(
       new TextStyle(Font::sansMedium, 13),
       new TextStyle(Font::sansSemibold, 16),
       new TextStyle(Font::sans, 12),
-      new TextStyle(Font::sansSemibold, 16));
+      new TextStyle(Font::sansSemibold, 16),
+      Font::icons,
+      Font::sansBold);
   private static final Sizes SIZE = new Sizes(
       24, 16, 28, 16, 1, 200, 7, 16, 16, 2, 2, 4, 560, 4, 72, 32, 28, 20, 32, 320, 360, 120);
   private static final Motion MOTION =

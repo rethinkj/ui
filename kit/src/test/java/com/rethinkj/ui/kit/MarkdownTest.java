@@ -494,7 +494,9 @@ class MarkdownTest {
         base.strong(),
         base.dialog(),
         base.small(),
-        base.section()));
+        base.section(),
+        base.icons(),
+        base.count()));
     MarkdownDocument doc = Markdown.parse("""
         # Head `h`
 

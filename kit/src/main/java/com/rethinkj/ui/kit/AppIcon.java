@@ -3,7 +3,6 @@ package com.rethinkj.ui.kit;
 import static com.rethinkj.ui.El.el;
 
 import com.rethinkj.ui.El;
-import com.rethinkj.ui.text.Font;
 
 /**
  * Views for an app's icon and the badge on its taskbar button, drawn at a size in pixels: the view
@@ -86,7 +85,7 @@ public final class AppIcon {
         .fill(fill)
         .center()
         .child(El.text(text)
-            .font(Font.sansBold())
+            .font(theme.type().count().get())
             .fontSize(fontSize)
             .color(theme.text().onAccent())
             .textBackground(fill)

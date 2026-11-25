@@ -770,6 +770,7 @@ public final class ErDiagram {
           more.role("button")
               .onPress(() -> switchMode(state, table.key, Mode.ALL))
               .child(text(texts.moreColumns(table.hidden))
+                  .font(theme.type().small().font().get())
                   .fontSize(theme.type().small().size() * zoom)
                   .color(tone.applyAsInt(theme.text().muted())));
         }
@@ -808,6 +809,7 @@ public final class ErDiagram {
       boolean collapsed = table.mode == Mode.COLLAPSED;
       if (collapsed) {
         header.child(text(texts.columns(table.table.columns().size()))
+            .font(theme.type().small().font().get())
             .fontSize(theme.type().small().size() * zoom)
             .color(tone.applyAsInt(theme.text().muted()))
             .shrink(0));
@@ -842,6 +844,7 @@ public final class ErDiagram {
         mark = Icon.icon(Symbol.LINK, Icon.Variant.MUTED, icon)
             .color(tone.applyAsInt(theme.text().muted()));
       }
+      Font smallFont = theme.type().small().font().get();
       float small = theme.type().small().size() * zoom;
       int muted = tone.applyAsInt(theme.text().muted());
       El row = row()
@@ -858,15 +861,21 @@ public final class ErDiagram {
               theme.surface().hover())))
           .child(mark)
           .child(text(column.name())
+              .font(theme.type().body().font().get())
               .fontSize(theme.type().body().size() * zoom)
               .color(tone.applyAsInt(theme.text().primary()))
               .ellipsis()
               .minSize(0, 0)
               .grow(1));
       if (column.unique() && !column.primaryKey()) {
-        row.child(text(texts.uniqueMark()).fontSize(small).color(muted).shrink(0));
+        row.child(text(texts.uniqueMark())
+            .font(smallFont)
+            .fontSize(small)
+            .color(muted)
+            .shrink(0));
       }
       row.child(text(column.type() + (column.nullable() ? "?" : ""))
+          .font(smallFont)
           .fontSize(small)
           .color(muted)
           .ellipsis()
