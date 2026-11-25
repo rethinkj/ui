@@ -661,13 +661,13 @@ final class Animator {
     boolean seen = before != null;
     int revealed = before == null ? -1 : before.revealRow();
     Object revealedKey = before == null ? null : before.revealKey();
+    // With a state, from the element it was on, wherever in the tree the list is now.
+    el.endRows(kept == null ? before : kept.el, kept != null && kept.placed);
     if (kept == null) {
       el.toEnd(before != null && before.toEnd());
       el.setScroll(
           before == null ? 0 : before.scrollX(),
-          before == null
-              ? 0
-              : el.toEnd() ? Double.POSITIVE_INFINITY : el.movedScrollY(before, before.scrollY()));
+          before == null ? 0 : el.toEnd() ? el.endY() : el.movedScrollY(before, before.scrollY()));
     } else {
       if (kept.owner == this && kept.pass == passes && !kept.id.equals(id)) {
         throw new IllegalStateException("Two scroll areas have the same ScrollState. Give each"
@@ -686,7 +686,7 @@ final class Animator {
       kept.seen = true;
       boolean end = kept.toEnd || kept.followEnd && kept.atEnd;
       double y = end
-          ? Double.POSITIVE_INFINITY
+          ? kept.toEnd ? el.endY() : Double.POSITIVE_INFINITY
           : kept.placed || !carried ? kept.y : el.movedScrollY(before, kept.y);
       kept.placed = false;
       el.setScroll(kept.x, y);

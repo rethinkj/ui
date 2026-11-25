@@ -86,6 +86,9 @@ public final class El {
   private ScrollState scrollState;
   // Sent to its vertical end until its last rows are measured, as ScrollState.toEnd without one.
   private boolean toEnd;
+  // While sent to its end by the user: the rows it had then, which rows appended since stay below.
+  private int endRows = -1;
+  private Object endKey; // the key of the last of them, with a keyed RowHeights
   boolean focused;
   private Spring motion;
   private float opacity = 1;
@@ -1274,6 +1277,32 @@ public final class El {
    */
   boolean toEnd() {
     return scrollState == null ? toEnd : scrollState.el == this && scrollState.toEnd;
+  }
+
+  /** Carries the rows a user's move to the end was for over a rebuild; none for the app's own. */
+  void endRows(El before, boolean placed) {
+    endRows = before == null || placed ? -1 : before.endRows;
+    endKey = before == null || placed ? null : before.endKey;
+  }
+
+  /**
+   * The last row that a pending end is for: of the rows a user's move to the end found, else (or
+   * when that row is gone, or the area follows its end) the last row.
+   */
+  int endRow() {
+    boolean all = endRows < 0 || scrollState != null && scrollState.followEnd;
+    int count = all ? rows.rowCount : endKey != null ? rowWithKey(endKey) + 1 : endRows;
+    return (count <= 0 ? rows.rowCount : Math.min(count, rows.rowCount)) - 1;
+  }
+
+  /** The offset at which the end that {@link #toEnd()} asks for shows. */
+  double endY() {
+    int last = rows == null ? -1 : endRow();
+    if (last < 0 || last == rows.rowCount - 1) {
+      return maxScrollY;
+    }
+    double bottom = rowsTop() + rowTop(last + 1) + padding(Side.BOTTOM) + border(Side.BOTTOM);
+    return Math.clamp(bottom + coverY - height, minScrollY(), maxScrollY);
   }
 
   /** Sets what {@link #toEnd()} says, as long as this area has its state, if it has one. */
@@ -5598,6 +5627,20 @@ public final class El {
     }
     if (changed && y == Double.POSITIVE_INFINITY) {
       toEnd(true); // rows measured on the way keep it at the end, as ScrollState.scrollToEnd does
+      endRows = -1;
+    }
+    return changed;
+  }
+
+  /**
+   * Scrolls as {@link #scrollTo} does, for the user's input: an end it reaches is the end of the
+   * rows the list has now, which rows the app appends meanwhile do not move.
+   */
+  boolean userScrollTo(double x, double y) {
+    boolean changed = scrollTo(x, y);
+    if (changed && y == Double.POSITIVE_INFINITY && rows != null) {
+      endRows = rows.rowCount;
+      endKey = rowKey(rows.rowCount - 1);
     }
     return changed;
   }
@@ -5617,9 +5660,10 @@ public final class El {
       scrollState.x = newX;
       scrollState.y = newY;
       scrollState.atEnd = newY >= maxScrollY - SLACK;
-      scrollState.toEnd &= scrollState.atEnd; // scrolled away before its rows were measured
+      // Scrolled away, either way, before its rows were measured.
+      scrollState.toEnd = scrollState.toEnd && Math.abs(newY - endY()) <= SLACK;
     } else if (scrollState == null) {
-      toEnd &= newY >= maxScrollY - SLACK;
+      toEnd = toEnd && Math.abs(newY - endY()) <= SLACK;
     }
     if (text != null && text.multiline()) {
       text.scrolled(newX, newY);
@@ -5853,13 +5897,13 @@ public final class El {
     if (!vertical) {
       return scrollTo(to, scrollY);
     }
-    return scrollTo(scrollX, end ? Double.POSITIVE_INFINITY : orEnd(to));
+    return userScrollTo(scrollX, end ? Double.POSITIVE_INFINITY : orEnd(to));
   }
 
   /** Scrolls one page, the height or width of the area, towards the end or, with -1, the start. */
   boolean page(boolean vertical, int direction) {
     return vertical
-        ? scrollTo(scrollX, orEnd(scrollY + direction * (double) height))
+        ? userScrollTo(scrollX, orEnd(scrollY + direction * (double) height))
         : scrollTo(scrollX + direction * (double) width, scrollY);
   }
 
@@ -6184,8 +6228,7 @@ public final class El {
     return scrollState == null
         ? toEnd
         : scrollState.el == this
-            && (scrollState.followEnd || scrollState.toEnd)
-            && scrollState.atEnd;
+            && (scrollState.followEnd && scrollState.atEnd || scrollState.toEnd);
   }
 
   /**
@@ -6209,7 +6252,7 @@ public final class El {
     }
     if (rows.heights != null) {
       measureScroll();
-      scrollY = follow ? maxScrollY : scrollY + rowTop(anchor) - before; // clamped below
+      scrollY = follow ? endY() : scrollY + rowTop(anchor) - before; // clamped below
     }
     setScroll(scrollX, scrollY); // shifts the new rows
   }
@@ -6280,7 +6323,7 @@ public final class El {
     double before = rows.heights == null ? 0 : rowTop(anchor);
     if (placeRow(index, scale, systemFonts)) {
       measureScroll();
-      setScroll(scrollX, follow ? maxScrollY : scrollY + rowTop(anchor) - before);
+      setScroll(scrollX, follow ? endY() : scrollY + rowTop(anchor) - before);
     }
   }
 
