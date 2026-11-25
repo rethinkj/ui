@@ -2,6 +2,7 @@ package com.rethinkj.ui.kit;
 
 import static com.rethinkj.ui.El.col;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
@@ -128,7 +129,7 @@ class TitleBarTest {
     Script.run("size 560 120\nframe\nsnap active", app, out);
     int topActive = pixel("active", 16, 1);
     int bottom = pixel("active", 16, (int) theme.caption().height() - 1);
-    assertTrue(topActive != theme.surface().window(), "glow tints near the icon");
+    assertNotEquals(theme.surface().window(), topActive, "glow tints near the icon");
     assertEquals(theme.surface().window(), bottom, "no seam at the bar's bottom edge");
     app.windowActive(false);
     Script.run("frame\nsnap inactive", app, out);
