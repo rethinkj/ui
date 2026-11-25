@@ -1253,6 +1253,16 @@ final class Editor {
     }
   }
 
+  /** Whether a non-empty range is selected. */
+  boolean hasSelection() {
+    return caret != anchor;
+  }
+
+  /** The selected text, or empty when nothing is selected or the field is masked. */
+  String selectedText() {
+    return caret == anchor || masked() ? "" : text.substring(start(), end());
+  }
+
   /** Cuts the selection; a masked field does nothing, as it copies nothing. */
   void cut(Clipboard clipboard) {
     if (caret != anchor && editable() && !masked()) {
@@ -1667,6 +1677,63 @@ final class Editor {
     return moved;
   }
 
+  /**
+   * Sets the selection range for a cross-field {@link El#selectionScope} selection, scrolling only
+   * when {@code revealCaret} is true.
+   */
+  boolean setRange(int newAnchor, int newCaret, boolean revealCaret) {
+    newAnchor = snap(newAnchor);
+    newCaret = snap(newCaret);
+    boolean moved = newCaret != caret || newAnchor != anchor || !composition.isEmpty();
+    if (!moved) {
+      return false;
+    }
+    composition = "";
+    anchor = newAnchor;
+    caret = newCaret;
+    stopAt = -1;
+    doc.clearRun(this);
+    goal = Float.NaN;
+    changed = true;
+    reveal |= revealCaret;
+    return true;
+  }
+
+  /** Collapses the selection to the caret without scrolling. */
+  boolean collapse() {
+    return setRange(caret, caret, false);
+  }
+
+  /** Like {@link #drag(int, int)}, from an explicit anchor range and selection unit. */
+  boolean dragFrom(int from, int to, int dragUnit, int boundary, int hit) {
+    boolean multi = multiline();
+    return switch (dragUnit) {
+      case 1 -> setRange(from, boundary, true);
+      case 2, 3 -> {
+        if (dragUnit == 3 && !multi) {
+          yield setRange(0, text.length(), true);
+        }
+        int[] range = dragUnit == 2 ? wordAt(hit) : lineAt(hit);
+        if (range[0] < from) {
+          yield setRange(to, range[0], true);
+        }
+        yield setRange(from, Math.max(range[1], to), true);
+      }
+      default -> setRange(0, text.length(), true);
+    };
+  }
+
+  /** The caret endpoint in this field when a cross-field drag reaches {@code (boundary, hit)}. */
+  int dragEnd(int boundary, int hit, int dragUnit, boolean forward) {
+    boolean multi = multiline();
+    return switch (dragUnit) {
+      case 1 -> boundary;
+      case 2 -> wordAt(hit)[forward ? 1 : 0];
+      case 3 -> multi ? lineAt(hit)[forward ? 1 : 0] : (forward ? text.length() : 0);
+      default -> forward ? text.length() : 0;
+    };
+  }
+
   /** The line of a multi-line field at {@code index}, with its line feed and any folded lines. */
   private int[] lineAt(int index) {
     Lines ls = lines();
@@ -1724,8 +1791,17 @@ final class Editor {
    * Without the focus the text shows its start, and neither caret nor selection.
    */
   void place(boolean focused, boolean caretOn) {
+    place(focused, focused, caretOn);
+  }
+
+  /**
+   * Like {@link #place(boolean, boolean)}, with {@code showSelection} letting a field that does
+   * not have the focus still show its part of a {@link El#selectionScope} selection without a
+   * caret.
+   */
+  void place(boolean focused, boolean showSelection, boolean caretOn) {
     if (multiline()) {
-      placeLines(focused, caretOn);
+      placeLines(focused, showSelection, caretOn);
       return;
     }
     Text t = el.text();
@@ -1741,7 +1817,8 @@ final class Editor {
     float width = t.contentWidth();
     float lineWidth = t.lineWidth(line);
     float s = 0;
-    if (focused && lineWidth + caretWidth > width) {
+    // An unfocused field keeps its part of a scope selection in view, without a caret.
+    if (showSelection && lineWidth + caretWidth > width) {
       float margin = Math.min(MARGIN * scale, Math.max(0, (width - caretWidth) / 2));
       s = scroll * scale;
       if (caretX - s < margin) {
@@ -1758,7 +1835,7 @@ final class Editor {
     float top = t.lineTop(line);
     float height = t.lineHeight();
     List<Text.Box> selection = new ArrayList<>();
-    if (focused && composition.isEmpty() && caret != anchor) {
+    if (showSelection && composition.isEmpty() && caret != anchor) {
       for (int l = t.lineOf(start()); l <= t.lineOf(end()); l++) {
         float from = t.x(Math.max(start(), t.lineStart(l)));
         float to = t.x(Math.min(end(), t.lineEnd(l)));
@@ -1784,7 +1861,7 @@ final class Editor {
    * El#coveredTop}), and the caret with {@link #MARGIN} to spare sideways. Then the rows
    * in view are laid out, and the selection is drawn on those.
    */
-  private void placeLines(boolean focused, boolean caretOn) {
+  private void placeLines(boolean focused, boolean showSelection, boolean caretOn) {
     Text t = el.text();
     if (!t.laidOut()) {
       t.decorate(0, List.of(), null, null); // not placed: display: none
@@ -1863,7 +1940,7 @@ final class Editor {
       moved = t.layOut();
     }
     float viewX = t.viewX();
-    boolean selecting = focused && composition.isEmpty() && caret != anchor;
+    boolean selecting = showSelection && composition.isEmpty() && caret != anchor;
     List<Text.Box> selection =
         selecting ? t.selectionBoxes(start(), end(), viewX + t.contentWidth()) : List.of();
     List<Text.Box> blockSelection = selecting ? t.blockSelectionBoxes(start(), end()) : List.of();

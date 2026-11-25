@@ -1,0 +1,6 @@
+size 560 260
+frame
+snap view
+press role=button label="Explorer"
+frame
+snap closed

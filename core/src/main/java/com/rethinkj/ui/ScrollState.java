@@ -49,6 +49,10 @@ public final class ScrollState {
   double y;
   boolean followEnd;
   boolean atEnd = true;
+  // The answers atEnd() gave since the view was last built again for them: a frame in which
+  // layout or scrolling makes one of them wrong builds the view again.
+  boolean toldEnd;
+  boolean toldAway;
   // Asked for its end by scrollToEnd until its rows are measured: those rows keep it there.
   boolean toEnd;
   // The element that has it now, the only one whose scrolling writes here: not the one of an
@@ -113,9 +117,13 @@ public final class ScrollState {
 
   /**
    * Whether the area's vertical offset was at its bottom end when last laid out (also {@code true}
-   * when the content fits and nothing scrolls).
+   * when the content fits and nothing scrolls). A view that asks is built again in the frame in
+   * which layout or scrolling changes the answer, so that a "Jump to newest" button shows exactly
+   * while the area is away from its end.
    */
   public boolean atEnd() {
+    toldEnd |= atEnd;
+    toldAway |= !atEnd;
     return atEnd;
   }
 

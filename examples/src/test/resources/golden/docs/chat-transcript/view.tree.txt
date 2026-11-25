@@ -1,0 +1,49 @@
+el 0,0 680x340
+  el 12,12 656x316
+    el 13,13 654x314
+      el #list role=log label="Transcript" 13,13 654x314 rows 0-9/10 scroll 0,121 thumb-y 659,83.83 6x178.61
+        el 29,-100 622x51 pos=1/10
+          el role=article label="User message" 29,-92 622x35
+            el 387,-92 264x35
+              text role=paragraph "Which queries got slower this week?" 400,-83 238x17
+        el 29,-49 622x33 pos=2/10
+          el role=article label="Agent message" 29,-41 622x17
+            el 29,-41 622x17
+              text role=paragraph "Only the open orders query, since Monday." 29,-41 622x17 readonly lines 1-1/1
+        el 29,-16 622x51 pos=3/10
+          el role=article label="User message" 29,-8 622x35
+            el 223,-8 428x35
+              text role=paragraph "Why did the orders query slow down after Monday's release?" 236,1 402x17
+        el 29,35 622x50 pos=4/10
+          el role=article label="Agent message" 29,43 622x34
+            el 29,43 622x34
+              text role=paragraph "The orders table grew past 1.8M rows and has no composite index on (status, created_at), so PostgreSQL switched from an index scan to a sequential scan." 29,43 622x34 readonly lines 1-1/1
+        el 29,85 622x51 pos=5/10
+          el role=article label="User message" 29,93 622x35
+            el 320,93 331x35
+              text role=paragraph "Can we add the index without blocking writes?" 333,102 305x17
+        el 29,136 622x91 pos=6/10
+          el role=article label="Agent message" 29,144 622x75
+            el 29,144 622x75
+              text role=paragraph "Yes — build it concurrently so writes keep running:" 29,144 622x17 readonly lines 1-1/1
+              el role=group 29,169 622x50
+                text role=code label="sql" "CREATE INDEX CONCURRENTLY orders_status_created\n  ON orders (status, created_at);" 30,170 620x48 readonly lines 1-2/2
+        el 29,227 622x51 pos=7/10
+          el role=article label="User message" 29,235 622x35
+            el 419,235 232x35
+              text role=paragraph "How much space will that take?" 432,244 206x17
+        el 29,278 622x50 pos=8/10
+          el role=article label="Agent message" 29,286 622x34
+            el 29,286 622x34
+              text role=paragraph "About 68 MB for the current 1.8M rows. Run ANALYZE orders; afterward so the planner picks it up immediately." 29,286 622x34 readonly lines 1-1/1
+        el 29,328 622x51 pos=9/10
+          el role=article label="User message" 29,336 622x35
+            el 291,336 360x35
+              text role=paragraph "Should we drop the single-column index on status?" 304,345 334x17
+        el 29,379 622x50 pos=10/10
+          el role=article label="Agent message" 29,387 622x34
+            el 29,387 622x34
+              text role=paragraph "Yes — orders_status_created leads with status, so it serves equality lookups on status alone too." 29,387 622x34 readonly lines 1-1/1
+      el #jump-to-newest role=button label="Jump to newest" 268,291 144x24
+        text label="arrow_down" "\u{F147}" 281,295 16x16
+        text "Jump to newest" 301,295 98x16

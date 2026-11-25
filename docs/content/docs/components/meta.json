@@ -26,6 +26,7 @@
     "title-bar",
     "status-bar",
     "toolbar",
+    "rail",
     "breadcrumb",
     "divider",
     "---Overlays---",

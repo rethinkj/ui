@@ -1,10 +1,13 @@
 package com.rethinkj.ui;
 
 import static com.rethinkj.ui.El.col;
+import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.text.TextLibraries;
 import com.rethinkj.ui.text.TextRendering;
@@ -239,5 +242,141 @@ class FieldDragTest {
     app.frame();
     assertEquals(List.of("3 START", "3 END"), app.state().log);
     assertEquals(2, app.state().selected, "a drag is no press");
+  }
+
+  private static El byKey(El root, String key) {
+    if (key.equals(root.key())) {
+      return root;
+    }
+    for (El child : root.children()) {
+      El found = byKey(child, key);
+      if (found != null) {
+        return found;
+      }
+    }
+    return null;
+  }
+
+  @Test
+  void selectionScopeSelectsExtendsCopiesAndClearsAcrossReadOnlyFields() {
+    App<Object> app = new App<>(
+        new Object(),
+        state -> col()
+            .wFull()
+            .hFull()
+            .padding(10)
+            .gap(12)
+            .child(col()
+                .key("scope")
+                .selectionScope()
+                .gap(12)
+                .child(El.text("alpha one")
+                    .editable(v -> {})
+                    .readOnly()
+                    .key("f0")
+                    .w(160)
+                    .h(24)
+                    .padding(0, 4))
+                .child(col()
+                    .selectionScope() // nested scope counts as the outermost one
+                    .child(El.text("beta two")
+                        .editable(v -> {})
+                        .readOnly()
+                        .key("f1")
+                        .w(160)
+                        .h(24)
+                        .padding(0, 4)))
+                .child(El.text("secret")
+                    .editable(v -> {})
+                    .readOnly()
+                    .masked()
+                    .key("secret")
+                    .w(160)
+                    .h(24)
+                    .padding(0, 4))
+                .child(El.text("gamma three")
+                    .editable(v -> {})
+                    .readOnly()
+                    .key("f2")
+                    .w(160)
+                    .h(24)
+                    .padding(0, 4)))
+            .child(el().key("outside").w(160).h(24)));
+    app.textRendering(TextRendering.LINUX);
+    app.resize(200, 220, 1);
+    app.frame();
+
+    // f0: y 10..34, f1: y 46..70, secret: y 82..106, f2: y 118..142, outside: y 154..178
+    // Drag downwards from middle of f0 across nested f1 and masked secret into middle of f2.
+    app.pointerDown(42, 22);
+    app.pointerMove(42, 37); // gap closer to f0 than f1
+    app.frame();
+    assertFalse(byKey(app.tree(), "f1").editor().hasSelection(), "gap near f0 stays in f0");
+
+    app.pointerMove(42, 43); // gap closer to f1 than f0
+    app.frame();
+    assertTrue(byKey(app.tree(), "f1").editor().hasSelection(), "gap near f1 enters f1");
+
+    app.pointerMove(52, 130); // inside f2
+    app.pointerUp(52, 130);
+    app.frame();
+
+    El f0 = byKey(app.tree(), "f0");
+    El f2 = byKey(app.tree(), "f2");
+    assertEquals("beta two", byKey(app.tree(), "f1").editor().selectedText());
+    assertFalse(
+        byKey(app.tree(), "secret").editor().hasSelection(),
+        "a masked field never joins a scope selection");
+    // Unfocused fields of the scope show their selection without a caret.
+    assertSame(f2, app.focused());
+    assertFalse(f0.text().selection().isEmpty(), "unfocused f0 shows its selection");
+    assertNull(f0.text().caret(), "unfocused f0 shows no caret");
+
+    String expectedDown =
+        f0.editor().selectedText() + "\nbeta two\n" + f2.editor().selectedText();
+    app.keyDown(new Key("C", Key.CONTROL, false));
+    app.frame();
+    assertEquals(expectedDown, app.clipboard().read());
+    app.clipboard().write("stale");
+    app.keyDown(new Key("Insert", Key.CONTROL, false));
+    app.frame();
+    assertEquals(expectedDown, app.clipboard().read(), "Control+Insert also copies across fields");
+
+    // Drag upwards from middle of f2 into middle of f0: the copy is still in tree order.
+    app.pointerDown(52, 130);
+    app.pointerMove(42, 22);
+    app.pointerUp(42, 22);
+    app.frame();
+    f0 = byKey(app.tree(), "f0");
+    f2 = byKey(app.tree(), "f2");
+    app.keyDown(new Key("C", Key.CONTROL, false));
+    app.frame();
+    assertEquals("beta two", byKey(app.tree(), "f1").editor().selectedText());
+    assertEquals(
+        f0.editor().selectedText() + "\nbeta two\n" + f2.editor().selectedText(),
+        app.clipboard().read());
+
+    // Shift+press extends from the scope's anchor.
+    app.pointerDown(42, 22);
+    app.pointerUp(42, 22);
+    app.frame();
+    int anchor = byKey(app.tree(), "f0").editor().anchor();
+    app.pointerDown(48, 58, 1, Key.SHIFT); // into f1
+    app.pointerUp(48, 58);
+    app.frame();
+    assertEquals(anchor, byKey(app.tree(), "f0").editor().anchor());
+    assertTrue(byKey(app.tree(), "f1").editor().caret() > 0);
+    app.pointerDown(52, 130, 1, Key.SHIFT); // further into f2 from f0's anchor
+    app.pointerUp(52, 130);
+    app.frame();
+    assertEquals("beta two", byKey(app.tree(), "f1").editor().selectedText());
+
+    // A press outside the scope's fields clears the cross-field selection.
+    app.pointerDown(50, 166); // on #outside
+    app.pointerUp(50, 166);
+    app.frame();
+    assertFalse(byKey(app.tree(), "f0").editor().hasSelection());
+    assertFalse(byKey(app.tree(), "f2").editor().hasSelection());
+    assertTrue(byKey(app.tree(), "f1").text().selection().isEmpty());
   }
 }

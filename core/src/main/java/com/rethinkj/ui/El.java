@@ -148,6 +148,7 @@ public final class El {
   private boolean keepsFocus; // see #keepFocus
   private boolean inert; // see #inert
   private boolean holdsFocus; // see #holdFocus
+  private boolean selectionScope; // see #selectionScope
   private Consumer<El> focusRestLook; // see #whenFocusVisibleFor
   private double focusRestDelay;
   private boolean skipsTab; // see #skipTab
@@ -1427,7 +1428,9 @@ public final class El {
       return y;
     }
     double top = before.rowsTop(); // the offset in the rows' coordinates, the padding kept
-    return y < top ? y : top + rows.heights.moved(y - top);
+    double moved = rows.heights.moved(Math.max(0, y - top));
+    // Rows that come above a list scrolled into its top padding put its first row at the top.
+    return y < top && moved == 0 ? y : top + moved;
   }
 
   /** The version of this list's keyed {@link RowHeights} when it was built, 0 without one. */
@@ -4472,6 +4475,19 @@ public final class El {
   }
 
   /**
+   * Groups the {@link #readOnly read-only} text fields inside this element into one selection, in
+   * tree order: dragging from one field into another selects across them, Shift+press extends from
+   * the anchor across fields, Control+C copies the selected text of all of them in order with a
+   * line break between fields, and a press elsewhere clears it. Nested scopes count as the
+   * outermost one. In a {@link #rows virtual list}, only rows that are built take part; a {@link
+   * #masked masked} field never joins.
+   */
+  public El selectionScope() {
+    this.selectionScope = true;
+    return this;
+  }
+
+  /**
    * Makes this element take the keyboard focus when it appears: in the build of the view that
    * first has it, the first such element in tree order that can take the focus gets it, with a
    * ring if the focus had one, and scrolled into view; later builds leave the focus alone. In a
@@ -4862,6 +4878,11 @@ public final class El {
   /** Whether {@link #holdFocus} was called. */
   public boolean holdsFocus() {
     return holdsFocus;
+  }
+
+  /** Whether {@link #selectionScope} was called. */
+  public boolean isSelectionScope() {
+    return selectionScope;
   }
 
   /** For placement and {@link Animator}: where this overlay goes, null if no call said. */

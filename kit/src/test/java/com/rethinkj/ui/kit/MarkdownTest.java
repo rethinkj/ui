@@ -448,6 +448,88 @@ class MarkdownTest {
     }
   }
 
+  @Test
+  void draggingAcrossBlocksSelectsAndCopiesAndFragmentsJoinInAScope() throws IOException {
+    String source = """
+        First paragraph with words.
+
+        - list item one
+        - list item two
+
+        ```sql
+        SELECT id FROM orders;
+        ```
+
+        Trailing paragraph.
+        """;
+    App<Doc> app = app(source);
+    app.textRendering(TextRendering.LINUX);
+    String image = "markdown-selection-dark-2x";
+    Script.run("""
+        size 480 280 scale 2
+        frame
+        down text="First paragraph with words." at left+32
+        move role=code at left+80
+        up role=code at left+80
+        frame
+        snap %s
+        key C control
+        frame""".formatted(image), app, out);
+    String tree = Files.readString(out.resolve(image + ".tree.txt"));
+    Golden.assertMatches(image, Png.decode(Files.readAllBytes(out.resolve(image + ".png"))), tree);
+
+    assertEquals(
+        "paragraph with words.\nlist item one\nlist item two\nSELECT id",
+        app.clipboard().read(),
+        tree);
+
+    // Shift+press extends from the anchor into the trailing paragraph, and a press outside clears.
+    Script.run("""
+        press text="Trailing paragraph." at left+48 shift
+        frame
+        key C control
+        frame""", app, out);
+    String extended = app.clipboard().read();
+    assertTrue(extended.contains("SELECT id FROM orders;\n"), extended);
+    assertTrue(extended.endsWith("Trailing") || extended.contains("\nTrail"), extended);
+
+    Script.run("""
+        press 4,4
+        frame
+        clipboard "cleared"
+        key C control
+        frame""", app, out);
+    assertEquals("cleared", app.clipboard().read());
+
+    // Two fragments inside an enclosing selectionScope() join into one selection.
+    MarkdownDocument first = Markdown.parse("Message one text.");
+    MarkdownDocument second = Markdown.parse("Message two text.");
+    App<Object> chat = new App<>(
+            new Object(),
+            state -> col()
+                .wFull()
+                .hFull()
+                .padding(16)
+                .gap(12)
+                .selectionScope()
+                .fill(Theme.DARK.surface().panel())
+                .child(Markdown.fragment(first, Markdown.options()))
+                .child(Markdown.fragment(second, Markdown.options())))
+        .provide(Theme.CURRENT, state -> Theme.DARK);
+    chat.textRendering(TextRendering.LINUX);
+    Script.run("""
+        size 400 160 scale 2
+        frame
+        down text="Message one text." at left+52
+        move text="Message two text." at left+70
+        up text="Message two text." at left+70
+        frame
+        key C control
+        frame""", chat, out);
+    String joined = chat.clipboard().read();
+    assertTrue(joined.contains("one text.\nMessage"), joined);
+  }
+
   private static El paragraph(El el) {
     if ("paragraph".equals(el.role())) {
       return el;

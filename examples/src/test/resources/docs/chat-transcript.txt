@@ -1,0 +1,7 @@
+size 680 340
+frame
+wheel role=log 0 -110
+frame
+advance 1
+frame
+snap view

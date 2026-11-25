@@ -10,6 +10,8 @@ import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.Drop;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Len;
+import com.rethinkj.ui.RowHeights;
+import com.rethinkj.ui.ScrollState;
 import com.rethinkj.ui.Style;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -17,12 +19,14 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
+import java.util.function.IntFunction;
 
 /**
- * Chat messages and composer in the theme's tokens: a user message in a bubble at the end side
- * ({@link #user}), an agent's answer as Markdown prose or composed parts over the full width
- * ({@link #agent}), collapsible one-line tool call rows ({@link #tool}), a spinner line while the
- * agent is still working ({@link #working}), and a growing composer card with an action bar ({@link
+ * Chat messages, transcript and composer in the theme's tokens: a virtual transcript that follows
+ * the newest message ({@link #transcript}), a user message in a bubble at the end side ({@link
+ * #user}), an agent's answer as Markdown prose or composed parts over the full width ({@link
+ * #agent}), collapsible one-line tool call rows ({@link #tool}), a spinner line while the agent is
+ * still working ({@link #working}), and a growing composer card with an action bar ({@link
  * #composer}).
  *
  * <pre>{@code
@@ -51,7 +55,9 @@ import java.util.function.IntConsumer;
  * receives its text, attachments and working flag from the app. Passing a null {@code onToggle}
  * disables expanding a tool call.
  *
- * <p>In a tree dump, user and agent messages are {@code role=article} labeled by {@link
+ * <p>In a tree dump, {@link #transcript} contains a {@code role=log} virtual list labeled by {@link
+ * Texts#transcript} and, while scrolled away from the end, a {@code role=button} labeled by {@link
+ * Texts#jumpToNewest}; user and agent messages are {@code role=article} labeled by {@link
  * Texts#userMessage} and {@link Texts#agentMessage}, a tool call's header row is {@code
  * role=button} with the title as its label, {@link Texts#toolState} as its {@code value}, {@code
  * expanded} or {@code expanded=false}, {@code busy} while running and {@code invalid} when failed,
@@ -421,6 +427,97 @@ public final class Chat {
         .gap(theme.space().s())
         .align(Style.Align.CENTER)
         .children(Progress.spinner(), label(Label.Variant.MUTED, shown));
+  }
+
+  /**
+   * A virtual list of {@code count} chat messages centered in a column up to {@link
+   * Theme.Prose#measure()} wide that follows the newest message while at the bottom, keeps its
+   * place when scrolled up, and shows a floating button over its bottom while away from the end to
+   * jump back. Give it a height, or let it {@link El#grow} in a column, as any scroll area.
+   *
+   * <p>The app keeps {@code scroll} and {@code heights} in its state and passes the same instances
+   * on every build. {@code transcript} enables {@link ScrollState#followEnd()} on {@code scroll}.
+   *
+   * @param count number of messages
+   * @param message builds the message element for an index, such as {@link #user} or {@link #agent}
+   * @param scroll scroll state owned by the app
+   * @param heights row heights owned by the app; construct with a row key ({@link
+   *     RowHeights#RowHeights(java.util.function.IntToDoubleFunction, IntFunction)}) if older
+   *     messages can be inserted at the top
+   */
+  public static El transcript(
+      int count, IntFunction<El> message, ScrollState scroll, RowHeights heights) {
+    return transcript(count, message, scroll, heights, null);
+  }
+
+  /**
+   * A virtual chat transcript like {@link #transcript(int, IntFunction, ScrollState, RowHeights)}
+   * that also calls {@code onLoadOlder} when the top of the list comes near the view (when row
+   * {@code 0} is built, which is also the case for a first message taller than the view). One look at the top can call it more than once: the app ignores the calls while a
+   * page loads, and passes {@code null} once no older messages remain. Construct {@code heights} with a stable key per message so inserting older messages at
+   * index {@code 0} keeps what is in view at the same place.
+   *
+   * @param count number of messages
+   * @param message builds the message element for an index, such as {@link #user} or {@link #agent}
+   * @param scroll scroll state owned by the app
+   * @param heights row heights owned by the app
+   * @param onLoadOlder runs when row {@code 0} is built, or {@code null} for none
+   */
+  public static El transcript(
+      int count,
+      IntFunction<El> message,
+      ScrollState scroll,
+      RowHeights heights,
+      Runnable onLoadOlder) {
+    Objects.requireNonNull(message, "message");
+    Objects.requireNonNull(scroll, "scroll");
+    Objects.requireNonNull(heights, "heights");
+    Theme theme = Theme.CURRENT.get();
+    Texts texts = Texts.CURRENT.get();
+    scroll.followEnd();
+    float measure = theme.prose().measure();
+    El list = col()
+        .key("list")
+        .role("log")
+        .label(texts.transcript())
+        .wFull()
+        .grow(1)
+        .minSize(0, 0)
+        .padding(theme.space().m(), theme.space().xl())
+        .scrollbars(theme.scrollbars())
+        .scrollState(scroll)
+        .rows(count, heights, index -> {
+          El at = Objects.requireNonNull(message.apply(index), "message").wFull();
+          at.style().maxWidth = Len.px(measure);
+          return col().align(Style.Align.CENTER).padding(theme.space().m(), 0).child(at);
+        });
+    if (onLoadOlder != null) {
+      list.onRowsBuilt((first, last) -> {
+        if (first == 0) {
+          onLoadOlder.run();
+        }
+      });
+    }
+    El root = col().minSize(0, 0).child(list);
+    if (!scroll.atEnd()) {
+      El jump = Button.button(
+              Button.Variant.SECONDARY,
+              texts.jumpToNewest(),
+              scroll::scrollToEnd,
+              Button.options().icon(Symbol.ARROW_DOWN))
+          .key("jump-to-newest")
+          .alignSelf(Style.Align.CENTER)
+          // The button lies over the list, not in it: the wheel over it scrolls the list.
+          .onWheel((deltaX, deltaY, modifiers, x, y) -> {
+            scroll.scrollTo(scroll.x(), scroll.y() + deltaY);
+            return deltaY != 0;
+          });
+      Style at = jump.style();
+      at.position = Style.Position.ABSOLUTE;
+      at.bottom = Len.px(theme.space().l());
+      root.child(jump);
+    }
+    return root;
   }
 
   /**

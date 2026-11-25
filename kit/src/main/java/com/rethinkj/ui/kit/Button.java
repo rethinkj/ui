@@ -11,6 +11,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Shadow;
+import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
 import java.util.List;
 import java.util.Objects;
@@ -145,6 +146,8 @@ public final class Button {
     private Tone tone = Tone.NEUTRAL;
     private Size size = Size.REGULAR;
     private Key shortcut;
+    private Side tipSide;
+    private String tipDescription;
 
     private Options() {}
 
@@ -212,6 +215,24 @@ public final class Button {
       return this;
     }
 
+    /** As {@link #shortcut(int, String)}; null for none. */
+    Options shortcut(Key key) {
+      this.shortcut = key;
+      return this;
+    }
+
+    /** Which side of the button its tooltip opens on; null for the default. */
+    Options tipSide(Side side) {
+      this.tipSide = side;
+      return this;
+    }
+
+    /** Secondary text shown below the label in the tooltip; null for none. */
+    Options tipDescription(String description) {
+      this.tipDescription = description;
+      return this;
+    }
+
     /** A copy, for a toolbar that gives it its item's icon. */
     Options copy() {
       Options copy = new Options();
@@ -222,6 +243,8 @@ public final class Button {
       copy.tone = tone;
       copy.size = size;
       copy.shortcut = shortcut;
+      copy.tipSide = tipSide;
+      copy.tipDescription = tipDescription;
       return copy;
     }
 
@@ -230,9 +253,16 @@ public final class Button {
       return state == State.DISABLED;
     }
 
-    /** The tooltip's options: the shortcut on keycaps, if there is one. */
+    /** The tooltip's options: the shortcut on keycaps, side and description, if any. */
     private Tooltip.Options tip() {
-      return Tooltip.options().shortcut(shortcut);
+      Tooltip.Options tip = Tooltip.options().shortcut(shortcut);
+      if (tipSide != null) {
+        tip.side(tipSide, Style.Align.CENTER);
+      }
+      if (tipDescription != null) {
+        tip.description(tipDescription);
+      }
+      return tip;
     }
   }
 
@@ -522,9 +552,19 @@ public final class Button {
    * @param onToggle told the new state; null disables the button
    */
   public static El toggleIcon(Icon icon, String label, boolean on, Consumer<Boolean> onToggle) {
+    return toggleIcon(icon, label, on, onToggle, options());
+  }
+
+  /** As {@link #toggleIcon(Icon, String, boolean, Consumer)}, with button options. */
+  static El toggleIcon(
+      Icon icon, String label, boolean on, Consumer<Boolean> onToggle, Options options) {
     Theme theme = Theme.CURRENT.get();
     El button = icon(
-            Variant.GHOST, icon, label, onToggle == null ? null : () -> onToggle.accept(!on))
+            Variant.GHOST,
+            icon,
+            label,
+            onToggle == null ? null : () -> onToggle.accept(!on),
+            options)
         .checked(on);
     return on ? pressedIn(theme, button, onToggle != null) : button;
   }
