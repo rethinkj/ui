@@ -226,7 +226,7 @@ public final class Text implements Measure {
   private String shown;
   private Lines shownLines;
   private final Map<Integer, Para> shapedLines = new HashMap<>();
-  private long shapedLineCharacters; // put into shapedLines since it was last emptied
+  private long shapedLineCharacters; // of the lines in shapedLines
   private float tabStop;
   private float advance; // of an average character, for the estimate of rows
   private float viewX;
@@ -2614,7 +2614,7 @@ public final class Text implements Measure {
                 if (width == slot.width) {
                   return false;
                 }
-                shapedLines.remove(row.line);
+                dropShaped(row.line);
                 viewStale = true;
                 return true;
               }
@@ -2631,7 +2631,7 @@ public final class Text implements Measure {
           if (width == slot.width) {
             return false;
           }
-          shapedLines.remove(row.line);
+          dropShaped(row.line);
           viewStale = true;
           return true;
         }
@@ -2687,6 +2687,14 @@ public final class Text implements Measure {
     shownLines.wrap(
         new Wrapping(placedWidth, font(), size, scale, List.of(features), tabSize, systemFonts),
         Math.max(placedWidth / Math.max(advance, 1), 1));
+  }
+
+  /** Drops shaped line {@code line}, so that the next {@link #para} shapes it anew. */
+  private void dropShaped(int line) {
+    Para dropped = shapedLines.remove(line);
+    if (dropped != null) {
+      shapedLineCharacters -= dropped.text.length();
+    }
   }
 
   /** Line {@code line} of the shown string shaped, with its rows at the width; measured once. */
@@ -3179,7 +3187,7 @@ public final class Text implements Measure {
       }
       Spans spans = lines.spans(row.line, shown, highlighter, highlightKey);
       if (spans != null) {
-        shapedLines.remove(row.line);
+        dropShaped(row.line);
         gained = true;
       } else {
         stillPending = true;
