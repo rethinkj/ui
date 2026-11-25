@@ -3,6 +3,7 @@ package com.rethinkj.ui.kit;
 import static com.rethinkj.ui.El.col;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -65,6 +66,7 @@ class MarkdownTest {
   static final class Doc {
     final MarkdownDocument document;
     final Markdown.State selection = new Markdown.State();
+    final Find.State find = new Find.State();
     final List<String> links = new ArrayList<>();
     final Map<String, com.rethinkj.ui.Image> images = new HashMap<>();
     App<Doc> app;
@@ -657,6 +659,202 @@ class MarkdownTest {
         Integer.parseInt(upLines.get(1).split(" ")[1]) + 1,
         Integer.parseInt(upLines.get(2).split(" ")[1]),
         String.join("\n", upLines));
+  }
+
+  private static App<Doc> findApp(String source) {
+    Doc doc = new Doc(source);
+    Theme t = Theme.DARK;
+    App<Doc> app = new App<>(
+        doc,
+        d -> col()
+            .wFull()
+            .hFull()
+            .fill(t.surface().panel())
+            .child(Find.find(
+                d.app,
+                Markdown.markdown(
+                        d.document,
+                        Markdown.options()
+                            .onLink(d.links::add)
+                            .copy(d.app.clipboard())
+                            .state(d.selection)
+                            .images(d.images::get))
+                    .grow(1),
+                d.find)));
+    doc.app = app;
+    app.textRendering(TextRendering.LINUX);
+    return app;
+  }
+
+  @Test
+  void findAcrossMarkdownBlocksCountsMarksStepsAndCopies() throws IOException {
+    String source = """
+        # Order Guide
+
+        Review every order in the queue.
+
+        - First order item
+        - Second item
+
+        ```sql
+        SELECT id FROM orders;
+        ```
+        """;
+    App<Doc> app = findApp(source);
+
+    // Click inside a read-only paragraph and press Control+F: keys bubble to the scope.
+    Script.run("""
+        size 640 320 scale 2
+        frame
+        press text="Review every order in the queue." at left+20
+        frame
+        key F control
+        frame
+        type "order"
+        frame
+        snap first""", app, out);
+    String first = Files.readString(out.resolve("first.tree.txt"));
+    assertTrue(first.contains("#find role=search"), first);
+    assertFalse(first.contains("#toggle-replace"), "scope find bar has no replace toggle");
+    assertFalse(first.contains("#in-selection"), "scope find bar has no find-in-selection switch");
+    assertTrue(countLine(first).contains("\"1 of 4\""), countLine(first));
+
+    // Control+G does nothing in a scope (no go-to-line).
+    Script.run("""
+        key G control
+        frame
+        snap after-g""", app, out);
+    assertFalse(Files.readString(out.resolve("after-g.tree.txt")).contains("#line-field"));
+
+    // Enter steps to match 2 in the paragraph, marks it as underlined, and Escape + Ctrl+C copies.
+    Script.run("""
+        key Enter
+        frame
+        snap second""", app, out);
+    String second = Files.readString(out.resolve("second.tree.txt"));
+    assertTrue(countLine(second).contains("\"2 of 4\""), countLine(second));
+    assertTrue(
+        second.contains("\"Review every order in the queue.\"")
+            && second.contains("underline 13-18"),
+        second);
+
+    // Shift+Enter steps back to match 1, and Shift+Enter again wraps to match 4 in the code block.
+    Script.run("""
+        key Enter shift
+        frame
+        key Enter shift
+        frame
+        snap fourth
+        key Escape
+        frame
+        clipboard "stale"
+        key C control
+        frame""", app, out);
+    String fourth = Files.readString(out.resolve("fourth.tree.txt"));
+    assertTrue(countLine(fourth).contains("\"4 of 4\""), countLine(fourth));
+    assertEquals("order", app.clipboard().read());
+
+    // F3 while closed wraps to match 1 ("Order") and Ctrl+C copies it.
+    Script.run("""
+        key F3
+        frame
+        clipboard "stale"
+        key C control
+        frame""", app, out);
+    assertEquals("Order", app.clipboard().read());
+  }
+
+  /** {x, y, width, height} of the first line of a tree dump that contains {@code part}. */
+  private static float[] bounds(String tree, String part) {
+    String line = tree.lines().filter(l -> l.contains(part)).findFirst().orElseThrow();
+    java.util.regex.Matcher m = java.util.regex.Pattern.compile(
+            " (-?[\\d.]+),(-?[\\d.]+) ([\\d.]+)x([\\d.]+)")
+        .matcher(line.substring(line.indexOf(part) + part.length()));
+    assertTrue(m.find(), line);
+    return new float[] {
+      Float.parseFloat(m.group(1)),
+      Float.parseFloat(m.group(2)),
+      Float.parseFloat(m.group(3)),
+      Float.parseFloat(m.group(4))
+    };
+  }
+
+  @Test
+  void findStepsIntoOutOfViewVirtualRows() throws IOException {
+    StringBuilder source = new StringBuilder();
+    for (int i = 0; i < 200; i++) {
+      if (i == 2 || i == 150 || i == 195) {
+        source.append("Paragraph ").append(i).append(" contains needle here.\n\n");
+      } else {
+        source.append("Paragraph ").append(i).append(" filler words.\n\n");
+      }
+    }
+    App<Doc> app = findApp(source.toString());
+
+    Script.run("""
+        size 560 220 scale 2
+        frame
+        press text="Paragraph 0 filler words." at left+20
+        frame
+        key F control
+        frame
+        type "needle"
+        frame
+        snap m1""", app, out);
+    String m1 = Files.readString(out.resolve("m1.tree.txt"));
+    assertTrue(countLine(m1).contains("\"1 of 3\""), countLine(m1));
+    assertFalse(m1.contains("Paragraph 150 contains needle here."), "row 150 is not built yet");
+
+    // Enter jumps to match 2 in row 150, scrolling it into view and building it.
+    Script.run("""
+        key Enter
+        frame
+        snap m2""", app, out);
+    String m2 = Files.readString(out.resolve("m2.tree.txt"));
+    assertTrue(countLine(m2).contains("\"2 of 3\""), countLine(m2));
+    assertTrue(m2.contains("Paragraph 150 contains needle here."), m2);
+    El p150 = findParagraph(app.tree(), "Paragraph 150 contains needle here.");
+    assertNotNull(p150, "row 150 is built");
+    assertFalse(p150.text().selection().isEmpty(), "row 150 shows the match selection");
+    assertTrue(m2.contains("underline 23-29"), m2);
+
+    // Enter to row 195, then Shift+Enter back up to row 150: it comes into view below the bar.
+    Script.run("""
+        key Enter
+        frame
+        key Enter shift
+        frame
+        snap back""", app, out);
+    String back = Files.readString(out.resolve("back.tree.txt"));
+    float[] bar = bounds(back, "#find role=search");
+    float[] match = bounds(back, "\"Paragraph 150 contains needle here.\"");
+    assertTrue(match[1] >= bar[1] + bar[3], back);
+
+    // Escape closes the bar while row 0 is scrolled out; Ctrl+C still copies the match in row 150.
+    Script.run("""
+        key Escape
+        frame
+        clipboard "stale"
+        key C control
+        frame""", app, out);
+    assertEquals("needle", app.clipboard().read());
+
+    // F3 steps to row 195, and F3 again wraps back to row 2.
+    Script.run("""
+        key F3
+        frame
+        snap m3
+        key F3
+        frame
+        snap wrap""", app, out);
+    assertTrue(Files.readString(out.resolve("m3.tree.txt"))
+        .contains("Paragraph 195 contains needle here."));
+    assertTrue(Files.readString(out.resolve("wrap.tree.txt"))
+        .contains("Paragraph 2 contains needle here."));
+  }
+
+  private static String countLine(String tree) {
+    return tree.lines().filter(l -> l.contains("#count ")).findFirst().orElse("");
   }
 
   private static El findParagraph(El el, String value) {

@@ -152,6 +152,7 @@ public final class Text implements Measure {
   private Highlighter highlighter;
   private Object highlightKey;
   private Decorator decorator;
+  private Decorator scopeDecorator;
   private int outlineFrom;
   private int outlineTo;
   private int outlineColor;
@@ -677,6 +678,13 @@ public final class Text implements Measure {
   void decorator(Decorator decorator) {
     this.decorator = decorator;
     viewStale = true;
+  }
+
+  void scopeDecorator(Decorator decorator) {
+    if (!Objects.equals(this.scopeDecorator, decorator)) {
+      this.scopeDecorator = decorator;
+      viewStale = true;
+    }
   }
 
   void outline(int from, int to, int argb) {
@@ -3178,6 +3186,7 @@ public final class Text implements Measure {
     if (placeholderShown
         || !outlined
             && decorator == null
+            && scopeDecorator == null
             && (highlighter == null
                 || placed.stream()
                     .noneMatch(row -> row.para.spans != null
@@ -3196,10 +3205,15 @@ public final class Text implements Measure {
     for (Row row : placed) {
       Para para = row.para;
       Spans decor = null;
-      if (decorator != null) {
+      if (decorator != null || scopeDecorator != null) {
         decor = decorated.computeIfAbsent(row.line, line -> {
           Spans out = new Spans(para.text.length(), false);
-          decorator.line(line, lines.start(line), para.text, out);
+          if (decorator != null) {
+            decorator.line(line, lines.start(line), para.text, out);
+          }
+          if (scopeDecorator != null) {
+            scopeDecorator.line(line, lines.start(line), para.text, out);
+          }
           return out;
         });
       }

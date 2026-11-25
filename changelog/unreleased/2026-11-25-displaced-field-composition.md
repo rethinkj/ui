@@ -1,0 +1,1 @@
+- A focused text field with a `FieldState` keeps its input-method composition and undo typing run when another field with a `FieldState` is inserted before it.

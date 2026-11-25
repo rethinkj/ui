@@ -27,6 +27,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntConsumer;
+import java.util.function.IntPredicate;
 import java.util.function.Predicate;
 
 /**
@@ -281,6 +282,9 @@ public final class App<S> {
   private long imageMemory = Scene.DEFAULT_IMAGE_MEMORY;
   private boolean systemFonts;
   private final Map<Object, Editor> editors = new HashMap<>(); // the fields' state, by identity
+  // Editors with a FieldState displaced from their identity during attachEditors; sweepEditors
+  // leaves the ones whose field did not re-attach under another identity.
+  private final Set<Editor> displaced = Collections.newSetFromMap(new IdentityHashMap<>());
   private Clipboard clipboard = Clipboard.inMemory();
   private Dialogs dialogs = Dialogs.NONE;
   private Browser browser = Browser.NONE;
@@ -290,6 +294,10 @@ public final class App<S> {
   private boolean ran; // a handler ran in this frame; see ranHandlers()
   private Editor blinking; // the editor of the focused field
   private ScopeSelection scopeSelection; // active selection across read-only fields in a scope
+  private final Map<El, ScopeIndex> scopeIndexes = new IdentityHashMap<>(); // see scopeIndex
+  // Cached field identity -> whole-width ordinal for rows of spans lists, cleared per build/frame.
+  private final Map<El, Map<Integer, Map<Object, Integer>>> rowOrdinalCache =
+      new IdentityHashMap<>();
   long builds; // the number of the view's last build, for the fields' FieldState; tests read it
   private El typingSoon; // a field of the last tree that a press not dispatched yet lands in
   private double blinkStart; // when its caret last turned on
@@ -1315,7 +1323,7 @@ public final class App<S> {
     }
 
     boolean covers(int row, int field) {
-      if (!hasSelection()) {
+      if (field < 0 || !hasSelection()) {
         return false;
       }
       return start().compareField(row, field) >= 0 && finish().compareField(row, field) <= 0;
@@ -1323,7 +1331,7 @@ public final class App<S> {
 
     /** Returns {@code {anchor, caret}} for a field in this selection, or null when outside it. */
     int[] editorRangeFor(int row, int field, int length) {
-      if (!hasSelection()) {
+      if (field < 0 || !hasSelection()) {
         return null;
       }
       ScopePosition s = start();
@@ -1343,7 +1351,7 @@ public final class App<S> {
 
     /** Returns {@code {from, to}} ordered character offsets for copying, or null when outside. */
     int[] sliceFor(int row, int field, int length) {
-      if (!hasSelection()) {
+      if (field < 0 || !hasSelection()) {
         return null;
       }
       ScopePosition s = start();
@@ -1374,6 +1382,7 @@ public final class App<S> {
       El el,
       int row,
       int ordinal,
+      Object id,
       float left,
       float top,
       float right,
@@ -1669,13 +1678,13 @@ public final class App<S> {
       handled |= focused.editor().answerPending();
       return true;
     }
-    // The focused field of a selection across a scope waits for its row, as after a scroll.
-    Editor waiting = focus.element() == null && focus.waits() ? editors.get(focus.id()) : null;
+    // The focused field of a selection across a scope waits for its row, as after a scroll, or
+    // nothing has focus after App#select(El, int, int) on a scope.
     if (isCopy(key)
-        && waiting != null
-        && waiting.element() != null
-        && isScopeFieldCandidate(waiting.element())
-        && isScopeSelectedId(focus.id())) {
+        && focus.element() == null
+        && (focus.waits()
+            ? isScopeSelectedId(focus.id())
+            : scopeSelection != null && scopeSelection.hasSelection())) {
       copyScopeSelection();
       handled = true;
       return true;
@@ -1712,6 +1721,11 @@ public final class App<S> {
         }
         return true;
       }
+    }
+    if (isCopy(key) && isScopeSelectedId(focus.id())) {
+      copyScopeSelection();
+      handled = true;
+      return true;
     }
     if (key.name().equals("ContextMenu") && key.modifiers() == 0
         || key.name().equals("F10") && key.modifiers() == Key.SHIFT) {
@@ -2713,9 +2727,31 @@ public final class App<S> {
    * larger; with its focus ring as far as an area's padding has room for it.
    */
   private void reveal(El el) {
+    reveal(el, 0, 0, el.width(), el.height(), true, null, 0);
+  }
+
+  /**
+   * Scrolls the scroll areas around {@code el}, the innermost first, just far enough to show the
+   * rectangle {@code (rx, ry, rw, rh)} relative to {@code el}'s border box whole inside theirs,
+   * below the top {@code covered} of {@code cover} on the path where that lies over an area.
+   */
+  private boolean reveal(
+      El el, float rx, float ry, float rw, float rh, boolean withRing, El cover, float covered) {
     List<El> full = new ArrayList<>();
-    pathTo(root, el, full);
+    if (root == null || !pathTo(root, el, full)) {
+      return false;
+    }
     List<El> path = fromOverlay(full); // the areas around an overlay stay where they are
+    float coveredTo = Float.NEGATIVE_INFINITY;
+    float coverY = 0;
+    for (int j = 0; cover != null && covered > 0 && j < path.size(); j++) {
+      coverY += path.get(j).y();
+      if (path.get(j) == cover) {
+        coveredTo = Math.max(coverY, 0) + covered; // an overlay stays in the window
+        break;
+      }
+    }
+    boolean moved = false;
     for (int i = path.size() - 2; i >= 0; i--) {
       El area = path.get(i);
       if (!area.isScrollArea()) {
@@ -2727,8 +2763,8 @@ public final class App<S> {
         areaX += path.get(j).x();
         areaY += path.get(j).y();
       }
-      float x = areaX;
-      float y = areaY;
+      float x = areaX + rx;
+      float y = areaY + ry;
       for (int j = i + 1; j < path.size(); j++) {
         x += path.get(j).x();
         y += path.get(j).y();
@@ -2754,34 +2790,38 @@ public final class App<S> {
                 - area.padding(Side.BOTTOM)
                 - area.coverY());
         double nextX = area.isFieldPart(next)
-            ? area.scrollX() + revealDelta(x, el.width(), viewX, viewW)
+            ? area.scrollX() + revealDelta(x, rw, viewX, viewW)
             : area.scrollX();
-        if (area.scrollTo(nextX, area.scrollY() + revealDelta(y, el.height(), viewY, viewH))
-            && (keyScroll || focusByKey)
-            && animator.wasSeen(area)) {
-          revealedScrolls.add(animator.identity(area));
+        float shown = coveredTo > viewY && coveredTo < viewY + viewH ? coveredTo - viewY : 0;
+        if (area.scrollTo(
+            nextX, area.scrollY() + revealDelta(y, rh, viewY + shown, viewH - shown))) {
+          moved = true;
+          if ((keyScroll || focusByKey) && animator.wasSeen(area)) {
+            revealedScrolls.add(animator.identity(area));
+          }
         }
         continue;
       }
       // With its ring as far as the area's padding has room for it, so that the clip cuts none
       // of it; rows that fill a list edge to edge come flush, their rings drawn inside.
-      float ring = Scene.RING + el.focusRingGap();
+      float ring = withRing ? Scene.RING + el.focusRingGap() : 0;
       float left = Math.min(ring, area.padding(Side.LEFT));
       float right = Math.min(ring, area.padding(Side.RIGHT));
       float up = Math.min(ring, area.padding(Side.TOP));
       float down = Math.min(ring, area.padding(Side.BOTTOM));
+      float viewH = area.height() - area.coverY();
+      float shown = coveredTo > areaY && coveredTo < areaY + viewH ? coveredTo - areaY : 0;
       if (area.scrollTo(
-              area.scrollX()
-                  + revealDelta(
-                      x - left, el.width() + left + right, areaX, area.width() - area.coverX()),
-              area.scrollY()
-                  + revealDelta(
-                      y - up, el.height() + up + down, areaY, area.height() - area.coverY()))
-          && (keyScroll || focusByKey)
-          && animator.wasSeen(area)) {
-        revealedScrolls.add(animator.identity(area));
+          area.scrollX()
+              + revealDelta(x - left, rw + left + right, areaX, area.width() - area.coverX()),
+          area.scrollY() + revealDelta(y - up, rh + up + down, areaY + shown, viewH - shown))) {
+        moved = true;
+        if ((keyScroll || focusByKey) && animator.wasSeen(area)) {
+          revealedScrolls.add(animator.identity(area));
+        }
       }
     }
+    return moved;
   }
 
   /** Compares both edges in window coordinates, at the precision used to place the focus ring. */
@@ -3355,6 +3395,7 @@ public final class App<S> {
     frames++;
     resizeRounds = 0;
     highlightBudget.reset();
+    rowOrdinalCache.clear();
     if (keyPressed != null && keyPressKey == null && time >= keyPressUntil) {
       keyPressed = null; // the look of a key that is up ends; wanted() then differs from shown
     }
@@ -3499,6 +3540,9 @@ public final class App<S> {
         El field = blinking.element();
         if (field.takePartsBuilt()) { // a block a look took was built anew
           finishBuiltParts(field, animator.identity(field), asking);
+          if (!displaced.isEmpty()) {
+            sweepEditors(); // a part's field took another's identity after the frame's sweep
+          }
         }
       }
       drawn = true;
@@ -3513,6 +3557,7 @@ public final class App<S> {
     }
     edgeScrolling = updateEdgeScrollState();
     tellInView(); // the rows as the frame shows them, after everything that places elements
+    rowOrdinalCache.clear();
     long input = inputEnd - start - inputBuild;
     timing = new Timing(input, buildNanos, System.nanoTime() - start - input - buildNanos);
     return drawn;
@@ -3594,8 +3639,10 @@ public final class App<S> {
   }
 
   private void buildTree(boolean between, boolean last) {
+    rowOrdinalCache.clear();
     List<Object> ids = Animator.identities(pointed());
     long start = System.nanoTime();
+    scopeIndexes.clear(); // the view's rows may say something else now
     El built = WindowState.CURRENT.with(
         new WindowState(active, maximized, scale), () -> view.apply(state));
     buildNanos += System.nanoTime() - start;
@@ -3768,6 +3815,9 @@ public final class App<S> {
         if (capture instanceof Selecting s && s.id().equals(id) && s.scopeId() == null) {
           capture = IDLE; // a press on a field that moved on, which the new editor never had
         }
+        if (editor != null) {
+          displaced.add(editor);
+        }
         editor = new Editor(el); // not the editor of a field with a FieldState that moved on
         editors.put(id, editor);
       }
@@ -3789,6 +3839,7 @@ public final class App<S> {
           state.editor = new Editor(el, state.document);
         }
         editor = state.editor;
+        displaced.remove(editor);
         Editor was = editors.put(id, editor);
         if (was != editor) { // back in the tree, maybe where another field was
           // A scope's drag holds positions, not this field.
@@ -3799,7 +3850,7 @@ public final class App<S> {
             if (was.element().fieldState() == null) {
               was.drop();
             } else {
-              was.leave();
+              displaced.add(was);
             }
           }
           editor.returned();
@@ -4021,6 +4072,14 @@ public final class App<S> {
       }
       return true;
     });
+    for (Editor editor : displaced) {
+      if (editor != waiting
+          && !kept.contains(editor)
+          && editor.element().fieldState().app == this) {
+        editor.leave(); // its field left the tree, not moved to another identity
+      }
+    }
+    displaced.clear();
   }
 
   /**
@@ -4583,13 +4642,36 @@ public final class App<S> {
   }
 
   /**
-   * Selects from {@code anchor} to {@code caret} in a text field, or puts the caret there when they
-   * are equal, and scrolls it into view as a key does, a multi-line field also while it does not
-   * have the focus: a match that a find bar found while the focus is in the bar. The positions
-   * are indexes into the string, moved to the grapheme boundary at or before them. A handler may
-   * call this as {@link #edit}.
+   * The text of all read-only, unmasked fields inside a {@link El#selectionScope selection scope},
+   * in tree order and joined with {@code "\n"}—the same text Control+C copies for a whole-scope
+   * selection. For a scope that contains a {@link El#rows virtual list}, rows that are not built yet
+   * are built for this call without being kept.
+   *
+   * @param scope an element marked with {@link El#selectionScope()}
+   * @throws IllegalArgumentException if {@code scope} is null or not a selection scope
+   */
+  public String scopeText(El scope) {
+    if (scope == null || !scope.isSelectionScope()) {
+      throw new IllegalArgumentException(
+          "scopeText is for an element marked with El.selectionScope().");
+    }
+    return scopeIndex(scope).text();
+  }
+
+  /**
+   * Selects from {@code anchor} to {@code caret} in a text field or across a {@link
+   * El#selectionScope selection scope}, or puts the caret there when they are equal, and scrolls it
+   * into view as a key does, a multi-line field or selection scope also while it does not have the
+   * focus: a match that a find bar found while the focus is in the bar. For a selection scope, the
+   * positions are indexes into {@link #scopeText(El)}, scrolling the target row of any virtual list
+   * and the target field into view so Control+C copies the selection. The positions are moved to
+   * the grapheme boundary at or before them. A handler may call this as {@link #edit}.
    */
   public void select(El field, int caret, int anchor) {
+    if (field != null && field.isSelectionScope()) {
+      selectScope(field, caret, anchor);
+      return;
+    }
     Object id = fieldId(field, "select");
     enqueue(() -> {
       settle();
@@ -4607,6 +4689,106 @@ public final class App<S> {
       now.editor().select(caret, anchor);
       handled |= now.editor().unfoldPending();
       scrolled = true; // its jump is placed before the next input hit tests, as a scroll's is
+      return true;
+    });
+  }
+
+  /** {@link #select(El, int, int)} for an {@link El#selectionScope} element. */
+  private void selectScope(El scope, int caret, int anchor) {
+    Object scopeId = animator.identity(scope);
+    if (scopeId == null) {
+      throw new IllegalArgumentException(
+          "select is for a text field or selection scope of the last frame's tree");
+    }
+    enqueue(() -> {
+      settle();
+      El now = animator.liveElement(scopeId);
+      if (now == null || !now.isSelectionScope()) {
+        return false;
+      }
+      if (capture instanceof Selecting s
+          && (scopeId.equals(s.scopeId()) || inScope(s.id(), scopeId))) {
+        capture = IDLE;
+      }
+      ScopeIndex index = scopeIndex(now);
+      if (index.starts().length == 0) {
+        clearScopeSelection(null);
+        return false;
+      }
+      int anchorAt = index.fieldAt(anchor);
+      int caretAt = index.fieldAt(caret);
+      ScopePosition anchorPos = index.position(anchorAt, anchor);
+      ScopePosition caretPos = index.position(caretAt, caret);
+      El anchorField = index.fields()[anchorAt];
+      El caretField = index.fields()[caretAt];
+      El list = scopeList(now);
+      Object listId = list == null ? null : animator.identity(list);
+      int rowsVersion = list == null ? 0 : list.rowsVersion();
+      Object anchorRowKey =
+          list != null && anchorPos.inRows() ? list.rowKey(anchorPos.row()) : null;
+      Object endRowKey = list != null && caretPos.inRows() ? list.rowKey(caretPos.row()) : null;
+      Object anchorFieldId =
+          anchorPos.inRows() ? null : fieldKey(anchorField, animator.identity(anchorField));
+      Object endFieldId =
+          caretPos.inRows() ? null : fieldKey(caretField, animator.identity(caretField));
+      clearScopeSelection(null);
+      ScopeSelection next = new ScopeSelection(
+          scopeId,
+          anchorPos,
+          anchorPos,
+          caretPos,
+          listId,
+          rowsVersion,
+          anchorRowKey,
+          endRowKey,
+          anchorFieldId,
+          endFieldId);
+      scopeSelection = next;
+      if (list != null && caretPos.inRows()) {
+        if (listId != null) {
+          rowGoals.remove(listId);
+        }
+        if (list.scrollState() != null) {
+          list.scrollState().toEnd = false;
+        }
+        int row = caretPos.row();
+        for (int pass = 0; pass < 3; pass++) {
+          if (!list.scrollTo(list.scrollX(), list.offsetShowing(row))) {
+            if (pass == 0 && !list.hasRow(row)) {
+              fillRows();
+              continue;
+            }
+            break;
+          }
+          scrolled = true;
+          fillRows();
+        }
+      }
+      El target = caretPos.inRows()
+          ? builtScopeRowField(list, caretPos.row(), caretPos.field())
+          : caretField;
+      if (target != null && target.editor() != null) {
+        Editor editor = target.editor();
+        int[] range =
+            next.editorRangeFor(caretPos.row(), caretPos.field(), editor.text().length());
+        if (range != null) {
+          editor.select(range[1], range[0]);
+        } else {
+          editor.select(caretPos.offset(), caretPos.offset());
+        }
+        target.text().unfocused(false);
+        reveal(target);
+        if (target.text().multiline()
+            && target.text().laidOut()
+            && target.text().viewStale()) {
+          target.text().layOut();
+        }
+        float[] box = editor.caretBox();
+        if (box != null) {
+          reveal(target, box[0], box[1], box[2], box[3], false, now, now.scopeCoveredTop());
+        }
+      }
+      scrolled = true;
       return true;
     });
   }
@@ -4987,11 +5169,16 @@ public final class App<S> {
         return false;
       }
       if (row == s.row() || row == f.row()) {
-        El container = rowRootOn(path);
-        if (container == null) {
-          return false;
+        El list = animator.liveElement(scopeSelection.listId);
+        if (list != null && list.spansRows()) {
+          ordinal = rowFieldOrdinal(list, scopeSelection.listId, row, null, el, id);
+        } else {
+          El container = rowRootOn(path);
+          if (container == null) {
+            return false;
+          }
+          ordinal = fieldOrdinalIn(container, el);
         }
-        ordinal = fieldOrdinalIn(container, el);
         if (ordinal < 0) {
           return false;
         }
@@ -5031,7 +5218,9 @@ public final class App<S> {
     if (scope == null) {
       return;
     }
-    for (ScopeField sf : scopeFields(scope)) {
+    ScopePosition s = scopeSelection.start();
+    ScopePosition f = scopeSelection.finish();
+    for (ScopeField sf : scopeFields(scope, r -> r == s.row() || r == f.row())) {
       Editor editor = sf.el.editor();
       int[] range =
           scopeSelection.editorRangeFor(sf.row, sf.ordinal, editor.text().length());
@@ -5082,12 +5271,11 @@ public final class App<S> {
       return true;
     }
     El list = scopeList(scope);
-    El container =
-        list != null && list.hasRow(row) ? list.children().get(row - list.firstRow()) : null;
-    if (container == null) {
+    if (list == null || !list.hasRow(row)) {
       return false;
     }
-    int ordinal = fieldOrdinalIn(container, el);
+    El container = list.children().get(row - list.firstRow());
+    int ordinal = rowFieldOrdinal(list, scopeSelection.listId, row, container, el, id);
     return ordinal >= 0 && scopeSelection.covers(row, ordinal);
   }
 
@@ -5159,7 +5347,7 @@ public final class App<S> {
     ScopePosition finish = scopeSelection.finish();
     List<ScopeField> outside =
         start.row() == ScopePosition.BEFORE || finish.row() == ScopePosition.AFTER
-            ? scopeFields(scope)
+            ? scopeFields(scope, r -> false)
             : List.of();
     StringBuilder out = new StringBuilder();
     if (start.row() == ScopePosition.BEFORE) {
@@ -5264,15 +5452,20 @@ public final class App<S> {
       if (row < 0 || row >= list.rowCount()) {
         return null;
       }
-      El rowEl = list.rowElement(row);
-      if (rowEl == null) {
-        return null;
+      int ordinal;
+      if (list.spansRows()) {
+        ordinal = rowOrdinals(list, listId, row).getOrDefault(focus.id(), -1);
+      } else {
+        El rowEl = list.rowElement(row);
+        if (rowEl == null) {
+          return null;
+        }
+        El target = Animator.find(rowEl, Animator.row(listId, row), focus.id());
+        if (target == null) {
+          return null;
+        }
+        ordinal = fieldOrdinalIn(rowEl, target);
       }
-      El target = Animator.find(rowEl, Animator.row(listId, row), focus.id());
-      if (target == null) {
-        return null;
-      }
-      int ordinal = fieldOrdinalIn(rowEl, target);
       return ordinal < 0 ? null : new ScopePosition(row, ordinal, waiting.anchor());
     }
     return null;
@@ -5280,12 +5473,76 @@ public final class App<S> {
 
   /** Finds the {@link ScopeField} entry for a built field inside {@code scope}, or null. */
   private ScopeField scopeFieldOf(El scope, El field) {
-    for (ScopeField sf : scopeFields(scope)) {
+    El list = scopeList(scope);
+    int targetRow = -1;
+    if (list != null && list.spansRows()) {
+      Object listId = animator.identity(list);
+      Object fieldId = animator.identity(field);
+      if (listId != null && fieldId != null) {
+        targetRow = Animator.rowIn(fieldId, listId);
+      }
+    }
+    int resolve = targetRow;
+    for (ScopeField sf : scopeFields(scope, r -> r == resolve)) {
       if (sf.el == field) {
-        return sf;
+        return sf.ordinal < 0 ? null : sf;
       }
     }
     return null;
+  }
+
+  /**
+   * Maps each read-only unmasked field's identity in row {@code row} of spans list {@code list}
+   * (with identity {@code listId}) to its ordinal in that row built for the list's whole content
+   * width, cached per row for the current build/frame.
+   */
+  private Map<Object, Integer> rowOrdinals(El list, Object listId, int row) {
+    Map<Integer, Map<Object, Integer>> byRow =
+        rowOrdinalCache.computeIfAbsent(list, ignored -> new HashMap<>());
+    Map<Object, Integer> cached = byRow.get(row);
+    if (cached != null) {
+      return cached;
+    }
+    El whole = list.rowElement(row);
+    Map<Object, Integer> ordinals;
+    if (whole == null) {
+      ordinals = Map.of();
+    } else {
+      ordinals = new HashMap<>();
+      collectRowOrdinals(whole, Animator.row(listId, row), new int[] {0}, ordinals);
+    }
+    byRow.put(row, ordinals);
+    return ordinals;
+  }
+
+  private static void collectRowOrdinals(
+      El el, Object id, int[] ordinal, Map<Object, Integer> out) {
+    if (!numbered(el)) {
+      return;
+    }
+    if (isScopeFieldCandidate(el)) {
+      out.putIfAbsent(id, ordinal[0]++);
+    }
+    List<El> children = el.children();
+    Object[] childIds = Animator.childIds(el, id);
+    for (int i = 0; i < children.size(); i++) {
+      collectRowOrdinals(children.get(i), childIds[i], ordinal, out);
+    }
+  }
+
+  /**
+   * The ordinal of built field {@code field} (with identity {@code fieldId}) in row {@code row} of
+   * {@code list} (with identity {@code listId}), or -1 if unmatched.
+   */
+  private int rowFieldOrdinal(
+      El list, Object listId, int row, El container, El field, Object fieldId) {
+    if (list != null && list.spansRows()) {
+      if (listId == null || fieldId == null) {
+        return -1;
+      }
+      return rowOrdinals(list, listId, row).getOrDefault(fieldId, -1);
+    }
+    return container == null ? -1 : fieldOrdinalIn(container, field);
   }
 
   /**
@@ -5295,6 +5552,222 @@ public final class App<S> {
    */
   private static boolean numbered(El el) {
     return !el.isExiting() && el.style().display != Style.Display.NONE && !el.isInert();
+  }
+
+  /** Visits the non-empty shown read-only unmasked fields of a selection scope in tree order. */
+  @FunctionalInterface
+  private interface ScopeFieldVisitor {
+    void visit(int row, int ordinal, El field, String text);
+  }
+
+  /**
+   * Walks the fields of {@code scope} as {@link #scopeFields} numbers them: with {@code unbuilt}
+   * every row of its virtual list, building those that are not, else only the built rows, whose
+   * ordinals in a list that builds the columns in view are those of the columns built.
+   */
+  private static void walkScopeFields(El scope, boolean unbuilt, ScopeFieldVisitor visitor) {
+    if (numbered(scope) && scope.opacity() != 0) {
+      walkScope(
+          scope, scopeList(scope), new int[] {ScopePosition.BEFORE, 0}, true, unbuilt, visitor);
+    }
+  }
+
+  private static void walkScope(
+      El el, El list, int[] pos, boolean shown, boolean unbuilt, ScopeFieldVisitor visitor) {
+    if (!numbered(el)) {
+      return;
+    }
+    shown &= el.opacity() != 0; // a hidden field keeps its ordinal
+    if (el == list) {
+      int first = unbuilt ? 0 : el.firstRow();
+      int last =
+          !shown ? first : unbuilt ? el.rowCount() : first + el.children().size();
+      List<El> rowFields = new ArrayList<>();
+      for (int row = first; row < last; row++) {
+        El rowEl = unbuilt ? el.rowElement(row) : el.children().get(row - first);
+        if (rowEl == null) {
+          continue;
+        }
+        rowFields.clear();
+        collectRowFields(rowEl, true, rowFields);
+        for (int ord = 0; ord < rowFields.size(); ord++) {
+          El field = rowFields.get(ord);
+          String text = field == null ? "" : fieldText(field);
+          if (!text.isEmpty()) {
+            visitor.visit(row, ord, field, text);
+          }
+        }
+      }
+      pos[0] = ScopePosition.AFTER;
+      pos[1] = 0;
+      return;
+    }
+    if (isScopeFieldCandidate(el)) {
+      int ord = pos[1]++;
+      String text = shown ? fieldText(el) : "";
+      if (!text.isEmpty()) {
+        visitor.visit(pos[0], ord, el, text);
+      }
+    }
+    for (El child : el.children()) {
+      walkScope(child, list, pos, shown, unbuilt, visitor);
+    }
+  }
+
+  /**
+   * A scope's fields as one text ({@link #scopeText}): the text and, per field in tree order, its
+   * row and ordinal, where it starts, how many lines come before it, and the field itself outside
+   * the rows of a virtual list.
+   */
+  private record ScopeIndex(
+      String text, int[] rows, int[] ordinals, int[] starts, int[] lines, El[] fields) {
+
+    private int end(int i) {
+      return i + 1 < starts.length ? starts[i + 1] - 1 : text.length();
+    }
+
+    /** The first field that ends at or after {@code offset}, else the last. */
+    int fieldAt(int offset) {
+      int lo = 0;
+      int hi = starts.length - 1;
+      while (lo < hi) {
+        int mid = (lo + hi) >>> 1;
+        if (end(mid) < offset) {
+          lo = mid + 1;
+        } else {
+          hi = mid;
+        }
+      }
+      return lo;
+    }
+
+    /** {@code offset} as a position in field {@code i}, on a grapheme boundary. */
+    ScopePosition position(int i, int offset) {
+      String field = text.substring(starts[i], end(i));
+      int local = Math.clamp((long) offset - starts[i], 0, field.length());
+      return new ScopePosition(rows[i], ordinals[i], Editor.snap(field, local));
+    }
+
+    /** The field at {@code (row, ordinal)}, or -1. */
+    int indexOf(int row, int ordinal) {
+      int lo = 0;
+      int hi = starts.length - 1;
+      while (lo <= hi) {
+        int mid = (lo + hi) >>> 1;
+        int cmp = rows[mid] != row ? Integer.compare(rows[mid], row) : ordinals[mid] - ordinal;
+        if (cmp == 0) {
+          return mid;
+        }
+        if (cmp < 0) {
+          lo = mid + 1;
+        } else {
+          hi = mid - 1;
+        }
+      }
+      return -1;
+    }
+  }
+
+  /**
+   * The index of a scope, kept until the view builds again: until then its virtual list builds
+   * its rows with the same function, so the next match need not read every row again.
+   */
+  private ScopeIndex scopeIndex(El scope) {
+    return scopeIndexes.computeIfAbsent(scope, App::indexScope);
+  }
+
+  private static ScopeIndex indexScope(El scope) {
+    StringBuilder text = new StringBuilder();
+    List<int[]> places = new ArrayList<>();
+    List<El> fields = new ArrayList<>();
+    int[] lines = {0};
+    walkScopeFields(scope, true, (row, ordinal, field, part) -> {
+      if (!places.isEmpty()) {
+        text.append('\n');
+        lines[0]++;
+      }
+      places.add(new int[] {row, ordinal, text.length(), lines[0]});
+      fields.add(ScopePosition.inRows(row) ? null : field);
+      text.append(part);
+      for (int i = part.indexOf('\n'); i >= 0; i = part.indexOf('\n', i + 1)) {
+        lines[0]++;
+      }
+    });
+    int n = places.size();
+    int[][] columns = new int[4][n];
+    for (int i = 0; i < n; i++) {
+      for (int c = 0; c < 4; c++) {
+        columns[c][i] = places.get(i)[c];
+      }
+    }
+    return new ScopeIndex(
+        text.toString(), columns[0], columns[1], columns[2], columns[3], fields.toArray(El[]::new));
+  }
+
+  /** Returns the built read-only field at {@code (row, ordinal)} inside {@code list}, or null. */
+  private El builtScopeRowField(El list, int row, int ordinal) {
+    if (list == null || !list.hasRow(row)) {
+      return null;
+    }
+    El rowEl = list.children().get(row - list.firstRow());
+    List<El> rowFields = new ArrayList<>();
+    collectRowFields(rowEl, true, rowFields);
+    if (list.spansRows()) { // the ordinal counts the columns of the whole width
+      Object listId = animator.identity(list);
+      for (El field : rowFields) {
+        if (field != null
+            && rowFieldOrdinal(list, listId, row, null, field, animator.identity(field))
+                == ordinal) {
+          return field;
+        }
+      }
+      return null;
+    }
+    return ordinal >= 0 && ordinal < rowFields.size() ? rowFields.get(ordinal) : null;
+  }
+
+  /** Translates a scope decorator's line and character offsets to one built field of the scope. */
+  private record ScopeFieldDecorator(Decorator decorator, int lineOffset, int charOffset)
+      implements Decorator {
+    @Override
+    public void line(int line, int start, String text, Spans out) {
+      decorator.line(lineOffset + line, charOffset + start, text, out);
+    }
+  }
+
+  /** Hands each built field of every decorated selection scope its part of the decorator. */
+  private void syncScopeDecorators(El el) {
+    if (el.isExiting()) {
+      return;
+    }
+    if (el.isSelectionScope() && el.decorator() != null) {
+      Decorator decorator = el.decorator();
+      ScopeIndex index = scopeIndex(el);
+      El list = scopeList(el);
+      Object listId = list == null ? null : animator.identity(list);
+      walkScopeFields(el, false, (row, ordinal, field, text) -> {
+        int whole = ScopePosition.inRows(row) && list.spansRows()
+            ? rowFieldOrdinal(list, listId, row, null, field, animator.identity(field))
+            : ordinal;
+        int i = whole < 0 ? -1 : index.indexOf(row, whole);
+        if (field.text() != null) {
+          field
+              .text()
+              .scopeDecorator(
+                  i < 0
+                      ? null
+                      : new ScopeFieldDecorator(
+                          decorator, index.lines()[i], index.starts()[i]));
+        }
+      });
+    } else {
+      for (El child : el.children()) {
+        syncScopeDecorators(child);
+      }
+    }
+    for (El overlay : el.overlays()) {
+      syncScopeDecorators(overlay);
+    }
   }
 
   /**
@@ -5352,8 +5825,13 @@ public final class App<S> {
     return false;
   }
 
-  /** Collects the built read-only, unmasked fields inside {@code scope} in tree order. */
-  private List<ScopeField> scopeFields(El scope) {
+  /**
+   * Collects the built read-only, unmasked fields inside {@code scope} in tree order. For a virtual
+   * list that builds only the columns in view sideways, rows matching {@code resolveRow} get their
+   * whole-width ordinals immediately; other rows still carry their field identities on {@link
+   * ScopeField#id} for on-demand lookup.
+   */
+  private List<ScopeField> scopeFields(El scope, IntPredicate resolveRow) {
     List<El> path = new ArrayList<>();
     if (scope == null || root == null || !pathTo(root, scope, path)) {
       return List.of();
@@ -5380,9 +5858,14 @@ public final class App<S> {
     }
     List<ScopeField> out = new ArrayList<>();
     El list = scopeList(scope);
+    Object listId = list != null && list.spansRows() ? animator.identity(list) : null;
     collectScopeFields(
         scope,
         list,
+        listId,
+        resolveRow,
+        null,
+        null,
         new int[] {ScopePosition.BEFORE, 0},
         true,
         originX,
@@ -5395,9 +5878,13 @@ public final class App<S> {
     return out;
   }
 
-  private static void collectScopeFields(
+  private void collectScopeFields(
       El el,
       El list,
+      Object listId,
+      IntPredicate resolveRow,
+      Object elId,
+      Map<Object, Integer> rowOrdinals,
       int[] pos,
       boolean shown,
       float parentX,
@@ -5429,11 +5916,20 @@ public final class App<S> {
     }
     if (el == list) {
       List<El> children = el.children();
+      boolean spans = el.spansRows() && listId != null;
       for (int i = 0; i < children.size(); i++) {
+        int row = el.firstRow() + i;
+        Object rowId = spans ? Animator.row(listId, row) : null;
+        Map<Object, Integer> ordinals =
+            spans && resolveRow.test(row) ? rowOrdinals(el, listId, row) : null;
         collectScopeFields(
             children.get(i),
             null,
-            new int[] {el.firstRow() + i, 0},
+            null,
+            resolveRow,
+            rowId,
+            ordinals,
+            new int[] {row, 0},
             shown,
             left,
             top,
@@ -5448,12 +5944,13 @@ public final class App<S> {
       return;
     }
     if (isScopeFieldCandidate(el)) {
-      int index = pos[1]++;
+      int index = rowOrdinals != null ? rowOrdinals.getOrDefault(elId, -1) : pos[1]++;
       if (shown && el.editor() != null) {
         out.add(new ScopeField(
             el,
             pos[0],
             index,
+            elId,
             left,
             top,
             right,
@@ -5464,9 +5961,25 @@ public final class App<S> {
             Math.min(bottom, clipB)));
       }
     }
-    for (El child : el.children()) {
+    List<El> children = el.children();
+    Object[] childIds = elId == null ? null : Animator.childIds(el, elId);
+    for (int i = 0; i < children.size(); i++) {
       collectScopeFields(
-          child, list, pos, shown, left, top, nextClipL, nextClipT, nextClipR, nextClipB, out);
+          children.get(i),
+          list,
+          listId,
+          resolveRow,
+          childIds == null ? null : childIds[i],
+          rowOrdinals,
+          pos,
+          shown,
+          left,
+          top,
+          nextClipL,
+          nextClipT,
+          nextClipR,
+          nextClipB,
+          out);
     }
   }
 
@@ -5509,7 +6022,7 @@ public final class App<S> {
    * fields of the scope.
    */
   private boolean selectAcrossScope(El scope, Selecting s, El targetField, float x, float y) {
-    List<ScopeField> fields = scopeFields(scope);
+    List<ScopeField> fields = scopeFields(scope, r -> false);
     int targetIdx = -1;
     for (int i = 0; i < fields.size(); i++) {
       if (fields.get(i).el == targetField) {
@@ -5524,13 +6037,23 @@ public final class App<S> {
       return false;
     }
     ScopeField targetSf = fields.get(targetIdx);
+    El list = scopeList(scope);
+    boolean spans = list != null && list.spansRows();
+    Object listId = spans ? animator.identity(list) : null;
+    int targetOrdinal = spans && ScopePosition.inRows(targetSf.row)
+        ? listId == null || targetSf.id == null
+            ? -1
+            : rowOrdinals(list, listId, targetSf.row).getOrDefault(targetSf.id, -1)
+        : targetSf.ordinal;
+    if (targetOrdinal < 0) {
+      return false;
+    }
     El target = targetSf.el;
     float[] at = local(target, x, y);
     Editor targetEditor = target.editor();
     int boundary = targetEditor.fromShown(target.text().nearest(at[0], at[1]));
     int hit = targetEditor.fromShown(target.text().hit(at[0], at[1]));
-    int fieldCmp = s.anchorFrom.compareField(targetSf.row, targetSf.ordinal);
-    El list = scopeList(scope);
+    int fieldCmp = s.anchorFrom.compareField(targetSf.row, targetOrdinal);
     int rowsVersion = list == null ? 0 : list.rowsVersion();
     boolean endInRows = ScopePosition.inRows(targetSf.row);
     Object endRowKey = list != null && endInRows ? list.rowKey(targetSf.row) : null;
@@ -5544,8 +6067,7 @@ public final class App<S> {
           changed |= fields.get(i).el.editor().collapse();
         }
       }
-      ScopePosition endPos =
-          new ScopePosition(targetSf.row, targetSf.ordinal, targetEditor.caret());
+      ScopePosition endPos = new ScopePosition(targetSf.row, targetOrdinal, targetEditor.caret());
       ScopeSelection next = new ScopeSelection(
           s.scopeId(),
           s.anchorFrom,
@@ -5564,7 +6086,7 @@ public final class App<S> {
     }
     boolean forward = fieldCmp > 0;
     int endOffset = targetEditor.dragEnd(boundary, hit, s.unit, forward);
-    ScopePosition endPos = new ScopePosition(targetSf.row, targetSf.ordinal, endOffset);
+    ScopePosition endPos = new ScopePosition(targetSf.row, targetOrdinal, endOffset);
     ScopeSelection next = new ScopeSelection(
         s.scopeId(),
         s.anchorFrom,
@@ -5578,10 +6100,17 @@ public final class App<S> {
         endFieldId);
     boolean scopeChanged = !next.sameEndpoints(scopeSelection);
     scopeSelection = next;
+    ScopePosition start = scopeSelection.start();
+    ScopePosition finish = scopeSelection.finish();
     for (ScopeField sf : fields) {
+      int ordinal =
+          spans && ScopePosition.inRows(sf.row) && (sf.row == start.row() || sf.row == finish.row())
+              ? listId == null || sf.id == null
+                  ? -1
+                  : rowOrdinals(list, listId, sf.row).getOrDefault(sf.id, -1)
+              : sf.ordinal;
       Editor editor = sf.el.editor();
-      int[] range =
-          scopeSelection.editorRangeFor(sf.row, sf.ordinal, editor.text().length());
+      int[] range = scopeSelection.editorRangeFor(sf.row, ordinal, editor.text().length());
       if (range != null) {
         changed |= editor.setRange(range[0], range[1], sf.el == target);
         sf.el.text().unfocused(false);
@@ -5815,6 +6344,9 @@ public final class App<S> {
     }
     if (built || untimed) {
       timeOverlays();
+    }
+    if (root != null) {
+      syncScopeDecorators(root);
     }
     return built;
   }

@@ -150,6 +150,8 @@ public final class El {
   private boolean inert; // see #inert
   private boolean holdsFocus; // see #holdFocus
   private boolean selectionScope; // see #selectionScope
+  private Decorator scopeDecorator; // see #decorate on a selection scope
+  private float scopeCoveredTop; // see #coveredTop on a selection scope
   private Consumer<El> focusRestLook; // see #whenFocusVisibleFor
   private double focusRestDelay;
   private boolean skipsTab; // see #skipTab
@@ -1381,7 +1383,9 @@ public final class El {
    * the coordinates of the list's content box; the list is clipped by a scroll area around it that
    * scrolls sideways, or by the window. When scrolling sideways shows a part beyond it, {@link
    * App} builds the rows anew, without running the view, as it does when scrolling shows a row
-   * that does not exist yet.
+   * that does not exist yet. Give each column's cell, and each element that holds cells, a {@link
+   * #key} so a selection across a {@link #selectionScope} stays on its columns as the list scrolls
+   * sideways.
    */
   public El rows(int count, float rowHeight, RowBuilder row) {
     if (count < 0) {
@@ -1928,20 +1932,31 @@ public final class El {
   }
 
   /**
-   * Draws backgrounds and underlines behind the lines of a {@link #multiline} field that are in
-   * view, before its selection: the line of the caret, matches of a search, a pair of brackets, an
-   * error. The decorator is asked about each line in view and a few around it whenever the field
-   * lays out its rows, keeps nothing, and so may read anything of the app's state; its colors and
-   * fonts are ignored, which are a {@link #highlight highlighter}'s.
+   * Draws backgrounds and underlines behind the lines of a {@link #multiline} field or a {@link
+   * #selectionScope selection scope} that are in view, before its selection: the line of the caret,
+   * matches of a search, a pair of brackets, an error. The decorator is asked about each line in
+   * view and a few around it whenever the field lays out its rows, keeps nothing, and so may read
+   * anything of the app's state; its colors and fonts are ignored, which are a {@link #highlight
+   * highlighter}'s.
+   *
+   * <p>On a {@link #selectionScope}, the decorator's line indices and character offsets are in the
+   * scope's combined text ({@link App#scopeText}): core passes each built read-only field (including
+   * virtual list rows built later on scroll) its part, translated to the field's own offsets and
+   * merged with the field's own decorator.
    *
    * @param decorator the function, or null for none
-   * @throws IllegalStateException if this is not a multi-line field
+   * @throws IllegalStateException if this is neither a multi-line field nor a selection scope
    */
   public El decorate(Decorator decorator) {
+    if (selectionScope) {
+      this.scopeDecorator = decorator;
+      return this;
+    }
     Text t = editableOnly("decorate");
     if (!t.multiline()) {
       throw new IllegalStateException(
-          "decorate is for multi-line fields: call it after multiline().");
+          "decorate is for multi-line fields or selection scopes: call it after multiline() or"
+              + " selectionScope().");
     }
     t.decorator(decorator);
     return this;
@@ -1949,20 +1964,20 @@ public final class El {
 
   /**
    * The decorator {@link #decorate} gave, or null; a component that adds its own marks calls it
-   * too, as a find bar does with an editor's.
+   * too, as a find bar does with an editor's or a selection scope's.
    */
   public Decorator decorator() {
-    return text == null ? null : text.decorator();
+    return selectionScope ? scopeDecorator : text == null ? null : text.decorator();
   }
 
   /**
-   * Adds a decorator to the one this field has, which marks its lines first: where marks of one
-   * kind overlap, the added one's win, as {@link Spans} says. A view that marks more in a component
-   * that decorates itself, such as a code editor, keeps the component's marks with it; {@link
-   * #decorate} replaces them.
+   * Adds a decorator to the one this field or {@link #selectionScope selection scope} has, which
+   * marks its lines first: where marks of one kind overlap, the added one's win, as {@link Spans}
+   * says. A view that marks more in a component that decorates itself, such as a code editor,
+   * keeps the component's marks with it; {@link #decorate} replaces them.
    *
    * @param decorator the function; not null
-   * @throws IllegalStateException if this is not a multi-line field
+   * @throws IllegalStateException if this is neither a multi-line field nor a selection scope
    */
   public El alsoDecorate(Decorator decorator) {
     Objects.requireNonNull(decorator, "decorator");
@@ -3212,15 +3227,25 @@ public final class El {
    * How far down from its top something lies over a {@link #multiline} field, in logical pixels,
    * such as a find bar: as far as that reaches into its content box, the field can scroll above
    * its first row, and a selection the app makes ({@link App#select}) scrolls into view below it.
-   * The thumb of its {@link #scrollbars} reaches the top of the track there. 0 unless set.
+   * The thumb of its {@link #scrollbars} reaches the top of the track there. 0 unless set. On a
+   * {@link #selectionScope}, only a selection the app makes in it scrolls into view below it.
    */
   public El coveredTop(float height) {
-    editableOnly("coveredTop");
     if (height < 0 || Float.isNaN(height)) {
       throw new IllegalArgumentException("coveredTop must be 0 or more, was " + height);
     }
+    if (selectionScope) {
+      scopeCoveredTop = height;
+      return this;
+    }
+    editableOnly("coveredTop");
     field.coveredTop = height;
     return this;
+  }
+
+  /** How far down from its top something lies over this selection scope; see coveredTop. */
+  float scopeCoveredTop() {
+    return scopeCoveredTop;
   }
 
   /** How far a multi-line field can scroll above its first row; see {@link #coveredTop}. */
@@ -4505,6 +4530,10 @@ public final class El {
    * outermost one. In a {@link #rows virtual list}, the selection spans rows out of view as well,
    * survives rows that leave and return, copies every row it covers, and scrolls the list while a
    * drag is held near or past its top or bottom edge; a {@link #masked masked} field never joins.
+   *
+   * <p>A scope can also be treated as one text by {@link App#scopeText(El)}, {@link App#select(El,
+   * int, int)} and {@link #decorate(Decorator)}, for features such as finding across all its
+   * fields.
    */
   public El selectionScope() {
     this.selectionScope = true;
@@ -5189,6 +5218,11 @@ public final class El {
     return rows != null;
   }
 
+  /** Whether this virtual list builds its rows for the part of them in view sideways. */
+  boolean spansRows() {
+    return rows != null && rows.spans;
+  }
+
   /** The number of rows of a {@link #rows virtual list}, 0 for any other element. */
   public int rowCount() {
     return rows == null ? 0 : rows.rowCount;
@@ -5856,11 +5890,16 @@ public final class El {
 
   /**
    * Returns the built row with this index if it exists, or builds it with the row function without
-   * keeping it, for reading text across rows that are out of view.
+   * keeping it, for reading text across rows that are out of view. When this list builds only the
+   * columns in view sideways, builds the row for the whole width of the list's content box so
+   * every column is present.
    */
   El rowElement(int index) {
     if (rows == null || index < 0 || index >= rows.rowCount) {
       return null;
+    }
+    if (rows.spans) {
+      return rows.rowBuilder.row(index, 0, rowWidth());
     }
     if (hasRow(index)) {
       return children.get(index - rows.firstRow);
