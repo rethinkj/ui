@@ -5353,11 +5353,14 @@ public final class El {
     }
     if (rows != null) {
       maxScrollX = 0;
-      double over =
-          rowsTop() + rowsTotal() + padding(Side.BOTTOM) + border(Side.BOTTOM) + coverY - height;
-      // A list as high as its rows, as layout rounded its edges, does not scroll by the rounding.
-      boolean asHigh = over < 1 && rows.laidTotal == laidRowsTotal();
-      maxScrollY = over > 0 && !asHigh ? over : 0;
+      double content = rowsTop() + rowsTotal() + padding(Side.BOTTOM) + border(Side.BOTTOM);
+      double over = content + coverY - height;
+      // A list as high as its rows does not scroll by what layout rounded off its edges.
+      double rounded = content - height;
+      if (rows.laidTotal == laidRowsTotal() && rounded > 0 && rounded < 1) {
+        over -= rounded;
+      }
+      maxScrollY = Math.max(over, 0);
       return;
     }
     boolean scrolls =

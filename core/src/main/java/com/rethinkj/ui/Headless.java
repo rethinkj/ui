@@ -6,6 +6,7 @@ import com.rethinkj.ui.render.Pixels;
 import com.rethinkj.ui.render.Scene;
 import com.rethinkj.ui.text.Atlas;
 import com.rethinkj.ui.text.TextRendering;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -125,7 +126,10 @@ public final class Headless {
     }
   }
 
-  /** Builds these rows, then those that the heights they measured show, a few times at most. */
+  /**
+   * Builds these rows, then those that the heights they measured show, as long as that shows other
+   * rows: a snapshot has no next frame to go on in.
+   */
   private static void buildRows(
       El el,
       int[] range,
@@ -136,7 +140,9 @@ public final class Headless {
       float windowWidth,
       float windowHeight,
       float scale) {
-    for (int pass = 0; range.length != 0 && pass < 3; pass++) {
+    int[] last = El.NO_ROWS;
+    for (int pass = 0; range.length != 0 && !Arrays.equals(range, last) && pass < 64; pass++) {
+      last = range;
       el.makeRows(range[0], range[1], row -> true); // layout placed the rows it has
       el.layoutRows(scale, false);
       for (El row : el.children()) {
