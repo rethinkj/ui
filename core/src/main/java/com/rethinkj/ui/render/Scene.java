@@ -927,7 +927,7 @@ public final class Scene {
         float fit = Float.isNaN(scale)
             ? room[c] - ringWidth - 1
             : (float) ((Math.floor((room[c] - ringWidth) * (double) scale + 1e-3) - 1) / scale);
-        strip[c] = Math.max(0, Math.min(gap, fit));
+        strip[c] = Math.clamp(fit, 0, gap);
       }
       rect(
           left + ringWidth,
