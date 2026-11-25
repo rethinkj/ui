@@ -14,19 +14,19 @@ el 0,0 560x260
   el 41,0 519x260
     el #first 49,8 180x244
       el 49,8 180x244
-        el 50,9 178x33
-          text role=heading "Explorer" 66,17 57x17 level=3
-          el 131,26 81x0
-        el 50,42 178x209
-          text "Explorer content" 62,54 154x16
+        el 50,9 178x40
+          text role=heading "Explorer" 66,21 57x17 level=3
+          el 131,29 81x0
+        el 50,49 178x202
+          text "Explorer content" 62,61 154x16
     el #rest 229,8 323x244
       el #second 237,8 315x244
         el 237,8 315x244
-          el 238,9 313x33
-            text role=heading "orders.sql" 254,17 70x17 level=3
-            el 332,26 203x0
-          el 238,42 313x209
-            text "select * from orders where total > 100" 250,54 289x16
+          el 238,9 313x40
+            text role=heading "orders.sql" 254,21 70x17 level=3
+            el 332,29 203x0
+          el 238,49 313x202
+            text "select * from orders where total > 100" 250,61 289x16
       el #divider role=separator label="Resize" 229,8 8x244 value="first 180"
         el 229,8 8x244
           el 233,8 1x244

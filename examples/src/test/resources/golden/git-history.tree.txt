@@ -243,210 +243,210 @@ el 0,0 1040x940
     el #rest 8,358 1024x574
       el #second 8,366 1024x566
         el #details label="Commit" 8,366 1024x565.99
-          el 9,367 1022x38
-            text role=heading "Commit" 25,378 53x17 level=3
-            el #hash 86,375 69x22
-              text "a41f9c2" 95,378 51x16
-            el 163,386 852x0
-          el role=separator 9,405 1022x1
-          el #body-a41f9c208b7e3d1a5c6f0b9e2d4a8c1f7e3b9d01 9,406 1022x525 thumb-y 1023,408 6x485.83
-            el 25,422 990x39
-              text "Cache parsed templates by checksum" 25,422 990x20
-              text "Avoid re-parsing unchanged templates on every render pass. Entries expire once the checksum changes on disk." 25,446 990x15
-            el #properties 25,473 990x106
-              el role=list 34,478 972x96
-                el role=listitem label="Author" 34,478 972x24 value="Ada Example"
-                  el 38,478 43x24
-                    text "Author" 38,482 43x16
-                  el 87,476 917x28
-                    el 89,480 108x20
-                      el role=img label="Ada Example" 89,480 20x20
-                        text "AE" 94,485 10x10
-                      text "Ada Example" 117,482 80x16
-                el role=listitem label="Date" 34,502 972x24 value="Nov 24, 2026, 11:22"
-                  el 38,502 43x24
-                    text "Date" 38,506 43x16
-                  el 87,500 917x28
-                    el 89,506 200x16
-                      text "Nov 24, 2026, 11:22" 89,506 120x16
-                      text "· 38 min ago" 213,506 76x16
-                el role=listitem label="Parent" 34,526 972x24 value="7be3d10"
-                  el 38,526 43x24
-                    text "Parent" 38,530 43x16
-                  el 87,524 917x28
-                    el 89,528 81x20
-                      el #parent-7be3d10 role=button label="commit 7be3d10" 89,528 81x20
-                        el 98,535 6x6
-                        text "7be3d10" 110,530 51x16
-                el role=listitem label="Refs" 34,550 972x24 value="HEAD → main, in sync with origin/main"
-                  el 38,550 43x24
-                    text "Refs" 38,554 43x16
-                  el 87,548 917x28
-                    el 89,553 62x18
-                      el label="HEAD → main, in sync with origin/main" 89,553 62x18
-                        el 95,560 4x4
-                        text "main" 103,555 28x14
-                        text label="cloud" "\u{E382}" 133,556 12x12
-            el 25,591 990x110
-              el 25,591 990x18
-                text role=heading "Changes" 25,592 55x16 level=4
-                el label="3 files" 88,591 47x18
-                  text "3 files" 94,593 35x14
-                el 143,600 820x0
-                text "+19" 971,592 22x16
-                text "−2" 1001,592 14x16
-              el #files role=list label="Changes" 25,613 990x88
-                el #file-0 role=button label="modified src/main/java/com/example/app/TemplateCache.java, +10 −1" 25,613 990x28 selected
-                  el label="M" 33,618 18x18
-                    text "M" 37,620 11x14
-                  text "TemplateCache.java" 59,619 126x16
-                  text "src/…/example/app" 193,620 734x14
-                  el 935,619 72x16
-                    text "+10" 935,619 22x16
-                    text "−1" 961,619 14x16
-                    el 979,623 28x8
-                      el 979,623 4x8
-                      el 985,623 4x8
-                      el 991,623 4x8
-                      el 997,623 4x8
-                      el 1003,623 4x8
-                el #file-1 role=button label="added src/test/java/com/example/app/TemplateCacheTest.java, +8 −0" 25,643 990x28
-                  el label="A" 33,648 18x18
-                    text "A" 38,650 8x14
-                  text "TemplateCacheTest.java" 59,649 152x16
-                  text "src/…/example/app" 219,650 715x14
-                  el 942,649 65x16
-                    text "+8" 942,649 15x16
-                    text "−0" 961,649 14x16
-                    el 979,653 28x8
-                      el 979,653 4x8
-                      el 985,653 4x8
-                      el 991,653 4x8
-                      el 997,653 4x8
-                      el 1003,653 4x8
-                el #file-2 role=button label="renamed src/main/java/com/example/app/TemplateLoader.java, +1 −1" 25,673 990x28
-                  el label="R" 33,678 18x18
-                    text "R" 38,680 8x14
-                  text "TemplateLoader.java" 59,679 129x16
-                  text "src/…/example/app" 196,680 738x14
-                  el 942,679 65x16
-                    text "+1" 942,679 15x16
-                    text "−1" 961,679 14x16
-                    el 979,683 28x8
-                      el 979,683 4x8
-                      el 985,683 4x8
-                      el 991,683 4x8
-                      el 997,683 4x8
-                      el 1003,683 4x8
-            text #diff-unified role=textbox label="Modified" "final class TemplateCache {\n  private final TemplateLoader loader;\n  private final Map<Path, Entry> " … "ksum, parsed));\n    return parsed;\n  }\n}" length 507 25,713 990x240 readonly lines 1-13/16 thumb-y 1006,716 6x176.28
-              el #rail 26,714 76x238
-              el #gutter 26,718 75x222
-                el #line-0 26,718 75x16
-                  el 32,726 12x0
-                  text "1" 48,718 8x16
-                  text "1" 60,718 15x16
-                  el 79,726 2x0
-                  el 85,726 12x0
-                el #line-1 26,734 75x16
-                  el 32,742 12x0
-                  text "2" 48,734 8x16
-                  text "2" 60,734 15x16
-                  el 79,742 2x0
-                  el 85,742 12x0
-                el #line-2 26,750 75x16
-                  el 32,758 12x0
-                  text "" 48,750 8x16
-                  text "3" 60,750 15x16
-                  el #change 79,750 2x16
-                  el 85,758 12x0
-                el #line-3 26,766 75x16
-                  el 32,774 12x0
-                  text "3" 48,766 8x16
-                  text "4" 60,766 15x16
-                  el 79,774 2x0
-                  el 85,774 12x0
-                el #line-4 26,782 75x16
-                  el 32,790 12x0
-                  text "4" 48,782 8x16
-                  text "5" 60,782 15x16
-                  el 79,790 2x0
-                  el 85,790 12x0
-                el #line-5 26,814 75x16
-                  el 32,822 12x0
-                  text "" 48,814 8x16
-                  text "6" 60,814 15x16
-                  el #change 79,814 2x16
-                  el 85,822 12x0
-                el #line-6 26,830 75x16
-                  el 32,838 12x0
-                  text "" 48,830 8x16
-                  text "7" 60,830 15x16
-                  el #change 79,830 2x16
-                  el 85,838 12x0
-                el #line-7 26,846 75x16
-                  el 32,854 12x0
-                  text "" 48,846 8x16
-                  text "8" 60,846 15x16
-                  el #change 79,846 2x16
-                  el 85,854 12x0
-                el #line-8 26,862 75x16
-                  el 32,870 12x0
-                  text "" 48,862 8x16
-                  text "9" 60,862 15x16
-                  el #change 79,862 2x16
-                  el 85,870 12x0
-                el #line-9 26,878 75x16
-                  el 32,886 12x0
-                  text "" 48,878 8x16
-                  text "10" 60,878 15x16
-                  el #change 79,878 2x16
-                  el 85,886 12x0
-                el #line-10 26,894 75x16
-                  el 32,902 12x0
-                  text "" 48,894 8x16
-                  text "11" 60,894 15x16
-                  el #change 79,894 2x16
-                  el 85,902 12x0
-                el #line-11 26,910 75x16
-                  el 32,918 12x0
-                  text "" 48,910 8x16
-                  text "12" 60,910 15x16
-                  el #change 79,910 2x16
-                  el 85,918 12x0
-                el #line-12 26,926 75x16
-                  el 32,934 12x0
-                  text "" 48,926 8x16
-                  text "13" 60,926 15x16
-                  el #change 79,926 2x16
-                  el 85,934 12x0
-                el #line-13 26,942 75x16
-                  el 32,950 12x0
-                  text "" 48,942 8x16
-                  text "14" 60,942 15x16
-                  el #change 79,942 2x16
-                  el 85,950 12x0
-                el #line-14 26,958 75x16
-                  el 32,966 12x0
-                  text "6" 48,958 8x16
-                  text "15" 60,958 15x16
-                  el 79,966 2x0
-                  el 85,966 12x0
-                el #line-15 26,974 75x16
-                  el 32,982 12x0
-                  text "7" 48,974 8x16
-                  text "16" 60,974 15x16
-                  el 79,982 2x0
-                  el 85,982 12x0
-                el #deleted-gutter-4 26,798 75x16
-                  el #old-line-4 26,798 75x16
-                    el 32,806 12x0
-                    text "5" 48,798 8x16
-                    el 60,806 15x0
-                    el #change 79,798 2x16
-                    el 85,806 12x0
-              el #deleted-4 110,798 896x16
-                el 110,798 896x16
-                  text "    return Template.parse(loader.read(path));" 110,798 326x16
+          el 9,367 1022x40
+            text role=heading "Commit" 25,379 53x17 level=3
+            el #hash 86,376 69x22
+              text "a41f9c2" 95,379 51x16
+            el 163,387 852x0
+          el role=separator 9,407 1022x1
+          el #body-a41f9c208b7e3d1a5c6f0b9e2d4a8c1f7e3b9d01 9,408 1022x523 thumb-y 1023,410 6x482.13
+            el 25,424 990x39
+              text "Cache parsed templates by checksum" 25,424 990x20
+              text "Avoid re-parsing unchanged templates on every render pass. Entries expire once the checksum changes on disk." 25,448 990x15
+            el #properties 25,475 990x106
+              el role=list 34,480 972x96
+                el role=listitem label="Author" 34,480 972x24 value="Ada Example"
+                  el 38,480 43x24
+                    text "Author" 38,484 43x16
+                  el 87,478 917x28
+                    el 89,482 108x20
+                      el role=img label="Ada Example" 89,482 20x20
+                        text "AE" 94,487 10x10
+                      text "Ada Example" 117,484 80x16
+                el role=listitem label="Date" 34,504 972x24 value="Nov 24, 2026, 11:22"
+                  el 38,504 43x24
+                    text "Date" 38,508 43x16
+                  el 87,502 917x28
+                    el 89,508 200x16
+                      text "Nov 24, 2026, 11:22" 89,508 120x16
+                      text "· 38 min ago" 213,508 76x16
+                el role=listitem label="Parent" 34,528 972x24 value="7be3d10"
+                  el 38,528 43x24
+                    text "Parent" 38,532 43x16
+                  el 87,526 917x28
+                    el 89,530 81x20
+                      el #parent-7be3d10 role=button label="commit 7be3d10" 89,530 81x20
+                        el 98,537 6x6
+                        text "7be3d10" 110,532 51x16
+                el role=listitem label="Refs" 34,552 972x24 value="HEAD → main, in sync with origin/main"
+                  el 38,552 43x24
+                    text "Refs" 38,556 43x16
+                  el 87,550 917x28
+                    el 89,555 62x18
+                      el label="HEAD → main, in sync with origin/main" 89,555 62x18
+                        el 95,562 4x4
+                        text "main" 103,557 28x14
+                        text label="cloud" "\u{E382}" 133,558 12x12
+            el 25,593 990x110
+              el 25,593 990x18
+                text role=heading "Changes" 25,594 55x16 level=4
+                el label="3 files" 88,593 47x18
+                  text "3 files" 94,595 35x14
+                el 143,602 820x0
+                text "+19" 971,594 22x16
+                text "−2" 1001,594 14x16
+              el #files role=list label="Changes" 25,615 990x88
+                el #file-0 role=button label="modified src/main/java/com/example/app/TemplateCache.java, +10 −1" 25,615 990x28 selected
+                  el label="M" 33,620 18x18
+                    text "M" 37,622 11x14
+                  text "TemplateCache.java" 59,621 126x16
+                  text "src/…/example/app" 193,622 734x14
+                  el 935,621 72x16
+                    text "+10" 935,621 22x16
+                    text "−1" 961,621 14x16
+                    el 979,625 28x8
+                      el 979,625 4x8
+                      el 985,625 4x8
+                      el 991,625 4x8
+                      el 997,625 4x8
+                      el 1003,625 4x8
+                el #file-1 role=button label="added src/test/java/com/example/app/TemplateCacheTest.java, +8 −0" 25,645 990x28
+                  el label="A" 33,650 18x18
+                    text "A" 38,652 8x14
+                  text "TemplateCacheTest.java" 59,651 152x16
+                  text "src/…/example/app" 219,652 715x14
+                  el 942,651 65x16
+                    text "+8" 942,651 15x16
+                    text "−0" 961,651 14x16
+                    el 979,655 28x8
+                      el 979,655 4x8
+                      el 985,655 4x8
+                      el 991,655 4x8
+                      el 997,655 4x8
+                      el 1003,655 4x8
+                el #file-2 role=button label="renamed src/main/java/com/example/app/TemplateLoader.java, +1 −1" 25,675 990x28
+                  el label="R" 33,680 18x18
+                    text "R" 38,682 8x14
+                  text "TemplateLoader.java" 59,681 129x16
+                  text "src/…/example/app" 196,682 738x14
+                  el 942,681 65x16
+                    text "+1" 942,681 15x16
+                    text "−1" 961,681 14x16
+                    el 979,685 28x8
+                      el 979,685 4x8
+                      el 985,685 4x8
+                      el 991,685 4x8
+                      el 997,685 4x8
+                      el 1003,685 4x8
+            text #diff-unified role=textbox label="Modified" "final class TemplateCache {\n  private final TemplateLoader loader;\n  private final Map<Path, Entry> " … "ksum, parsed));\n    return parsed;\n  }\n}" length 507 25,715 990x240 readonly lines 1-13/16 thumb-y 1006,718 6x174.62
+              el #rail 26,716 76x238
+              el #gutter 26,720 75x222
+                el #line-0 26,720 75x16
+                  el 32,728 12x0
+                  text "1" 48,720 8x16
+                  text "1" 60,720 15x16
+                  el 79,728 2x0
+                  el 85,728 12x0
+                el #line-1 26,736 75x16
+                  el 32,744 12x0
+                  text "2" 48,736 8x16
+                  text "2" 60,736 15x16
+                  el 79,744 2x0
+                  el 85,744 12x0
+                el #line-2 26,752 75x16
+                  el 32,760 12x0
+                  text "" 48,752 8x16
+                  text "3" 60,752 15x16
+                  el #change 79,752 2x16
+                  el 85,760 12x0
+                el #line-3 26,768 75x16
+                  el 32,776 12x0
+                  text "3" 48,768 8x16
+                  text "4" 60,768 15x16
+                  el 79,776 2x0
+                  el 85,776 12x0
+                el #line-4 26,784 75x16
+                  el 32,792 12x0
+                  text "4" 48,784 8x16
+                  text "5" 60,784 15x16
+                  el 79,792 2x0
+                  el 85,792 12x0
+                el #line-5 26,816 75x16
+                  el 32,824 12x0
+                  text "" 48,816 8x16
+                  text "6" 60,816 15x16
+                  el #change 79,816 2x16
+                  el 85,824 12x0
+                el #line-6 26,832 75x16
+                  el 32,840 12x0
+                  text "" 48,832 8x16
+                  text "7" 60,832 15x16
+                  el #change 79,832 2x16
+                  el 85,840 12x0
+                el #line-7 26,848 75x16
+                  el 32,856 12x0
+                  text "" 48,848 8x16
+                  text "8" 60,848 15x16
+                  el #change 79,848 2x16
+                  el 85,856 12x0
+                el #line-8 26,864 75x16
+                  el 32,872 12x0
+                  text "" 48,864 8x16
+                  text "9" 60,864 15x16
+                  el #change 79,864 2x16
+                  el 85,872 12x0
+                el #line-9 26,880 75x16
+                  el 32,888 12x0
+                  text "" 48,880 8x16
+                  text "10" 60,880 15x16
+                  el #change 79,880 2x16
+                  el 85,888 12x0
+                el #line-10 26,896 75x16
+                  el 32,904 12x0
+                  text "" 48,896 8x16
+                  text "11" 60,896 15x16
+                  el #change 79,896 2x16
+                  el 85,904 12x0
+                el #line-11 26,912 75x16
+                  el 32,920 12x0
+                  text "" 48,912 8x16
+                  text "12" 60,912 15x16
+                  el #change 79,912 2x16
+                  el 85,920 12x0
+                el #line-12 26,928 75x16
+                  el 32,936 12x0
+                  text "" 48,928 8x16
+                  text "13" 60,928 15x16
+                  el #change 79,928 2x16
+                  el 85,936 12x0
+                el #line-13 26,944 75x16
+                  el 32,952 12x0
+                  text "" 48,944 8x16
+                  text "14" 60,944 15x16
+                  el #change 79,944 2x16
+                  el 85,952 12x0
+                el #line-14 26,960 75x16
+                  el 32,968 12x0
+                  text "6" 48,960 8x16
+                  text "15" 60,960 15x16
+                  el 79,968 2x0
+                  el 85,968 12x0
+                el #line-15 26,976 75x16
+                  el 32,984 12x0
+                  text "7" 48,976 8x16
+                  text "16" 60,976 15x16
+                  el 79,984 2x0
+                  el 85,984 12x0
+                el #deleted-gutter-4 26,800 75x16
+                  el #old-line-4 26,800 75x16
+                    el 32,808 12x0
+                    text "5" 48,800 8x16
+                    el 60,808 15x0
+                    el #change 79,800 2x16
+                    el 85,808 12x0
+              el #deleted-4 110,800 896x16
+                el 110,800 896x16
+                  text "    return Template.parse(loader.read(path));" 110,800 326x16
       el #divider role=separator label="Resize History" 8,358 1024x8 value="share 0.36547086"
         el 8,358 1024x8
           el 8,362 1024x1

@@ -1,0 +1,39 @@
+el 0,0 640x200
+  el window=drag 0,0 640x40
+    el 0,0 438x40
+      el 8,12 16x16
+        el 8,12 16x16
+          el 9,13 14x14
+            text "\u{F0D7}" 11,15 10x10
+      text "shop — staging" 32,12 95x16
+      el 127,20 26x0
+      el role=button label="Search commands" 153,8 259x24
+        text label="search" "\u{EA7C}" 162,12 16x16
+        text "Search commands" 186,12 114x16
+        el 308,8 95x24
+          el 308,8 0x24
+          text "Ctrl+Shift+P" 332,13 71x15
+      el 412,20 26x0
+    el 438,20 24x0
+    el 462,0 40x40
+      el 462,8 24x24
+        el role=button label="Dark theme" 462,8 24x24 checked
+          text label="weather_moon" "\u{EE44}" 466,12 16x16
+      el 486,20 16x0
+    el role=button label="Minimize" window=minimize 502,0 46x40
+      text label="subtract" "\u{EBCE}" 519,14 12x12
+    el role=button label="Maximize" window=maximize 548,0 46x40
+      text label="maximize" "\u{F533}" 565,14 12x12
+    el role=button label="Close" window=close 594,0 46x40
+      text label="dismiss" "\u{F367}" 611,14 12x12
+  el 8,40 624x152
+    el #first 8,40 160x152
+      el 8,40 160x152
+        text "Schema" 25,57 126x16
+    el #rest 168,40 464x152
+      el #second 176,40 456x152
+        el 176,40 456x152
+          text "Query" 193,57 422x16
+      el #divider role=separator label="Resize" 168,40 8x152 value="first 160"
+        el 168,40 8x152
+          el 172,40 1x152

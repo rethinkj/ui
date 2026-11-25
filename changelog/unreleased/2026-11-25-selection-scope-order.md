@@ -1,0 +1,1 @@
+- A selection across an `El.selectionScope()` orders fields below the scope's virtual list after its rows, also in what Control+C copies, and in a scope without a virtual list it stays on fields that have a key or a `FieldState` as fields are added or removed before it.

@@ -16,11 +16,11 @@ el 0,0 560x260
     el #rest 49,8 503x244
       el #second 49,8 503x244
         el 49,8 315x244
-          el 50,9 501x33
-            text role=heading "orders.sql" 66,17 70x17 level=3
-            el 144,26 391x0
-          el 50,42 501x209
-            text "select * from orders where total > 100" 62,54 477x16
+          el 50,9 501x40
+            text role=heading "orders.sql" 66,21 70x17 level=3
+            el 144,29 391x0
+          el 50,49 501x202
+            text "select * from orders where total > 100" 62,61 477x16
       el #divider role=separator label="Resize" 49,8 7x244 value="first 180 collapsed first"
         el 49,8 1x244
           el 49,8 1x244

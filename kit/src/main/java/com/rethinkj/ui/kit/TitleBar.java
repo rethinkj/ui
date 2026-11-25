@@ -4,8 +4,11 @@ import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
 import static com.rethinkj.ui.kit.Label.label;
 
+import com.rethinkj.ui.Background;
+import com.rethinkj.ui.Colors;
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.WindowPart;
 import com.rethinkj.ui.WindowState;
@@ -133,6 +136,41 @@ public final class TitleBar {
             height,
             restore))
         .child(Tooltip.tooltip(close(theme, height, glyph), texts.close()));
+  }
+
+  /**
+   * A soft wash of a project color for a title bar's {@link El#background(Background)}: a radial
+   * gradient centered at the bar's top edge above the app's icon ({@link Theme.Spacing#m} plus half
+   * of {@link Theme.Sizes#icon}), reaching {@link Theme.Caption#glowRadius} across the bar and
+   * fading to transparent at its bottom edge so there is no seam. At the center the color has
+   * {@link Theme.Caption#glow} opacity, or less where a color much lighter or darker than the
+   * theme's hues would leave muted text below 4.5:1 over it; the rim is the same color at alpha 0.
+   * It stays unchanged while the window is inactive.
+   *
+   * <pre>{@code
+   * TitleBar.titleBar(icon, title).background(TitleBar.glow(projectColor))
+   * }</pre>
+   *
+   * @param color the project's color as 0xAARRGGBB, as given to {@link AppIcon#appIcon}
+   */
+  public static Background.Radial glow(int color) {
+    Theme theme = Theme.CURRENT.get();
+    Theme.Caption caption = theme.caption();
+    int window = theme.surface().window();
+    float strength = caption.glow();
+    // The inactive title is muted text, which has the least contrast to spare.
+    while (strength > 0
+        && Colors.contrast(theme.text().muted(), Colors.over(window, Colors.alpha(color, strength)))
+            < 4.5) {
+      strength -= 0.01f;
+    }
+    return new Background.Radial(
+        Len.px(theme.space().m() + theme.size().icon() / 2),
+        Len.ZERO,
+        Len.px(caption.glowRadius()),
+        Len.percent(1),
+        Colors.alpha(color, Math.max(0, strength)),
+        Colors.alpha(color, 0));
   }
 
   /**

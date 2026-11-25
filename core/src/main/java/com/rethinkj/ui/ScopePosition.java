@@ -2,11 +2,27 @@ package com.rethinkj.ui;
 
 /**
  * A character position inside an {@link El#selectionScope}: the row index of the scope's virtual
- * list ({@code -1} for a field outside the virtual list), the ordinal of the read-only unmasked
- * field within that row (or within the scope outside rows) in tree order, and the character offset
- * in the field's normalized text.
+ * list ({@link #BEFORE} for a field before the list or in a scope without one, {@link #AFTER} for
+ * a field after the list), the ordinal of the read-only unmasked field within that row (or before
+ * or after the list) in tree order, and the character offset in the field's normalized text.
  */
 record ScopePosition(int row, int field, int offset) implements Comparable<ScopePosition> {
+
+  /** Row sentinel for fields before the scope's virtual list (or when there is no list). */
+  static final int BEFORE = -1;
+
+  /** Row sentinel for fields after the scope's virtual list. */
+  static final int AFTER = Integer.MAX_VALUE;
+
+  /** Whether {@code row} is an index into the scope's virtual list rather than before or after it. */
+  static boolean inRows(int row) {
+    return row >= 0 && row != AFTER;
+  }
+
+  /** Whether this position is inside a row of the scope's virtual list. */
+  boolean inRows() {
+    return inRows(row);
+  }
 
   @Override
   public int compareTo(ScopePosition other) {

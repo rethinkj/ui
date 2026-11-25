@@ -1,50 +1,50 @@
 el 0,0 520x300
   el 12,12 496x276
-    el 13,13 494x33
-      text role=heading "orders" 29,21 45x17 level=3
-      text "0 rows" 82,22 43x16
-      el 133,30 358x0
-    el 13,46 494x30
-      el #filters role=list label="Filters" 25,46 173x22
-        el role=listitem label="customer contains zoe" 25,46 173x22
-          text label="filter" "\u{E609}" 33,51 12x12
-          text "customer contains zoe" 47,50 129x15
-          el #remove role=button label="Remove customer contains zoe" 178,48 18x18
-            text label="dismiss" "\u{F367}" 181,51 12x12
-    el #orders role=grid label="Orders" 13,76 494x211
-      el #content 13,76 494x211
-        el #header 13,76 494x25
-          el #column-0 role=columnheader label="id" 13,76 79x24 pos=1/4
-            text label="number_symbol" "\u{F57C}" 57,80 16x16
-            text "id" 77,80 11x16
-            el #filter-0 role=button label="Filter id" 15,80 16x16
-              text label="filter" "\u{E60A}" 15,80 16x16
-          el 92,76 1x24
-          el #column-1 role=columnheader label="customer" 93,76 119x24 pos=2/4
-            text label="text_case_title" "\u{ECEC}" 97,80 16x16
-            text "customer" 117,80 60x16
-            el 179,88 11x0
-            el #filter-1 role=button label="Filter customer" 192,80 16x16 value="customer contains zoe"
-              text label="filter" "\u{E60A}" 192,80 16x16
-          el 212,76 1x24
-          el #column-2 role=columnheader label="amount" 213,76 99x24 pos=3/4
-            text label="calculator" "\u{F06B}" 241,80 16x16
-            text "amount" 261,80 47x16
-            el #filter-2 role=button label="Filter amount" 215,80 16x16
-              text label="filter" "\u{E60A}" 215,80 16x16
-          el 312,76 1x24
-          el #column-3 role=columnheader label="status" 313,76 99x24 pos=4/4
-            text label="text_case_title" "\u{ECEC}" 317,80 16x16
-            text "status" 337,80 37x16
-            el #filter-3 role=button label="Filter status" 394,80 16x16
-              text label="filter" "\u{E60A}" 394,80 16x16
-          el 412,76 1x24
-        el #rows 13,101 494x186 rows -/0
-      el #empty 13,101 494x186
-        el 13,101 494x186
-          el role=status label="No orders match" 107,101 306x186
-            text label="search" "\u{EA7E}" 236,128 48x48
-            text "No orders match" 131,184 258x16
-            text "Try another filter or clear the active ones." 131,208 258x16
-            el role=button label="Clear filters" 212,236 97x24
-              text "Clear filters" 225,240 71x16
+    el 13,13 494x40
+      text role=heading "orders" 29,25 45x17 level=3
+      text "0 rows" 82,25 43x16
+      el 133,33 358x0
+    el 13,53 494x30
+      el #filters role=list label="Filters" 25,53 173x22
+        el role=listitem label="customer contains zoe" 25,53 173x22
+          text label="filter" "\u{E609}" 33,58 12x12
+          text "customer contains zoe" 47,57 129x15
+          el #remove role=button label="Remove customer contains zoe" 178,55 18x18
+            text label="dismiss" "\u{F367}" 181,58 12x12
+    el #orders role=grid label="Orders" 13,83 494x204
+      el #content 13,83 494x204
+        el #header 13,83 494x25
+          el #column-0 role=columnheader label="id" 13,83 79x24 pos=1/4
+            text label="number_symbol" "\u{F57C}" 57,87 16x16
+            text "id" 77,87 11x16
+            el #filter-0 role=button label="Filter id" 15,87 16x16
+              text label="filter" "\u{E60A}" 15,87 16x16
+          el 92,83 1x24
+          el #column-1 role=columnheader label="customer" 93,83 119x24 pos=2/4
+            text label="text_case_title" "\u{ECEC}" 97,87 16x16
+            text "customer" 117,87 60x16
+            el 179,95 11x0
+            el #filter-1 role=button label="Filter customer" 192,87 16x16 value="customer contains zoe"
+              text label="filter" "\u{E60A}" 192,87 16x16
+          el 212,83 1x24
+          el #column-2 role=columnheader label="amount" 213,83 99x24 pos=3/4
+            text label="calculator" "\u{F06B}" 241,87 16x16
+            text "amount" 261,87 47x16
+            el #filter-2 role=button label="Filter amount" 215,87 16x16
+              text label="filter" "\u{E60A}" 215,87 16x16
+          el 312,83 1x24
+          el #column-3 role=columnheader label="status" 313,83 99x24 pos=4/4
+            text label="text_case_title" "\u{ECEC}" 317,87 16x16
+            text "status" 337,87 37x16
+            el #filter-3 role=button label="Filter status" 394,87 16x16
+              text label="filter" "\u{E60A}" 394,87 16x16
+          el 412,83 1x24
+        el #rows 13,108 494x179 rows -/0
+      el #empty 13,108 494x179 thumb-y 499,110 6x174.03
+        el 13,108 494x180
+          el role=status label="No orders match" 107,108 306x180
+            text label="search" "\u{EA7E}" 236,132 48x48
+            text "No orders match" 131,188 258x16
+            text "Try another filter or clear the active ones." 131,212 258x16
+            el role=button label="Clear filters" 212,240 97x24
+              text "Clear filters" 225,244 71x16

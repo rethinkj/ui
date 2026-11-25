@@ -5,9 +5,9 @@ description: A database manager demo with a lazy-loading tree, tear-off tabs, SQ
 
 Workbench is a database manager demo using mock servers that respond slowly on background threads. It shows how to keep a complex desktop app responsive while loading data.
 
-**Demonstrates:** [Tree](/docs/components/tree), [TabGroups](/docs/components/tab-groups), [CodeEditor](/docs/components/code-editor), [Completion](/docs/components/completion), [DataGrid](/docs/components/data-grid), [CommandPalette](/docs/components/command-palette), and [Background work](/docs/concepts/background-work).
+**Demonstrates:** [TitleBar](/docs/components/title-bar), [Rail](/docs/components/rail), [Tree](/docs/components/tree), [TabGroups](/docs/components/tab-groups), [CodeEditor](/docs/components/code-editor), [Completion](/docs/components/completion), [DataGrid](/docs/components/data-grid), [CommandPalette](/docs/components/command-palette), and [Background work](/docs/concepts/background-work).
 
-<Shot dark="examples/workbench-dark-2x" light="examples/workbench-light-2x" alt="The Workbench: a tree of connections, a query editor and a result grid in cards" />
+<Shot dark="examples/workbench-dark-2x" light="examples/workbench-light-2x" alt="The Workbench: an icon rail, a tree of connections, a query editor and a result grid in cards" />
 
 ## Run it
 
@@ -23,7 +23,7 @@ mvn -q -pl examples -am compile exec:exec -Dexample=Workbench
 - Double-click a table (or press Enter) to open it in a tab. `localhost/shop/public/orders` loads one million rows. Click **+** in a tab bar (or press **Ctrl+T**) to open another query tab for the group's active table or the table selected in the tree. When tabs overflow the bar, use the tab list button on the right to jump to any tab.
 - Type inside the SQL editor: autocomplete suggests columns, tables, and SQL keywords. Press **Ctrl+Enter** to run the query. Unknown table names are underlined as errors.
 - Press **Ctrl+Shift+P** to open the command palette (`@` searches tables, `:` jumps to a line).
-- Press **Ctrl+B** (or **View → Toggle sidebar**), or double-click the sidebar divider, to collapse the catalog sidebar and restore it at its previous width.
+- Click **Connections** in the left rail, press **Ctrl+B** (or **View → Toggle sidebar**), or double-click the sidebar divider, to collapse the catalog sidebar and restore it at its previous width.
 - Drag a tab outside the window to tear it off into its own window, drag it back to dock it, drop it on an edge of a group to split it there, or right-click a tab (or press `Ctrl+\`) to split groups side by side or stacked within any window.
 
 <Shot src="examples/workbench-completion" alt="Completions of column names below the caret" />
@@ -80,6 +80,13 @@ All windows share a single `TabGroups` instance with `splits(true)` and `onAdd` 
 When a user tears off a tab, the opener creates a new window with its own `App` sharing the same state ([Several windows](/docs/concepts/windows)):
 
 ```java snippet="workbench-window"
+```
+
+### Icon rail and title bar glow
+
+The title bars carry a soft teal glow (`TitleBar.glow`) matching the app icon, and a left [Rail](/docs/components/rail) toggles the catalog sidebar. Its open state is derived from `state.sidebar`, so the rail button, **Ctrl+B**, and double-clicking the split divider stay in sync:
+
+```java snippet="workbench-rail"
 ```
 
 Full source: [`Workbench.java`](https://github.com/rethinkj/ui/blob/main/examples/src/main/java/com/rethinkj/ui/examples/Workbench.java).

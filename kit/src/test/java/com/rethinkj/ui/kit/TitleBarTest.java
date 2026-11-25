@@ -2,6 +2,7 @@ package com.rethinkj.ui.kit;
 
 import static com.rethinkj.ui.El.col;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
@@ -110,6 +111,29 @@ class TitleBarTest {
     app.frame();
     assertEquals(
         Theme.DARK.text().muted(), title(app.tree(), name).color(), "muted while inactive");
+  }
+
+  @Test
+  void aProjectColorGlowFadesToTheWindowColorAtTheBottomAndStaysWhileInactive() throws IOException {
+    Theme theme = Theme.DARK;
+    int color = theme.withAccent(Theme.Hue.TEAL).accent().color();
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col()
+            .wFull()
+            .hFull()
+            .fill(theme.surface().window())
+            .child(TitleBar.titleBar(AppIcon.appIcon(16, color, Symbol.DATABASE), "Shop")
+                .background(TitleBar.glow(color))));
+    app.textRendering(TextRendering.LINUX);
+    Script.run("size 560 120\nframe\nsnap active", app, out);
+    int topActive = pixel("active", 16, 1);
+    int bottom = pixel("active", 16, (int) theme.caption().height() - 1);
+    assertNotEquals(theme.surface().window(), topActive, "glow tints near the icon");
+    assertEquals(theme.surface().window(), bottom, "no seam at the bar's bottom edge");
+    app.windowActive(false);
+    Script.run("frame\nsnap inactive", app, out);
+    assertEquals(topActive, pixel("inactive", 16, 1), "glow stays while inactive");
   }
 
   /** The text {@code string} in the tree under {@code el}, or null. */

@@ -200,4 +200,34 @@ class CardTest {
         rect(line(untitled, "#switcher"))[0],
         untitled);
   }
+
+  @Test
+  void toolbarWithoutActionsMatchesHeightOfToolbarWithButton() throws IOException {
+    App<Object> app = new App<>(
+        new Object(),
+        s -> row()
+            .wFull()
+            .hFull()
+            .fill(Theme.DARK.surface().window())
+            .child(Card.flush(
+                    Card.toolbar("Title", null).key("plain"), el().grow(1).key("plain-body"))
+                .grow(1))
+            .child(Card.flush(
+                    Card.toolbar(
+                            "Title",
+                            null,
+                            Button.icon(
+                                Button.Variant.GHOST, Symbol.CHEVRON_DOWN, "More", () -> {}))
+                        .key("with-button"),
+                    el().grow(1).key("button-body"))
+                .grow(1)));
+    Script.run("size 700 120\nframe", app, out);
+    String tree = app.tree().dump();
+    float[] plain = rect(line(tree, "#plain"));
+    float[] withButton = rect(line(tree, "#with-button"));
+    float expected = Theme.DARK.size().control() + 2 * Theme.DARK.space().m();
+    assertEquals(expected, withButton[3], tree);
+    assertEquals(withButton[3], plain[3], tree);
+    assertEquals(rect(line(tree, "#button-body"))[1], rect(line(tree, "#plain-body"))[1], tree);
+  }
 }

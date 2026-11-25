@@ -70,7 +70,7 @@ class WorkbenchTest {
   }
 
   private static final String OPEN_ORDERS = """
-      size 1000 600
+      size 1200 600
       frame
       press role=treeitem label="orders" clicks 2
       frame
@@ -351,7 +351,7 @@ class WorkbenchTest {
     Script.run(OPEN_ORDERS, app, out);
     Workbench.Opened orders = s.tables().getFirst();
     Script.run("""
-        size 1000 600
+        size 1200 600
         press #cell-0-5
         key Enter
         frame
@@ -466,7 +466,7 @@ class WorkbenchTest {
     Script.run(OPEN_ORDERS, app, out);
     Workbench.Opened orders = s.tables().getFirst();
     String query = orders.query;
-    Script.run("size 1000 600\npress #cell-0-5\nkey Delete control\nframe\nframe", app, out);
+    Script.run("size 1200 600\npress #cell-0-5\nkey Delete control\nframe\nframe", app, out);
     assertEquals(1, orders.changes.count(), "the row marked to be deleted");
     Script.run("""
         size 1000 600
@@ -664,17 +664,42 @@ class WorkbenchTest {
     assertEquals(3, s.groups.main().active().tabs().size(), "Start plus two customers tabs");
   }
 
-  /** Ctrl+B and double-clicking the divider collapse the sidebar; it comes back at its width. */
+  /** Ctrl+B, the rail button and double-clicking the divider collapse and restore the sidebar. */
   @Test
   void theSidebarCollapsesAndRestoresAtItsLastWidth() throws IOException {
     App<Workbench> app = started();
     Workbench s = app.state();
     s.sidebar = Split.Position.first(300);
-    Script.run("size 1000 600\nframe\nkey B control\nframe", app, out);
+    Script.run("size 1000 600\nframe", app, out);
+    assertTrue(
+        dump(app)
+            .lines()
+            .anyMatch(line -> line.contains("role=button label=\"Connections\"")
+                && line.contains(" checked")
+                && !line.contains("checked=false")),
+        dump(app));
+
+    Script.run("size 1000 600\nkey B control\nframe", app, out);
     assertTrue(s.sidebar.isCollapsed(), "collapsed via Ctrl+B");
     assertEquals(300, s.sidebar.value());
     assertFalse(dump(app).contains("#catalog"), "sidebar removed from tree while collapsed");
     assertTrue(dump(app).contains("first 300 collapsed first"), dump(app));
+    assertTrue(
+        dump(app)
+            .lines()
+            .anyMatch(line -> line.contains("role=button label=\"Connections\"")
+                && line.contains("checked=false")),
+        dump(app));
+
+    // Pressing the rail button restores it at its previous width, and pressing again collapses it.
+    Script.run("size 1000 600\npress role=button label=\"Connections\"\nframe", app, out);
+    assertFalse(s.sidebar.isCollapsed(), "restored via rail button");
+    assertEquals(300, s.sidebar.value(), "previous width preserved");
+    assertTrue(dump(app).contains("#catalog"), "sidebar back in tree");
+
+    Script.run("size 1000 600\npress role=button label=\"Connections\"\nframe", app, out);
+    assertTrue(s.sidebar.isCollapsed(), "collapsed via rail button");
+    assertEquals(300, s.sidebar.value());
 
     Script.run("size 1000 600\nkey B control\nframe", app, out);
     assertFalse(s.sidebar.isCollapsed(), "restored via Ctrl+B");
