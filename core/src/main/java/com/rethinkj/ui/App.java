@@ -6614,10 +6614,11 @@ public final class App<S> {
    * @return whether a list built its rows
    */
   // Lists in rows of another, as high as their rows, that grew since layout, for the row around
-  // them to lay out again (fillChildren); and how often that waited for the next frame.
+  // them to lay out again (fillChildren); and how often that, or the rows it showed, waited for
+  // the next frame.
   private final List<El> regrownLists = new ArrayList<>();
 
-  private int regrownPending;
+  private int rowsDeferred;
 
   private boolean fillRows() {
     if (root == null) {
@@ -6796,9 +6797,9 @@ public final class App<S> {
     if (inRows && el.rowsRegrown()) {
       regrownLists.add(el);
     }
-    int pending = regrownPending;
+    int pending = rowsDeferred;
     built |= fillChildren(el, path, left, top, clipLeft, clipRight, inRows);
-    if (regrownPending != pending) {
+    if (rowsDeferred != pending) {
       range = el.wantedRows(left, top, clipLeft, clipRight, width, height);
     }
     rowsWanted |= range.length != 0; // beyond the passes of one frame: the next frame goes on
@@ -6810,7 +6811,7 @@ public final class App<S> {
     if (el.toEnd() && (el.text() == null || !el.text().multiline())) {
       rowGoals.remove(Animator.identities(path).getLast()); // the later end wins
       // done once its last rows are measured, with the lists in them
-      el.toEnd(range.length != 0 || !tail || regrownPending != pending);
+      el.toEnd(range.length != 0 || !tail || rowsDeferred != pending);
     }
     float far = Float.POSITIVE_INFINITY;
     for (El overlay : el.overlays()) { // in window coordinates
@@ -6908,7 +6909,7 @@ public final class App<S> {
           grown.forEach(El::rowsSettled);
           relaid = true;
         } else {
-          regrownPending++; // still to lay out: the lists stay grown for the next frame
+          rowsDeferred++; // still to lay out: the lists stay grown for the next frame
           rowsWanted |= el.measuresRows();
         }
         grown.clear(); // a list takes its rows' growth
@@ -6918,8 +6919,9 @@ public final class App<S> {
       }
       built = true;
       int[] range = el.wantedRows(left, top, clipLeft, clipRight, width, height);
-      if (range.length != 0) { // rows below the grown ones moved, others came into view
-        buildRows(el, path, range, left, top, clipLeft, clipRight);
+      if (range.length != 0 // rows below the grown ones moved, others came into view
+          && buildRows(el, path, range, left, top, clipLeft, clipRight).length != 0) {
+        rowsDeferred++; // the next frame goes on
       }
     }
   }

@@ -83,6 +83,10 @@ public final class Headless {
     buildRows(
         el,
         el.wantedRows(left, top, clipLeft, clipRight, windowWidth, windowHeight),
+        left,
+        top,
+        clipLeft,
+        clipRight,
         windowWidth,
         windowHeight,
         scale);
@@ -108,24 +112,40 @@ public final class Headless {
       if (!relaid) {
         return regrown;
       }
-      buildRows(
+      buildRows( // rows below the grown ones moved, others came into view
           el,
           el.wantedRows(left, top, clipLeft, clipRight, windowWidth, windowHeight),
+          left,
+          top,
+          clipLeft,
+          clipRight,
           windowWidth,
           windowHeight,
           scale);
     }
   }
 
+  /** Builds these rows, then those that the heights they measured show, a few times at most. */
   private static void buildRows(
-      El el, int[] range, float windowWidth, float windowHeight, float scale) {
-    if (range.length != 0) {
+      El el,
+      int[] range,
+      float left,
+      float top,
+      float clipLeft,
+      float clipRight,
+      float windowWidth,
+      float windowHeight,
+      float scale) {
+    for (int pass = 0; range.length != 0 && pass < 3; pass++) {
       el.makeRows(range[0], range[1], row -> true); // layout placed the rows it has
       el.layoutRows(scale, false);
       for (El row : el.children()) {
         Overlays.layout(row, windowWidth, windowHeight);
       }
       el.measureRowScrolls();
+      range = el.measuresRows()
+          ? el.wantedRows(left, top, clipLeft, clipRight, windowWidth, windowHeight)
+          : El.NO_ROWS;
     }
   }
 
