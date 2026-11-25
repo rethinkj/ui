@@ -1,0 +1,1 @@
+- `Markdown` shows images inside links, emphasis, strong text and strikethrough as images. A linked image is a link that hands its destination to `onLink`, images that follow each other (a line of badges) sit in one wrapping row, and a heading or table cell made only of images shows them.
