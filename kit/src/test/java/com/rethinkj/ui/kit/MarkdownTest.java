@@ -1761,6 +1761,62 @@ class MarkdownTest {
     assertTrue(CellEditorTest.find(app, "f2").text().selection().isEmpty(), next);
   }
 
+  @Test
+  void aTableAlignsWrappedAndSingleLineCellsInCenterAndRightColumns() throws IOException {
+    String source = """
+        | Left | Center | Right |
+        | :--- | :---: | ---: |
+        | a | short | 42 |
+        | note | a longer centered cell with a [guide](#guide) that wraps across lines | a longer right aligned cell with enough words to wrap across multiple lines |
+        """;
+    App<Doc> app = app(source);
+    app.textRendering(TextRendering.LINUX);
+    Script.run("size 800 320 scale 2\nframe\npress role=link label=\"guide\"\nframe", app, out);
+    assertEquals(
+        List.of("#guide"), app.state().links, "link in centered wrapped cell is clickable");
+
+    List<El> cells = new ArrayList<>();
+    collectTableCells(app.tree(), cells);
+    assertEquals(9, cells.size(), "3 header + 6 body cells");
+    // Row 1 (short single-line cells): Left x == 0, Center x > 0, Right x > 0 near right edge.
+    Text shortLeft = cells.get(3).text();
+    Text shortCenter = cells.get(4).text();
+    Text shortRight = cells.get(5).text();
+    assertEquals(0, shortLeft.lines().getFirst().x());
+    assertTrue(shortCenter.lines().getFirst().x() > 0, "single-line centered cell");
+    assertTrue(shortRight.lines().getFirst().x() > 0, "single-line right cell");
+    assertTrue(
+        Math.abs(shortRight.lines().getFirst().x()
+                + shortRight.lines().getFirst().width()
+                - shortRight.scale() * cells.get(5).width())
+            <= shortRight.scale() + 1, // the room a field keeps for its caret
+        "right-aligned cell ends at the column's right edge");
+
+    // Row 2 (wrapped cells): every wrapped row in Center and Right is aligned.
+    Text wrappedCenter = cells.get(7).text();
+    Text wrappedRight = cells.get(8).text();
+    assertTrue(wrappedCenter.lines().size() >= 2, "center cell wrapped");
+    assertTrue(wrappedRight.lines().size() >= 2, "right cell wrapped");
+    for (Text.Line line : wrappedCenter.lines()) {
+      assertTrue(line.x() > 0, "wrapped center row is indented: " + line);
+    }
+    for (Text.Line line : wrappedRight.lines()) {
+      assertTrue(line.x() > 0, "wrapped right row is indented: " + line);
+    }
+  }
+
+  private static void collectTableCells(El el, List<El> into) {
+    if (("columnheader".equals(el.role()) || "cell".equals(el.role()))
+        && !el.children().isEmpty()
+        && el.children().getFirst().text() != null) {
+      into.add(el.children().getFirst());
+      return;
+    }
+    for (El child : el.children()) {
+      collectTableCells(child, into);
+    }
+  }
+
   private static String countLine(String tree) {
     return tree.lines().filter(l -> l.contains("#count ")).findFirst().orElse("");
   }

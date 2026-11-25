@@ -1,0 +1,1 @@
+- `El.textAlign` now aligns every row of a wrapping multi-line field (`CENTER` or `END`), keeping the caret, selection, hit testing, marks, find highlights, and range elements at the drawn positions; `Markdown` table cells in centered and right-aligned columns now align every wrapped line as well.

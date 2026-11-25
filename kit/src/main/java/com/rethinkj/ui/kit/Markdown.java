@@ -1459,25 +1459,29 @@ public final class Markdown {
       }
       for (int j = 0; j < columns; j++) {
         Piece piece = cells.get(r).get(j);
-        Style.Content justify = switch (table.aligns().get(j)) {
-          case CENTER -> Style.Content.CENTER;
-          case RIGHT -> Style.Content.END;
-          default -> Style.Content.START;
-        };
         El cell;
         if (piece == null) {
           List<Inline> content =
               r == 0 ? table.header().get(j) : table.rows().get(r - 1).get(j);
-          cell = imageRow(c, imagesOnly(content)).justify(justify).minSize(0, 0);
+          Style.Content justify = switch (table.aligns().get(j)) {
+            case CENTER -> Style.Content.CENTER;
+            case RIGHT -> Style.Content.END;
+            default -> Style.Content.START;
+          };
+          cell = imageRow(c, imagesOnly(content)).justify(justify).grow(1).minSize(0, 0);
         } else {
-          cell = field(c, piece, r == 0 ? head : body, c.color);
+          Style.Align align = switch (table.aligns().get(j)) {
+            case CENTER -> Style.Align.CENTER;
+            case RIGHT -> Style.Align.END;
+            default -> Style.Align.START;
+          };
+          cell = field(c, piece, r == 0 ? head : body, c.color).grow(1).textAlign(align);
         }
         line.child(row()
             .role(r == 0 ? "columnheader" : "cell")
             .basis(basis[j])
             .minSize(min[j], 0)
             .maxSize(basis[j], Float.POSITIVE_INFINITY)
-            .justify(justify)
             .padding(theme.space().s(), pad)
             .child(cell));
       }

@@ -1,0 +1,10 @@
+el 0,0 356x75
+  el 8,8 108x59
+    text #start role=textbox "See the docs for aligned rows and links." 14,14 96x47 readonly lines 1-1/1
+      el #start-link role=link label="docs" 64.38,14 30x15.5
+  el 124,8 108x59
+    text #center role=textbox "See the docs for aligned rows and links." 130,14 96x47 readonly lines 1-1/1 focused caret 24 (1:25) anchor 17
+      el #center-link role=link label="docs" 187.63,14 30x15.5
+  el 240,8 108x59
+    text #end role=textbox "See the docs for aligned rows and links." 246,14 96x47 readonly lines 1-1/1 hovered
+      el #end-link role=link label="docs" 311,14 30x15.5
