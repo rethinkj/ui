@@ -3181,6 +3181,16 @@ public final class App<S> {
     return moved;
   }
 
+  /** Whether {@code field} lies in a row of a list inside built row {@code row} of {@code list}. */
+  private static boolean inListInRow(El list, int row, El field) {
+    if (!list.hasRow(row)) {
+      return false;
+    }
+    List<El> path = new ArrayList<>();
+    pathTo(list.children().get(row - list.firstRow()), field, path);
+    return path.stream().anyMatch(El::isVirtualList);
+  }
+
   /**
    * Scrolls {@code list} so that the field with ordinal {@code field} in row {@code row} shows: the
    * row, the row of a list in it that holds the field, or the field once it is built.
@@ -5049,6 +5059,10 @@ public final class App<S> {
         fillRows();
         target = builtScopeRowField(list, caretPos.row(), caretPos.field());
       }
+      nested |= target != null
+          && list != null
+          && caretPos.inRows()
+          && inListInRow(list, caretPos.row(), target);
       if (nested && listId != null) { // the rows measured from now on move it: it is followed
         rowGoals.put(
             listId,
@@ -5614,6 +5628,7 @@ public final class App<S> {
     }
     ScopeSelection old = scopeSelection;
     scopeSelection = null;
+    rowGoals.values().removeIf(goal -> goal.field() >= 0); // no selection to follow any more
     keptScope = old; // a remap that ended it drops this too
     if (!old.hasSelection()) {
       return false; // it gave no field a range, and others may have one of their own
