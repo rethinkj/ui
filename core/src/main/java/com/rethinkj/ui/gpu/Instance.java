@@ -67,7 +67,6 @@ public final class Instance extends GpuObject {
   public static Instance create(Backend backend) {
     // Loads the library with a message that explains what is missing, before Wgpu needs it.
     Natives.lookup("wgpu_native");
-    Wgpu.linkAhead();
     installLog();
     try (Arena arena = Arena.ofConfined()) {
       MemorySegment extras = InstanceExtras.allocate(arena);
@@ -97,6 +96,8 @@ public final class Instance extends GpuObject {
             backend.name(),
             "wgpuCreateInstance returned NULL");
       }
+      // After this thread's own linking, which it would slow down.
+      Wgpu.linkAhead();
       return new Instance(backend, handle);
     }
   }
