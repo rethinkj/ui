@@ -135,6 +135,108 @@ class MarkdownTest {
   }
 
   @Test
+  void tableColumnsUseAvailableWidthWrapBeforeScrollingAndCacheMeasurements() throws IOException {
+    String source = """
+        | Key | Description |
+        | --- | --- |
+        | alpha | A long explanation that stretches well past half the prose measure on a wide page. |
+        | beta | Short note. |
+        """;
+    MarkdownDocument[] current = {Markdown.parse(source)};
+    Theme t = Theme.DARK;
+    App<Object> app = new App<>(
+        new Object(),
+        state -> col()
+            .wFull()
+            .hFull()
+            .fill(t.surface().panel())
+            .child(Markdown.markdown(current[0], Markdown.options()).grow(1)));
+    app.textRendering(TextRendering.LINUX);
+
+    // Wide: long column exceeds measure()/2, nothing wraps, table fits within its scroll area.
+    Markdown.tablesMeasured = 0;
+    Script.run("size 800 400 scale 2\nframe", app, out);
+    assertEquals(1, Markdown.tablesMeasured);
+    El[] wide = tableAndArea(app.tree(), null);
+    assertNotNull(wide);
+    assertTrue(wide[1].width() <= wide[0].width(), "fits at wide width");
+    assertEquals(wide[1].height(), wide[0].height(), "no room below for the scrollbar");
+    List<El> wideRows = tableRows(wide[1]);
+    assertEquals(3, wideRows.size());
+    float wideCol1 = wideRows.get(1).children().get(1).width();
+    assertTrue(
+        wideCol1 > t.prose().measure() / 2, "long column wider than measure()/2: " + wideCol1);
+    float singleLine = wideRows.get(1).children().get(0).children().getFirst().height();
+    assertEquals(
+        singleLine,
+        wideRows.get(1).children().get(1).children().getFirst().height(),
+        "long sentence does not wrap at wide width");
+
+    // Narrow: columns stay aligned across every row, table fits the area, long column wraps.
+    Script.run("size 360 400 scale 2\nframe", app, out);
+    assertEquals(1, Markdown.tablesMeasured, "reuses cached widths at same scale");
+    El[] narrow = tableAndArea(app.tree(), null);
+    assertNotNull(narrow);
+    assertTrue(narrow[1].width() <= narrow[0].width(), "fits at narrow width");
+    List<El> narrowRows = tableRows(narrow[1]);
+    for (int col = 0; col < 2; col++) {
+      float expectedX = narrowRows.getFirst().children().get(col).x();
+      float expectedW = narrowRows.getFirst().children().get(col).width();
+      for (El row : narrowRows) {
+        El cell = row.children().get(col);
+        assertEquals(expectedX, cell.x(), "column " + col + " x matches across rows");
+        assertEquals(expectedW, cell.width(), "column " + col + " width matches across rows");
+      }
+    }
+    assertTrue(
+        narrowRows.get(1).children().get(1).children().getFirst().height() > singleLine,
+        "long column wraps at narrow width");
+
+    // Narrower than the sum of the longest words: table overflows its area and scrolls sideways.
+    Script.run("size 140 400 scale 2\nframe", app, out);
+    assertEquals(1, Markdown.tablesMeasured);
+    El[] tiny = tableAndArea(app.tree(), null);
+    assertNotNull(tiny);
+    assertTrue(
+        tiny[1].width() > tiny[0].width(),
+        "table wider than area when longest words cannot fit: "
+            + tiny[1].width()
+            + " vs "
+            + tiny[0].width());
+    assertTrue(
+        tiny[0].height() > tiny[1].height(), "room below for the scrollbar while it scrolls");
+
+    // Streaming appends after the table keep its measured widths.
+    current[0] = current[0].next(source + "\nTrailing paragraph.\n");
+    app.invalidate();
+    Script.run("size 360 400 scale 2\nframe", app, out);
+    assertEquals(1, Markdown.tablesMeasured, "next() carries cached table widths over");
+
+    // At a fractional scale, where the overflow rounds, the room shows exactly with the bar.
+    Script.run("size 199 400 scale 1.75\nframe", app, out);
+    El[] edge = tableAndArea(app.tree(), null);
+    assertNotNull(edge);
+    assertEquals(edge[0].horizontalBar() != null, edge[0].height() > edge[1].height());
+  }
+
+  private static El[] tableAndArea(El el, El parent) {
+    if ("table".equals(el.role())) {
+      return new El[] {parent, el};
+    }
+    for (El child : el.children()) {
+      El[] found = tableAndArea(child, el);
+      if (found != null) {
+        return found;
+      }
+    }
+    return null;
+  }
+
+  private static List<El> tableRows(El table) {
+    return table.children().stream().filter(e -> "row".equals(e.role())).toList();
+  }
+
+  @Test
   void aLinkIsPressedWithThePointerAndWithTabAndEnter() throws IOException {
     App<Doc> app = app(DOC);
     run(app, "frame\npress role=link label=\"spec\"\nframe");

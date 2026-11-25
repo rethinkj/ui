@@ -23,6 +23,21 @@ final class TextSizing {
     return measured(text);
   }
 
+  /**
+   * The narrowest width a wrapping text element takes without breaking a word (its widest word), in
+   * logical pixels at the scale of the window that shows the view being built.
+   */
+  static float minimum(El text) {
+    if (text.text() != null) {
+      text.text().scale(WindowState.CURRENT.get().scale());
+    }
+    return text.text() == null
+        ? 0
+        : text.text()
+            .measure(Float.NaN, Float.NaN, Measure.MIN_CONTENT, Measure.MAX_CONTENT)
+            .width();
+  }
+
   /** The width a text element takes on one line, in logical pixels at its current scale. */
   static float measured(El text) {
     return text.text() == null
