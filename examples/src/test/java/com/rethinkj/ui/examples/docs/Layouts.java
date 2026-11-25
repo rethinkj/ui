@@ -11,6 +11,8 @@ import static com.rethinkj.ui.kit.Form.Labels.BESIDE;
 import com.rethinkj.ui.Clipboard;
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.Key;
+import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.kit.AppIcon;
 import com.rethinkj.ui.kit.Badge;
@@ -27,6 +29,7 @@ import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.NavList;
 import com.rethinkj.ui.kit.Progress;
 import com.rethinkj.ui.kit.Properties;
+import com.rethinkj.ui.kit.Rail;
 import com.rethinkj.ui.kit.Section;
 import com.rethinkj.ui.kit.Split;
 import com.rethinkj.ui.kit.StatusBar;
@@ -64,6 +67,9 @@ final class Layouts {
   int result;
   final Breadcrumb.State crumbs = new Breadcrumb.State();
   final Toolbar.State tools = new Toolbar.State();
+  final Rail.State rail = new Rail.State();
+  int tool;
+  Split.Position toolPane = Split.Position.first(180);
   final Menu.State runMenu = new Menu.State();
   final Menu.State encodings = new Menu.State();
   boolean wrapped;
@@ -167,6 +173,22 @@ final class Layouts {
   void sidebar(Split.Position position) {
     sidebar = position;
   }
+
+  // docs:start rail-state
+  void tool(int index) {
+    tool = index;
+    toolPane = index < 0 ? toolPane.collapse(Split.Part.FIRST) : toolPane.restore();
+  }
+
+  void toolPane(Split.Position position) {
+    toolPane = position;
+    if (position.isCollapsed()) {
+      tool = -1;
+    } else if (tool < 0) {
+      tool = 0;
+    }
+  }
+  // docs:end rail-state
 
   void tab(int index) {
     tab = index;
@@ -643,6 +665,53 @@ final class Layouts {
             .padding(theme.space().m())
             .child(Label.label(Label.Variant.MONO, "select * from orders where total > 100")));
     return Frame.of(query.wFull());
+  }
+
+  static El rail(Layouts state) {
+    Theme theme = Theme.CURRENT.get();
+    // docs:start rail
+    El rail = Rail.rail(
+        state.rail,
+        "Tool windows",
+        Side.LEFT,
+        List.of(
+            Rail.item(Symbol.FOLDER, "Explorer").shortcut(Key.CONTROL, "1"),
+            Rail.item(Symbol.SEARCH, "Search").shortcut(Key.CONTROL, "2"),
+            Rail.separator(),
+            Rail.item(Symbol.WARNING, "Problems").dot(Badge.Kind.DANGER, "3 errors")),
+        List.of(Rail.item(Symbol.SETTINGS, "Settings")),
+        state.tool,
+        state::tool);
+    String title = switch (state.tool) {
+      case 0 -> "Explorer";
+      case 1 -> "Search";
+      case 2 -> "Problems";
+      case 3 -> "Settings";
+      default -> "";
+    };
+    El pane = Card.flush(
+        Card.toolbar(title, null),
+        col().padding(theme.space().l()).grow(1).child(Label.label(title + " content")));
+    El editor = Card.flush(
+        Card.toolbar("orders.sql", null),
+        col()
+            .padding(theme.space().l())
+            .grow(1)
+            .child(Label.label(Label.Variant.MONO, "select * from orders where total > 100")));
+    El content = Split.cards(
+            Split.Direction.ROW,
+            state.toolPane,
+            Split.Position.first(180).collapse(Split.Part.FIRST),
+            state::toolPane,
+            pane,
+            120,
+            editor,
+            200)
+        .grow(1)
+        .padding(theme.space().m());
+    El window = row().wFull().hFull().fill(theme.surface().window()).children(rail, content);
+    // docs:end rail
+    return window;
   }
 
   static El details(Layouts state) {
