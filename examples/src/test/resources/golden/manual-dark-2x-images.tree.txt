@@ -73,61 +73,64 @@ el 0,0 960x640
                 el 15,354 2x16
                 text "Images" 21,354 214x15
     el 256,32 696x600
-      el #doc-0 role=document 257,33 694x598 rows 28-38/39 scroll 0,1602 thumb-y 943,446.23 6x153.51
-        el 281,-238 646x29 pos=29/39
-          text role=paragraph "An indented block is code without a language, and a line longer than the page scrolls sideways:" 281,-238 646x17 readonly lines 1-1/1
-        el 281,-209 646x54 pos=30/39
-          el role=group 281,-209 646x42
-            text role=code "java --enable-native-access=ALL-UNNAMED -cp core/target/classes:fonts/target/classes com.rethinkj.ui.examples.Manual" 282,-208 644x40 readonly lines 1-1/1
-            el #copy role=button label="Copy code" 898,-204 24x24
-              text label="copy" "\u{F32A}" 902,-200 16x16
-        el 281,-155 646x61 pos=31/39
-          el 281,-131 646x29
-            text #heading-tables role=heading "Tables" 281,-131 646x28 readonly level=2 lines 1-1/1
-            el role=separator 281,-103 646x1
-        el 281,-94 646x151 pos=32/39
-          el 281,-94 646x139
-            el role=table 281,-94 293x131
-              el role=row 282,-93 291x25
-                el role=columnheader 282,-93 86x25
-                  text role=textbox "Form" 290,-89 37x17 readonly lines 1-1/1
-                el role=columnheader 368,-93 123x25
-                  text role=textbox "Written as" 394,-89 70x17 readonly lines 1-1/1
-                el role=columnheader 491,-93 82x25
-                  text role=textbox "Shown as" 499,-89 66x17 readonly lines 1-1/1
-              el role=separator 282,-68 291x1
-              el role=row 282,-67 291x25
-                el role=cell 282,-67 86x25
-                  text role=textbox "Emphasis" 290,-63 66x17 readonly lines 1-1/1
-                el role=cell 368,-67 123x25
-                  text role=textbox "*a*" 413,-63 32x17 readonly lines 1-1/1
-                el role=cell 491,-67 82x25
-                  text role=textbox "a" 554,-63 11x17 readonly lines 1-1/1
-              el role=separator 282,-42 291x1
-              el role=row 282,-41 291x25
-                el role=cell 282,-41 86x25
-                  text role=textbox "Strong" 290,-37 46x17 readonly lines 1-1/1
-                el role=cell 368,-41 123x25
-                  text role=textbox "**a**" 405,-37 48x17 readonly lines 1-1/1
-                el role=cell 491,-41 82x25
-                  text role=textbox "a" 555,-37 10x17 readonly lines 1-1/1
-              el role=separator 282,-16 291x1
-              el role=row 282,-15 291x25
-                el role=cell 282,-15 86x25
-                  text role=textbox "Struck out" 290,-11 70x17 readonly lines 1-1/1
-                el role=cell 368,-15 123x25
-                  text role=textbox "~~a~~" 405,-11 48x17 readonly lines 1-1/1
-                el role=cell 491,-15 82x25
-                  text role=textbox "a" 555,-11 10x17 readonly lines 1-1/1
-              el role=separator 282,10 291x1
-              el role=row 282,11 291x25
-                el role=cell 282,11 86x25
-                  text role=textbox "Link" 290,15 30x17 readonly lines 1-1/1
-                el role=cell 368,11 123x25
-                  text role=textbox "[a](#tables)" 376,15 107x17 readonly lines 1-1/1
-                el role=cell 491,11 82x25
-                  text role=textbox "a" 555,15 10x17 readonly lines 1-1/1
-                    el #link-0 role=link label="a" 555,15 7.88x17 value="#tables"
+      el #doc-0 role=document 257,33 694x598 rows 28-38/39 scroll 0,1594 thumb-y 943,445.6 6x154.04
+        el 281,-230 646x29 pos=29/39
+          text role=paragraph "An indented block is code without a language, and a line longer than the page scrolls sideways:" 281,-230 646x17 readonly lines 1-1/1
+        el 281,-201 646x54 pos=30/39
+          el role=group 281,-201 646x42
+            text role=code "java --enable-native-access=ALL-UNNAMED -cp core/target/classes:fonts/target/classes com.rethinkj.ui.examples.Manual" 282,-200 644x40 readonly lines 1-1/1
+            el #copy role=button label="Copy code" 898,-196 24x24
+              text label="copy" "\u{F32A}" 902,-192 16x16
+        el 281,-147 646x61 pos=31/39
+          el 281,-123 646x29
+            text #heading-tables role=heading "Tables" 281,-123 646x28 readonly level=2 lines 1-1/1
+            el role=separator 281,-95 646x1
+        el 281,-86 646x143 pos=32/39
+          el 281,-86 646x131
+            el role=table 281,-86 293x131
+              el role=row 282,-85 291x25
+                el role=columnheader 282,-85 86x25
+                  text role=textbox "Form" 290,-81 35x17 readonly lines 1-1/1
+                el role=columnheader 368,-85 123x25
+                  text role=textbox "Written as" 395,-81 69x17 readonly lines 1-1/1
+                el role=columnheader 491,-85 82x25
+                  text role=textbox "Shown as" 499,-81 66x17 readonly lines 1-1/1
+              el role=separator 282,-60 291x1
+              el role=row 282,-59 291x25
+                el role=cell 282,-59 86x25
+                  text role=textbox "Emphasis" 290,-55 65x17 readonly lines 1-1/1
+                el role=cell 368,-59 123x25
+                  text role=textbox "*a*" 414,-55 30x17 readonly lines 1-1/1
+                el role=cell 491,-59 82x25
+                  text role=textbox "a" 556,-55 9x17 readonly lines 1-1/1
+              el role=separator 282,-34 291x1
+              el role=row 282,-33 291x25
+                el role=cell 282,-33 86x25
+                  text role=textbox "Strong" 290,-29 45x17 readonly lines 1-1/1
+                el role=cell 368,-33 123x25
+                  text role=textbox "**a**" 406,-29 47x17 readonly lines 1-1/1
+                el role=cell 491,-33 82x25
+                  text role=textbox "a" 556,-29 9x17 readonly lines 1-1/1
+              el role=separator 282,-8 291x1
+              el role=row 282,-7 291x25
+                el role=cell 282,-7 86x25
+                  text role=textbox "Struck out" 290,-3 69x17 readonly lines 1-1/1
+                el role=cell 368,-7 123x25
+                  text role=textbox "~~a~~" 406,-3 47x17 readonly lines 1-1/1
+                el role=cell 491,-7 82x25
+                  text role=textbox "a" 556,-3 9x17 readonly lines 1-1/1
+              el role=separator 282,18 291x1
+              el role=row 282,19 291x25
+                el role=cell 282,19 86x25
+                  text role=textbox "Link" 290,23 28x17 readonly lines 1-1/1
+                el role=cell 368,19 123x25
+                  text role=textbox "[a](#tables)" 376,23 106x17 readonly lines 1-1/1
+                el role=cell 491,19 82x25
+                  text role=textbox "a" 556,23 9x17 readonly lines 1-1/1
+                    el #link-0 role=link label="a" 556,23 7.88x17 value="#tables"
+            el 281,45 646x0
+              el 281,45 242x0
+              el 523,45 1x0
         el 281,57 646x61 pos=33/39
           el 281,81 646x29
             text #heading-images role=heading "Images" 281,81 646x28 readonly level=2 lines 1-1/1
