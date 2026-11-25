@@ -178,7 +178,7 @@ echo java-options=-XX:AOTCache=$APPDIR\lights.aot>> target\dist\Lights\app\Light
 
 > **Note:** Rebuild the `.aot` cache whenever you rebuild the app image. An outdated cache will be ignored with a startup warning.
 
-If your app runs heavy initialization before opening its first window, you can also call [`GpuPresenter.prepare()`](/api/com/rethinkj/ui/render/GpuPresenter.html#prepare()) early in `main` to initialize the GPU on a background thread. Skip it when `main` runs a script instead (`Script.handle`), which opens no window. The Agent Chat example does this. Its first frame comes about 75 ms sooner on Windows without the cache, and no sooner with it, because the cache shortens the app's own start.
+If your app runs heavy initialization before opening its first window, you can also call [`GpuPresenter.prepare()`](/api/com/rethinkj/ui/render/GpuPresenter.html#prepare()) early in `main` to initialize the GPU on a background thread. Skip it when `main` runs a script instead (`Script.handle`), which opens no window. The Agent Chat example does this. On Windows, that brings its first frame about 75 ms sooner without the cache and about 20 ms sooner with it, because the cache shortens the app's own start.
 
 ## Optional: Pre-extract native libraries
 
