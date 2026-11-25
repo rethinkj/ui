@@ -2710,9 +2710,10 @@ public final class App<S> {
     if (root == null || !pathTo(root, list, path)) {
       return list.rowInView(last);
     }
+    path = fromOverlay(path); // an overlay lies over the areas around its anchor
     float top = 0;
-    float clipTop = Float.NEGATIVE_INFINITY;
-    float clipBottom = Float.POSITIVE_INFINITY;
+    float clipTop = 0; // the window's
+    float clipBottom = root.height();
     for (El el : path) {
       top += el.y();
       if (el != list && el.style().overflowY != Style.Overflow.VISIBLE) {
@@ -2736,26 +2737,31 @@ public final class App<S> {
 
   /**
    * Where Tab goes in the rows of {@code gap}, in the order of the {@code step}: to the row that
-   * last had the focus in the list when Tab enters it from outside and that row is not built,
-   * else, if {@code scan}, to the next row, as the row function builds it, that holds an element
-   * Tab stops at. Null if there is none; {@code built[0]} tells whether a row was built on the way.
+   * last had the focus in the list when Tab enters it from outside and that row is not built;
+   * else, or when that row has nothing to focus now, if {@code scan}, to the next row, as the row
+   * function builds it, that holds an element Tab stops at. Null if there is none; {@code built[0]} tells whether a row was built on the way.
    */
   private El throughGap(Gap gap, int step, boolean[] built, boolean scan) {
     El list = gap.list();
     Object listId = animator.identity(list);
     int last = Animator.isBelow(focus.id(), listId) ? -1 : lastRow(list, listId);
-    if (last >= 0 && !list.hasRow(last)) {
-      built[0] = true;
-      return inRow(listId, last, step);
-    }
-    if (!scan) {
-      return null;
-    }
     int from = gap.after() ? list.firstRow() + list.children().size() : 0;
     int to = gap.after() ? list.rowCount() : list.firstRow();
+    if (last >= 0 && !list.hasRow(last)) {
+      built[0] = true;
+      El found = inRow(listId, last, step);
+      list = animator.element(listId);
+      if (found != null || list == null || !scan) {
+        return found;
+      }
+    } else if (!scan) {
+      return null;
+    }
     for (int row = step > 0 ? from : to - 1; row >= from && row < to; row += step) {
-      if (stopsTab(list.rowElement(row), true)) {
+      int budget = tabScan;
+      if (stopsTab(list.rowElement(row), step, true)) {
         built[0] = true;
+        tabScan = budget - 1; // the row is looked at again where it is built
         El found = inRow(listId, row, step);
         list = animator.element(listId);
         if (found != null || list == null) {
@@ -2771,26 +2777,27 @@ public final class App<S> {
 
   /**
    * Whether Tab stops at {@code el} or at an element inside it, as a row function built it and
-   * before its layout: in the rows of the virtual lists in it too, which this builds. A
-   * {@code row} counts against {@link #TAB_SCAN}.
+   * before its layout: in the rows of the virtual lists in it too, which this builds in the
+   * order of the {@code step}. A {@code row} counts against {@link #TAB_SCAN}.
    */
-  private boolean stopsTab(El el, boolean row) {
+  private boolean stopsTab(El el, int step, boolean row) {
     if (row && tabScan-- <= 0 || el == null || !numbered(el) || el.opacity() == 0) {
       return false;
     }
     if (el.isFocusable() && !el.skipsTab()) {
       return true;
     }
-    if (el.isVirtualList()) {
-      for (int i = 0; i < el.rowCount() && tabScan > 0; i++) {
-        if (stopsTab(el.rowElement(i), true)) {
+    if (el.isVirtualList()) { // in the order Tab goes, so that the budget ends far from it
+      int count = el.rowCount();
+      for (int i = step > 0 ? 0 : count - 1; i >= 0 && i < count && tabScan > 0; i += step) {
+        if (stopsTab(el.rowElement(i), step, true)) {
           return true;
         }
       }
       return false;
     }
     for (El child : el.children()) {
-      if (stopsTab(child, false)) {
+      if (stopsTab(child, step, false)) {
         return true;
       }
     }

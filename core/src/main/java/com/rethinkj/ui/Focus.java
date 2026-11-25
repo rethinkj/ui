@@ -303,7 +303,6 @@ final class Focus {
         if (candidate.fieldState() == state) {
           el = candidate;
           id = animator.identity(el);
-          remember(id);
           break;
         }
       }
@@ -327,8 +326,8 @@ final class Focus {
       since = time;
       keyed = false;
       typeAhead.setLength(0);
-      remember(id);
     }
+    remember(id); // also where an autofocus or a field's state put it
     element = el;
     el.focused(true);
     if (awaiting == null) {
