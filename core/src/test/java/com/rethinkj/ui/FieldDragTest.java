@@ -5,6 +5,7 @@ import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -789,7 +790,7 @@ class FieldDragTest {
     app.frame();
 
     El r25 = byKey(app.tree(), "r25");
-    assertTrue(r25 != null, "row 25 scrolled into view and built");
+    assertNotNull(r25, "row 25 scrolled into view and built");
     assertEquals("25 item", r25.editor().selectedText());
     assertEquals(2, r25.text().underlined().length);
     assertEquals(4, r25.text().underlined()[0]);

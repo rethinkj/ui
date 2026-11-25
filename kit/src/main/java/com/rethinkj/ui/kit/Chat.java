@@ -436,7 +436,7 @@ public final class Chat {
    * jump back. The transcript is a {@link El#selectionScope selection scope}, so a drag or
    * Shift+click selects across the {@link Markdown#fragment Markdown} of messages, including ones
    * scrolled out of view, Control+C copies it in order, and {@link Find#find} gives it a find bar
-   * across all messages. Give it a height, or let it {@link El#grow} in a column, as any scroll
+   * across the Markdown of all messages. Give it a height, or let it {@link El#grow} in a column, as any scroll
    * area.
    *
    * <p>The app keeps {@code scroll} and {@code heights} in its state and passes the same instances

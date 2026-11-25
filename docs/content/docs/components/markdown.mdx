@@ -34,7 +34,7 @@ Use `Markdown.rowOf(document, id)` with `app.scrollToRow` to jump to a heading, 
 
 Drag or Shift+click to select text across blocks (paragraphs, lists, quotes, tables, and code blocks)—including blocks scrolled out of view—and press Ctrl+C to copy the selected text with line breaks between blocks. Dragging near or past the top or bottom edge scrolls the document while extending the selection.
 
-Wrap a rendered document with [`Find.find(app, document, state.find)`](/docs/components/find) to search across all its blocks in order: **Ctrl+F** opens the find bar from any block, highlights every match in view, displays the match count, and **Enter** / **Shift+Enter** (or **F3** / **Shift+F3**) step between matches, scrolling rows out of view into sight and selecting the current match so **Ctrl+C** copies it.
+Wrap the element `Markdown.markdown` returns with [`Find.find(app, rendered, state.find)`](/docs/components/find) to search across all its blocks in order: **Ctrl+F** opens the find bar from any block, highlights every match in view, displays the match count, and **Enter** / **Shift+Enter** (or **F3** / **Shift+F3**) step between matches, scrolling rows out of view into sight and selecting the current match so **Ctrl+C** copies it.
 
 ## Fragments and definition lists
 

@@ -3,6 +3,7 @@ package com.rethinkj.ui.kit;
 import static com.rethinkj.ui.El.col;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -813,7 +814,7 @@ class MarkdownTest {
     assertTrue(countLine(m2).contains("\"2 of 3\""), countLine(m2));
     assertTrue(m2.contains("Paragraph 150 contains needle here."), m2);
     El p150 = findParagraph(app.tree(), "Paragraph 150 contains needle here.");
-    assertTrue(p150 != null, "row 150 is built");
+    assertNotNull(p150, "row 150 is built");
     assertFalse(p150.text().selection().isEmpty(), "row 150 shows the match selection");
     assertTrue(m2.contains("underline 23-29"), m2);
 
