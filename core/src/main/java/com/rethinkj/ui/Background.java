@@ -64,9 +64,11 @@ public sealed interface Background
    * element's {@link El#fill}.
    *
    * <p>Unlike {@link El#image}, an image background has no intrinsic size and no effect on layout
-   * or hit testing. It is clipped to the padding box and the border's inner corners, with the
-   * element's opacity applied, and text drawn over it does not use the flat fill as its luminance
-   * hint unless {@link El#textBackground} names one.
+   * or hit testing. It is clipped to the padding box and the border's inner corners, and text
+   * drawn over it does not use the flat fill as its luminance hint unless {@link
+   * El#textBackground} names one. Unlike a gradient, which replaces the fill, it is drawn over the
+   * fill with the element's opacity of its own, as an {@link El#image} or a child is: a
+   * translucent element shows its fill through the image.
    *
    * @param image the image to paint
    * @param fit how the image fits the element's padding box
