@@ -460,4 +460,33 @@ class ScrollStateTest {
     app.frame();
     assertTrue(state.atEnd(), "at the end of the rows as measured");
   }
+
+  @Test
+  void aUserMoveToTheEndKeepsTheRowsItFoundAboveRowsAppendedMeanwhile() {
+    ScrollState state = new ScrollState();
+    RowHeights heights = new RowHeights(row -> row < 20 ? 10 : 1); // the rest measure 10 too
+    int[] count = {40};
+    App<ScrollState> app = new App<>(
+        state,
+        s -> col()
+            .w(100)
+            .h(100)
+            .rows(count[0], heights, row -> el().key("row-" + row).h(10))
+            .scrollState(s)
+            .onUserScroll(() -> count[0] = 60)); // loads more at the end, as an endless list does
+    app.resize(100, 100, 1);
+    app.frame();
+
+    app.wheel(50, 50, 0, 1000);
+    app.frame();
+    assertEquals(60, app.tree().rowCount());
+    assertEquals(
+        300, app.tree().scrollY(), "the bottom of row 39, its last row then, at the bottom");
+
+    state.scrollToEnd(); // the app's own end is the end of every row
+    app.invalidate();
+    app.frame();
+    assertTrue(state.atEnd());
+    assertEquals(500, app.tree().scrollY());
+  }
 }

@@ -1,0 +1,1 @@
+- A virtual list that End, Page Down, the wheel or the scrollbar sends to its end no longer jumps past rows the app appends before the list's last rows are measured, as an endless list does when it loads more at the end: it stays at the bottom of the rows it had. `app.scrollTo(list, x, Double.POSITIVE_INFINITY)` and `ScrollState.scrollToEnd` still follow every row to the end.

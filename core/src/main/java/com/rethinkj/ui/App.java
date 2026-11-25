@@ -1825,7 +1825,7 @@ public final class App<S> {
                 : area.scrollTo(area.scrollX(), area.scrollY() + line)
             : byPage
                 ? area.page(true, direction)
-                : area.scrollTo(area.scrollX(), direction * Double.POSITIVE_INFINITY);
+                : area.userScrollTo(area.scrollX(), direction * Double.POSITIVE_INFINITY);
         scrolled |= moved;
         if (moved) {
           tellUserScroll(area);
@@ -3076,7 +3076,7 @@ public final class App<S> {
       if (area.canScroll(horizontal, delta)) {
         boolean moved = horizontal
             ? area.scrollTo(area.scrollX() + delta, area.scrollY())
-            : area.scrollTo(area.scrollX(), area.orEnd(area.scrollY() + delta));
+            : area.userScrollTo(area.scrollX(), area.orEnd(area.scrollY() + delta));
         return moved ? area : null;
       }
       if (sideways && scrollsSideways(area, delta)) {
@@ -6829,10 +6829,8 @@ public final class App<S> {
           : El.NO_ROWS;
     }
     rowsWanted |= range.length != 0; // beyond the passes of one frame: the next frame goes on
-    boolean tail = !el.isVirtualList()
-        || !el.measuresRows()
-        || el.rowCount() == 0
-        || el.hasRow(el.rowCount() - 1);
+    boolean tail =
+        !el.isVirtualList() || !el.measuresRows() || el.rowCount() == 0 || el.hasRow(el.endRow());
     // A field's editor lays out its rows after this and ends it then.
     if (el.toEnd() && (el.text() == null || !el.text().multiline())) {
       rowGoals.remove(Animator.identities(path).getLast()); // the later end wins
