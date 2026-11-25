@@ -1,0 +1,1 @@
+- Added `FilterList.filterList(state, placeholder, entries)` and made `FilterList.State` public (with a no-arg constructor and `text()`), providing an embeddable search field above a fuzzy-filtered list for popovers, cards, and side panels.

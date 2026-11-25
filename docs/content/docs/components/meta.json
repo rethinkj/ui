@@ -33,6 +33,7 @@
     "menu",
     "menu-bar",
     "command-palette",
+    "filter-list",
     "dialog",
     "drawer",
     "popover",
