@@ -239,8 +239,6 @@ public final class FilterList {
     static final int BEST = -2; // highlight the first entry that can be chosen at the next build
     static final int KEEP = -3;
 
-    public State() {}
-
     String query = "";
     int highlight = -1; // the row, or -1 for none
     int want = BEST; // what to highlight at the next build: an entry's index, BEST, -1 or KEEP
