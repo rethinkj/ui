@@ -136,6 +136,21 @@ class OverlayTest {
     assertRect(
         new float[] {10, 150, 60, 50},
         placed(10, 90, o -> o.size(60, 50).side(Side.BOTTOM, Style.Align.START, 200)));
+    // Inset inside its anchor (negative gap): moves into the window instead of flipping to the
+    // anchor's opposite inside edge when the anchor scrolls partly above the window.
+    App<State> inset = app(
+        new State(),
+        s -> el().size(200, 200)
+            .child(el().key("anchor")
+                .absolute(10, -80)
+                .size(100, 140)
+                .overlay(el().key("pop").size(60, 30).side(Side.TOP, Style.Align.START, -32))),
+        200,
+        200);
+    El insetPop = find(inset, "pop");
+    assertRect(
+        new float[] {10, 0, 60, 30},
+        new float[] {insetPop.x(), insetPop.y(), insetPop.width(), insetPop.height()});
     // At a point, flipped up and to the left in the corner.
     assertRect(new float[] {135, 145, 60, 50}, placed(10, 10, o -> o.atPoint(195, 195)));
     // In the middle of the window.

@@ -450,7 +450,9 @@ public final class Chat {
    * @param scroll scroll state owned by the app
    * @param heights row heights owned by the app; construct with a row key ({@link
    *     RowHeights#RowHeights(java.util.function.IntToDoubleFunction, IntFunction)}) if older
-   *     messages can be inserted at the top
+   *     messages can be inserted at the top, and with a row version ({@link
+   *     RowHeights#RowHeights(java.util.function.IntToDoubleFunction, IntFunction, IntFunction)})
+   *     when wrapped with {@link Find#find} so out-of-view messages are not rebuilt on every build
    */
   public static El transcript(
       int count, IntFunction<El> message, ScrollState scroll, RowHeights heights) {
@@ -467,7 +469,10 @@ public final class Chat {
    * @param count number of messages
    * @param message builds the message element for an index, such as {@link #user} or {@link #agent}
    * @param scroll scroll state owned by the app
-   * @param heights row heights owned by the app
+   * @param heights row heights owned by the app; construct with a row key, and with a row version
+   *     ({@link RowHeights#RowHeights(java.util.function.IntToDoubleFunction, IntFunction,
+   *     IntFunction)}) when wrapped with {@link Find#find} so out-of-view messages are not rebuilt
+   *     on every build
    * @param onLoadOlder runs when row {@code 0} is built, or {@code null} for none
    */
   public static El transcript(

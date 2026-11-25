@@ -280,7 +280,7 @@ final class Overlays {
       // A tooltip keeps its gap from the window's edges too; a menu may lie flush with them.
       float edge = l.avoidsAnchor ? l.gap : 0;
       boolean after = l.side == Side.BOTTOM || l.side == Side.RIGHT;
-      boolean turn = within != null && within.flipped && within.side == l.side;
+      boolean turn = l.gap >= 0 && within != null && within.flipped && within.side == l.side;
       // Only an anchor wholly inside the dialog keeps it there, not a submenu's item below it.
       boolean inDialog = dialog != null
           && ax >= dialog.x()
@@ -295,11 +295,11 @@ final class Overlays {
       if (l.side == Side.TOP || l.side == Side.BOTTOM) {
         top = beside(after != turn, ay, ah, mh, l.gap, height);
         left = along(l.align, ax, aw, mw, width, edge, dialogLeft, dialogRight);
-        l.flipped = after ? top < ay : top >= ay + ah;
+        l.flipped = l.gap >= 0 && (after ? top < ay : top >= ay + ah);
       } else {
         left = beside(after != turn, ax, aw, mw, l.gap, width);
         top = along(l.align, ay, ah, mh, height, edge, dialogTop, dialogBottom);
-        l.flipped = after ? left < ax : left >= ax + aw;
+        l.flipped = l.gap >= 0 && (after ? left < ax : left >= ax + aw);
       }
       // A tooltip that would cover its anchor, under the pointer that shows it, would take the
       // hover from the anchor and hide again: it goes to a side across if one has room.
@@ -325,7 +325,9 @@ final class Overlays {
 
   /**
    * Where an overlay of size {@code size} starts across the side it is on: beside the anchor, on
-   * the other side if it does not fit, else moved into the window.
+   * the other side if it does not fit, else moved into the window. An overlay placed inside its
+   * anchor (negative {@code gap}) does not flip to the other side, since that would move it to the
+   * opposite inside edge; it is moved into the window instead.
    *
    * @param after whether it goes after the anchor: below it or to its right
    */
@@ -338,7 +340,7 @@ final class Overlays {
     if (fits(first, size, window)) {
       return first;
     }
-    if (fits(second, size, window)) {
+    if (gap >= 0 && fits(second, size, window)) {
       return second;
     }
     return Math.clamp(first, 0, Math.max(window - size, 0));
