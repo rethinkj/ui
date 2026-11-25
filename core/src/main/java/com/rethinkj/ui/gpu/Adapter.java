@@ -114,10 +114,12 @@ public final class Adapter extends GpuObject {
       Structs.string(descriptor, DeviceDescriptor.LABEL, label, arena);
       Structs.string(descriptor, DeviceDescriptor.DEFAULT_QUEUE_LABEL, label + " queue", arena);
       CallbackInfo.set(
-          descriptor, DeviceDescriptor.DEVICE_LOST_CALLBACK_INFO, Callbacks.DEVICE_LOST, eventsId);
+          descriptor, DeviceDescriptor.DEVICE_LOST_CALLBACK_INFO, Callbacks.Devices.LOST, eventsId);
       long uncaptured = DeviceDescriptor.UNCAPTURED_ERROR_CALLBACK_INFO;
       descriptor.set(
-          ADDRESS, uncaptured + UncapturedErrorCallbackInfo.CALLBACK, Callbacks.UNCAPTURED_ERROR);
+          ADDRESS,
+          uncaptured + UncapturedErrorCallbackInfo.CALLBACK,
+          Callbacks.Devices.UNCAPTURED_ERROR);
       descriptor.set(
           ADDRESS,
           uncaptured + UncapturedErrorCallbackInfo.USERDATA1,
@@ -126,7 +128,7 @@ public final class Adapter extends GpuObject {
           arena,
           adapter,
           descriptor,
-          CallbackInfo.allocate(arena, Callbacks.REQUEST_DEVICE, requestId));
+          CallbackInfo.allocate(arena, Callbacks.Devices.REQUEST, requestId));
     } catch (RuntimeException | Error e) {
       Callbacks.unregister(eventsId);
       throw e;

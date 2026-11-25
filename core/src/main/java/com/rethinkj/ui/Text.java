@@ -136,6 +136,7 @@ public final class Text implements Measure {
   private static final int SHAPED_LINES = 16_384;
   private static final int SHAPED_LINES_ANY_LENGTH = 4096;
   private static final int SHAPED_CHARACTERS = 1 << 20;
+  private static final int FITTED_WIDTHS = 16; // the sizes of an unchanged text kept by width
 
   private final String string;
   private String composed; // a field's string with the composition in it, or null for none
@@ -227,6 +228,8 @@ public final class Text implements Measure {
   private Lines shownLines;
   private final Map<Integer, Para> shapedLines = new HashMap<>();
   private long shapedLineCharacters; // of the lines in shapedLines
+  private Kept kept; // the lines shaped for any tree, kept with shownLines; null until asked for
+  private boolean provisional; // whether a line was shaped without the spans it waits for
   private float tabStop;
   private float advance; // of an average character, for the estimate of rows
   private float viewX;
@@ -240,6 +243,7 @@ public final class Text implements Measure {
   private List<El.Hint> hints = List.of();
   private HintMeasurer hintMeasurer;
   private static final SortedHint[] NO_HINTS = {};
+  private static final Object NO_HIGHLIGHTING = new Object();
   private SortedHint[] sortedHints; // sorted hints in bounds, lazily built when !hints.isEmpty()
   private List<Row> rows = List.of();
   private List<PlacedBlock> placedBlocks = List.of();
@@ -354,6 +358,96 @@ public final class Text implements Measure {
       List<String> features,
       int tabSize,
       boolean systemFonts) {}
+
+  /** What the shaped lines of a multi-line field depend on besides its string. */
+  private record Shaping(
+      Font font,
+      float size,
+      float scale,
+      List<String> features,
+      int tabSize,
+      boolean systemFonts,
+      boolean wraps,
+      float lineHeight,
+      int color,
+      Object highlighting,
+      Object hints) {}
+
+  /**
+   * The lines of a multi-line field shaped so far, by index, and the sizes measured from them by
+   * width: kept with the field's lines, which its editor keeps across trees while the string stays,
+   * so that the next tree finds them while {@link Shaping} stays the same. Each text breaks a copy
+   * of a kept line into rows of its own.
+   */
+  private static final class Kept {
+    final Shaping shaping;
+    final Map<Integer, Para> paras = new HashMap<>();
+    final Map<Float, Size> fitted = new HashMap<>(); // emptied when a line is shaped anew
+    long characters; // of the lines in paras
+
+    Kept(Shaping shaping) {
+      this.shaping = shaping;
+    }
+
+    /** Keeps line {@code line} as shaped and broken into rows; a new line empties fitted. */
+    void put(int line, Para para) {
+      Para was = paras.get(line);
+      if (was == null) {
+        int count = paras.size();
+        if (count >= SHAPED_LINES
+            || count >= SHAPED_LINES_ANY_LENGTH && characters >= SHAPED_CHARACTERS) {
+          paras.clear();
+          characters = 0;
+        }
+        characters += para.text.length();
+        fitted.clear();
+      }
+      paras.put(line, new Para(para));
+    }
+
+    void drop(int line) {
+      Para dropped = paras.remove(line);
+      if (dropped != null) {
+        characters -= dropped.text.length();
+      }
+      fitted.clear();
+    }
+  }
+
+  /** The lines of the shown string kept for later trees, from the lines when they match. */
+  private Kept kept() {
+    Lines lines = shownLines();
+    if (kept != null) {
+      return kept;
+    }
+    Shaping shaping = new Shaping(
+        font(),
+        size,
+        scale,
+        List.of(features),
+        tabSize,
+        systemFonts,
+        wraps,
+        lineHeight,
+        viewColor,
+        highlighter == null || placeholderShown ? NO_HIGHLIGHTING : highlightKey,
+        hasHints() ? new Object() : null); // a hint's width follows the looks of its tree
+    if (lines.shapedLines instanceof Kept found && found.shaping.equals(shaping)) {
+      kept = found;
+    } else {
+      kept = new Kept(shaping);
+      lines.shapedLines = kept;
+    }
+    return kept;
+  }
+
+  /**
+   * Whether a later tree may use this shaped line: not a long line in chunks, which belong to this
+   * text, and not one shaped without the spans its highlighter has yet to give.
+   */
+  private boolean keeps(Para para) {
+    return para.chunks == null && (highlighter == null || placeholderShown || para.spans != null);
+  }
 
   Text(String string) {
     if (string == null) {
@@ -599,6 +693,8 @@ public final class Text implements Measure {
     paras = null;
     shapedLines.clear();
     shapedLineCharacters = 0;
+    kept = null;
+    provisional = false;
     sortedHints = null;
     viewStale = true;
     highlightPending = false;
@@ -857,6 +953,11 @@ public final class Text implements Measure {
 
   void color(int argb) {
     this.color = argb;
+    if (argb != viewColor && kept != null) { // lines with spans were shaped in the old color
+      shapedLines.clear();
+      shapedLineCharacters = 0;
+      kept = null;
+    }
     this.viewColor = argb;
   }
 
@@ -1899,6 +2000,22 @@ public final class Text implements Measure {
       this.rowWidths = new float[] {totalWidth()};
     }
 
+    /** A copy that breaks into rows of its own, from the rows {@code of} has now. */
+    Para(Para of) {
+      this.text = of.text;
+      this.run = of.run;
+      this.colors = of.colors;
+      this.spans = of.spans;
+      this.offset = of.offset;
+      this.glyphAt = of.glyphAt;
+      this.breaks = of.breaks;
+      this.chunks = of.chunks;
+      this.hints = of.hints;
+      this.limit = of.limit;
+      this.rowStarts = of.rowStarts;
+      this.rowWidths = of.rowWidths;
+    }
+
     Para(String text, Spans spans, Chunks chunks) {
       this.text = text;
       this.run = null;
@@ -2727,49 +2844,69 @@ public final class Text implements Measure {
     if (dropped != null) {
       shapedLineCharacters -= dropped.text.length();
     }
+    kept().drop(line);
   }
 
   /** Line {@code line} of the shown string shaped, with its rows at the width; measured once. */
   private Para para(int line) {
     Lines lines = shownLines();
     Para para = shapedLines.get(line);
-    if (para == null) {
-      int kept = shapedLines.size();
-      if (kept >= SHAPED_LINES
-          || kept >= SHAPED_LINES_ANY_LENGTH && shapedLineCharacters >= SHAPED_CHARACTERS) {
+    boolean fresh = para == null;
+    if (fresh) {
+      int count = shapedLines.size();
+      if (count >= SHAPED_LINES
+          || count >= SHAPED_LINES_ANY_LENGTH && shapedLineCharacters >= SHAPED_CHARACTERS) {
         shapedLines.clear(); // keys that walk far in one tree: keep what this tree shapes bounded
         shapedLineCharacters = 0;
       }
-      Spans spans = highlighter == null || placeholderShown
-          ? null
-          : lines.spans(line, shown, highlighter, highlightKey);
-      int lineStart = lines.start(line);
-      int lineEnd = lines.end(line);
-      String text = shown.substring(lineStart, lineEnd);
-      if (!wraps && text.length() > CHUNK_SIZE) {
-        para = new Para(text, spans, new Chunks(line, lineStart, text, spans, splitChunks(text)));
+      Para found = kept().paras.get(line);
+      if (found != null) {
+        para = new Para(found);
       } else {
-        List<MeasuredHint> segHints =
-            hasHints() ? segmentHints(lineStart, lineEnd, true, true) : List.<MeasuredHint>of();
-        para = shape(text, spans, 0, text.length(), segHints);
-        lines.shapedCharacters += text.length();
+        para = shapeLine(lines, line);
+        if (keeps(para)) {
+          kept().put(line, para); // anew: a hint shaped with it may have changed the color
+        } else if (para.chunks == null) {
+          provisional = true;
+        }
       }
       shapedLines.put(line, para);
-      shapedLineCharacters += lineEnd - lineStart;
-      lines.shaped++;
+      shapedLineCharacters += para.text.length();
     }
     float limit = wraps && laidOut ? placedWidth + SLACK : Float.POSITIVE_INFINITY;
-    if (limit != para.limit) { // new, or shaped before layout placed the text at another width
+    boolean broken = limit != para.limit; // new, or shaped before layout placed it at another width
+    if (broken) {
       para.breakInto(limit);
-      if (lines.wraps()) {
-        if (laidOut) { // before layout, the rows the lines keep are those of the last width
-          lines.rows(line, para.rowCount());
-        }
-      } else {
-        lines.measured(line, para.totalWidth());
+      if (keeps(para)) {
+        kept().put(line, para);
       }
     }
+    if (lines.wraps()) {
+      if (laidOut) { // before layout, the rows the lines keep are those of the last width
+        lines.rows(line, para.rowCount());
+      }
+    } else if (broken || fresh) {
+      lines.measured(line, para.totalWidth());
+    }
     return para;
+  }
+
+  /** Line {@code line} of the shown string shaped anew. */
+  private Para shapeLine(Lines lines, int line) {
+    Spans spans = highlighter == null || placeholderShown
+        ? null
+        : lines.spans(line, shown, highlighter, highlightKey);
+    int lineStart = lines.start(line);
+    int lineEnd = lines.end(line);
+    String text = shown.substring(lineStart, lineEnd);
+    lines.shaped++;
+    if (!wraps && text.length() > CHUNK_SIZE) {
+      return new Para(text, spans, new Chunks(line, lineStart, text, spans, splitChunks(text)));
+    }
+    List<MeasuredHint> segHints =
+        hasHints() ? segmentHints(lineStart, lineEnd, true, true) : List.<MeasuredHint>of();
+    lines.shapedCharacters += text.length();
+    return shape(text, spans, 0, text.length(), segHints);
   }
 
   /**
@@ -2779,6 +2916,12 @@ public final class Text implements Measure {
    */
   private Size fittedSize(float width) {
     Lines lines = shownLines();
+    // Kept by width while no line is shaped anew: the next tree measures an unchanged text free.
+    Map<Float, Size> fitted = wraps && !lines.hasBlocks() && folds.isEmpty() ? kept().fitted : null;
+    Size known = fitted == null ? null : fitted.get(width);
+    if (known != null) {
+      return known;
+    }
     float widest = 0;
     int rows;
     if (!wraps) {
@@ -2830,7 +2973,14 @@ public final class Text implements Measure {
       }
       height += lines.totalBlockPixels();
     }
-    return new Size(widest / scale, height / scale, firstBaseline / scale);
+    Size size = new Size(widest / scale, height / scale, firstBaseline / scale);
+    if (fitted != null && !provisional) { // not with a line its spans may make wider
+      if (fitted.size() >= FITTED_WIDTHS) {
+        fitted.clear(); // a field resized again and again
+      }
+      fitted.put(width, size);
+    }
+    return size;
   }
 
   /**

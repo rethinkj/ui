@@ -336,16 +336,20 @@ class TextAreaTest {
     }
   }
 
-  /** A field as high as its rows is measured and laid out in full, and keeps every line shaped. */
+  /**
+   * A field as high as its rows is measured and laid out in full: it shapes each line once, and
+   * the next tree finds them shaped while its string stays the same.
+   */
   @Test
-  void aRebuildShapesEachLineOfATallFieldOnce() {
+  void aTallFieldShapesEachLineOnceAndARebuildNone() {
     App<Model> app = Areas.start(
         "word\n".repeat(5000), field -> field.readOnly().wrapText().fitLines(), 1, El::scroll);
     Lines lines = field(app).editor().lineIndex();
+    assertTrue(lines.shaped <= 5001, "the first frame shaped " + lines.shaped);
     int before = lines.shaped;
     app.post(() -> {});
     app.frame();
-    assertTrue(lines.shaped - before <= 5001, "a rebuild shaped " + (lines.shaped - before));
+    assertEquals(before, lines.shaped, "a rebuild shaped lines again");
   }
 
   @Test

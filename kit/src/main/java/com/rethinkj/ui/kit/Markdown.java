@@ -47,17 +47,17 @@ import java.util.function.Function;
  * drag—or Shift+press—selects across blocks, including rows out of view, and Control+C copies the
  * selected text of all of them in order with a line break between blocks; Tab passes the fields by
  * ({@link El#skipTab}) and reaches the links. Control+A selects the whole document, which then
- * shows as selected, and Control+C copies all of it as text ({@link #text}); a press anywhere ends
- * that. {@link #fragment} marks its column as a selection scope too, and several fragments in one
- * container (such as a list of chat messages) join into one selection when the app marks the
- * container {@link El#selectionScope}.
+ * shows as selected, and Control+C copies all of it as text ({@link #text}); a press anywhere or
+ * Escape ends that. {@link #fragment} marks its column as a selection scope too, and several
+ * fragments in one container (such as a list of chat messages) join into one selection when the
+ * app marks the container {@link El#selectionScope}.
  *
  * <p>A link is an element over its range of the text ({@link El#range}): {@code role=link} with
- * its text as the label, in {@link Theme.Prose#link} and underlined, with the pointer's cursor and
- * a tint under it, one stop for Tab, and pressed by Enter; it hands its destination to {@link
- * Options#onLink}. Headings have the key {@code heading-<id>} with GitHub's anchor as the id
- * ({@link MarkdownDocument.Heading#id}), so that the app finds one to scroll to for a link {@code
- * #id}.
+ * its text as the label, its title (if it has one) as its tooltip, in {@link Theme.Prose#link} and
+ * underlined, with the pointer's cursor and a tint under it, one stop for Tab, and pressed by
+ * Enter; it hands its destination to {@link Options#onLink}. Headings have the key {@code
+ * heading-<id>} with GitHub's anchor as the id ({@link MarkdownDocument.Heading#id}), so that the
+ * app finds one to scroll to for a link {@code #id}.
  *
  * <p>Code blocks are in the mono type on the raised surface, scroll sideways, and are colored by
  * the highlighter {@link Options#languages} gives for their language; with {@link Options#copy} a
@@ -67,13 +67,17 @@ import java.util.function.Function;
  * <p>Images come from the app: {@link Options#images} gives the image for an address, or null
  * while it has none, and the kit's {@link Image} shows it, or its placeholder with the image's
  * description until then. An image is as large as its pixels at its scale and at most as wide as
- * the page, and its title, if it has one, is its tooltip. It stands as a block: an image alone in
- * its paragraph is one, and one among the text of a paragraph breaks the paragraph there, the
- * text before it above and the text after it below, since a block of text is one field whose
- * lines cannot make room for an image. An image that arrives later makes its row higher; when
+ * the page, and its title, if it has one, is its tooltip. Images inside links, emphasis, strong or
+ * strikethrough also show as images; a linked image is {@code role=link} labeled by its alt text
+ * and hands its destination to {@link Options#onLink}. Images that follow each other in a
+ * paragraph, separated only by spaces or line breaks, sit in one wrapping row; among text they
+ * break the paragraph there, the text before above and the text after below, since a block of text
+ * is one field whose lines cannot make room for an image. A heading or table cell that holds only
+ * images (and links or emphasis around them) shows those images; one that mixes text and images
+ * keeps their alt text for the same reason. An image that arrives later makes its row higher; when
  * that row is above the top of the view, the view moves along with it, so that what is in view
  * stays where it is. Without {@link Options#images}, an image shows as its description: in a
- * frame alone in its paragraph, in muted text among other text.
+ * frame alone in its paragraph, in muted text (or as a text link) everywhere else.
  *
  * <p>What the component makes of a document for a theme it keeps with the document, so a rebuild of
  * the view reads nothing again and highlights nothing again. To show a document that grows while it
@@ -447,7 +451,8 @@ public final class Markdown {
   /** The blocks of text of a document, made once per theme. */
   private static final class Prepared {
     final MarkdownDocument document;
-    final Map<Object, Piece> pieces = new IdentityHashMap<>();
+    // By the prose text color they were built for, then by the block or inline list they came from.
+    final Map<Integer, Map<Object, Piece>> pieces = new HashMap<>();
     // The widths of lists' markers, by the window's scale they were measured at.
     final Map<Float, Map<Object, Float>> columns = new HashMap<>();
     final List<Unit> units;
@@ -485,9 +490,9 @@ public final class Markdown {
       case MarkdownDocument.Paragraph p -> {
         copyPiece(p, old, target);
         copyPiece(p.content(), old, target);
-        for (Inline inline : p.content()) {
-          if (inline instanceof MarkdownDocument.Image image) {
-            copyPiece(image, old, target);
+        for (Object part : split(p.content(), null)) {
+          if (part instanceof Picture picture) {
+            copyPiece(picture.image(), old, target);
           }
         }
       }
@@ -527,9 +532,14 @@ public final class Markdown {
   }
 
   private static void copyPiece(Object owner, Prepared old, Prepared target) {
-    Piece piece = old.pieces.get(owner);
-    if (piece != null) {
-      target.pieces.put(owner, piece);
+    for (var entry : old.pieces.entrySet()) {
+      Piece piece = entry.getValue().get(owner);
+      if (piece != null) {
+        target
+            .pieces
+            .computeIfAbsent(entry.getKey(), color -> new IdentityHashMap<>())
+            .put(owner, piece);
+      }
     }
   }
 
@@ -618,8 +628,8 @@ public final class Markdown {
   private static final int UNDERLINE = 3;
   private static final int STRIKE = 4;
 
-  /** A link of a piece: its range, what it shows and where it goes. */
-  private record Link(int from, int to, String label, String destination) {}
+  /** A link of a piece: its range, what it shows, where it goes and its title. */
+  private record Link(int from, int to, String label, String destination, String title) {}
 
   /**
    * The text of a block with its ranges, its own highlighter: it hands each line the spans of its
@@ -629,11 +639,9 @@ public final class Markdown {
     final String text;
     final List<Span> spans;
     final List<Link> links;
-    final int color; // of the text, which struck-out parts are struck in
 
-    Piece(String text, List<Span> spans, List<Link> links, int color) {
+    Piece(String text, List<Span> spans, List<Link> links) {
       this.text = text;
-      this.color = color;
       this.spans = List.copyOf(spans);
       this.links = List.copyOf(links);
     }
@@ -667,10 +675,12 @@ public final class Markdown {
 
   static int piecesBuilt; // for tests
 
-  /** Makes the piece of a run of inline parts, once per document and theme. */
+  /** Makes the piece of a run of inline parts, once per document, theme and text color. */
   private static Piece piece(Context c, Object owner, List<Inline> content, boolean heading) {
-    Piece kept = c.prepared.pieces.get(owner);
-    if (kept != null && kept.color == c.color) {
+    Map<Object, Piece> byOwner =
+        c.prepared.pieces.computeIfAbsent(c.color, color -> new IdentityHashMap<>());
+    Piece kept = byOwner.get(owner);
+    if (kept != null) {
       return kept;
     }
     piecesBuilt++;
@@ -678,8 +688,8 @@ public final class Markdown {
     List<Span> spans = new ArrayList<>();
     List<Link> links = new ArrayList<>();
     inline(c, content, 0, null, false, heading, text, spans, links);
-    Piece piece = new Piece(text.toString(), spans, links, c.color);
-    c.prepared.pieces.put(owner, piece);
+    Piece piece = new Piece(text.toString(), spans, links);
+    byOwner.put(owner, piece);
     return piece;
   }
 
@@ -702,7 +712,10 @@ public final class Markdown {
         case MarkdownDocument.HardBreak _ -> text.append('\n');
         case MarkdownDocument.Code x -> {
           text.append(x.code());
-          spans.add(new Span(FONT, from, text.length(), 0, Font.mono()));
+          Font mono = heading || (style & STRONG) != 0
+              ? Font.monoBold()
+              : theme.type().mono().font().get();
+          spans.add(new Span(FONT, from, text.length(), 0, mono));
           spans.add(new Span(BACKGROUND, from, text.length(), theme.prose().code(), null));
         }
         case MarkdownDocument.Emphasis x ->
@@ -716,7 +729,8 @@ public final class Markdown {
           if (text.length() > from) {
             spans.add(new Span(COLOR, from, text.length(), theme.prose().link(), null));
             spans.add(new Span(UNDERLINE, from, text.length(), theme.prose().link(), null));
-            links.add(new Link(from, text.length(), text.substring(from), x.destination()));
+            links.add(
+                new Link(from, text.length(), text.substring(from), x.destination(), x.title()));
           }
           continue;
         }
@@ -748,7 +762,7 @@ public final class Markdown {
         }
       }
       if (strike && to > from) {
-        spans.add(new Span(STRIKE, from, to, c.color, null));
+        spans.add(new Span(STRIKE, from, to, link != null ? theme.prose().link() : c.color, null));
       }
     }
   }
@@ -851,30 +865,51 @@ public final class Markdown {
     }
     for (int i = 0; i < piece.links.size(); i++) {
       Link link = piece.links.get(i);
-      Consumer<String> onLink = c.options.onLink;
-      El el = el().key("link-" + i)
-          .role("link")
-          .label(link.label)
-          .value(link.destination)
-          .range(link.from, link.to)
-          .radius(theme.radius().small())
-          .focusable()
-          .focusRing(theme.accent().edge());
-      if (onLink != null) {
-        el.cursor(Cursor.POINTER)
-            .onPress(() -> onLink.accept(link.destination))
-            .whenHovered(e -> e.fill(theme.surface().hover()))
-            .whenPressed(e -> e.fill(theme.surface().pressed()));
+      El el = link(c, link.label, link.destination).key("link-" + i).range(link.from, link.to);
+      if (!link.title.isEmpty()) {
+        Tooltip.tooltip(el, link.title);
       }
       field.child(el);
     }
     return field;
   }
 
-  /** Control+A selects the document, Control+C after it copies the whole of it. */
+  /** A link element: focusable, with the theme's pointer cursor, hover/pressed tint and action. */
+  private static El link(Context c, String label, String destination) {
+    Theme theme = c.theme;
+    El el = el().role("link")
+        .label(label)
+        .value(destination)
+        .radius(theme.radius().small())
+        .focusable()
+        .focusRing(theme.accent().edge());
+    Consumer<String> onLink = c.options.onLink;
+    if (onLink != null) {
+      el.cursor(Cursor.POINTER)
+          .onPress(() -> onLink.accept(destination))
+          .whenHovered(e -> e.fill(theme.surface().hover()))
+          .whenPressed(e -> e.fill(theme.surface().pressed()));
+    }
+    return el;
+  }
+
+  /**
+   * Control+A selects the document, Control+C after it copies the whole of it, and Escape ends the
+   * selection.
+   */
   private static boolean keys(Context c, Key k) {
     State state = c.options.state;
-    if (state == null || k.modifiers() != Key.CONTROL) {
+    if (state == null) {
+      return false;
+    }
+    if (k.modifiers() == 0 && k.name().equals("Escape")) {
+      if (!state.all) {
+        return false;
+      }
+      state.all = false;
+      return true;
+    }
+    if (k.modifiers() != Key.CONTROL) {
       return false;
     }
     if (k.name().equals("A")) {
@@ -900,19 +935,23 @@ public final class Markdown {
 
   private static El heading(Context c, MarkdownDocument.Heading h) {
     Theme theme = c.theme;
-    Theme.TextStyle style = theme.prose().headings().get(h.level() - 1);
-    int color =
-        h.level() == 6 && c.color == theme.text().primary() ? theme.text().muted() : c.color;
-    El field = field(c, piece(c, h, h.content(), true), style, color)
-        .role("heading")
-        .level(h.level())
-        .key("heading-" + h.id());
+    List<Picture> pictures = c.options.images == null ? List.of() : imagesOnly(h.content());
+    El content;
+    if (!pictures.isEmpty()) {
+      content = imageRow(c, pictures);
+    } else {
+      Theme.TextStyle style = theme.prose().headings().get(h.level() - 1);
+      int color =
+          h.level() == 6 && c.color == theme.text().primary() ? theme.text().muted() : c.color;
+      content = field(c, piece(c, h, h.content(), true), style, color);
+    }
+    content.role("heading").level(h.level()).key("heading-" + h.id());
     if (h.level() > 2) {
-      return field;
+      return content;
     }
     // The two top levels stand over a hairline, as on a page of documentation.
-    field.padding(0, 0, theme.space().s(), 0);
-    return col().children(field, Divider.divider());
+    content.padding(0, 0, theme.space().s(), 0);
+    return col().children(content, Divider.divider());
   }
 
   private static El paragraph(Context c, MarkdownDocument.Paragraph p) {
@@ -921,54 +960,199 @@ public final class Markdown {
     if (content.size() == 1 && content.getFirst() instanceof MarkdownDocument.Image image) {
       return image(c, image);
     }
-    if (c.options.images == null
-        || content.stream().noneMatch(i -> i instanceof MarkdownDocument.Image)) {
+    List<Object> parts = c.options.images == null ? List.of() : split(content, null);
+    if (parts.stream().noneMatch(Picture.class::isInstance)) {
       return field(c, piece(c, p, content, false), theme.prose().body(), c.color)
           .role("paragraph");
     }
-    // Images among the text break the paragraph: text, image, text, each a block of its own.
-    El blocks = col().gap(c.compact ? theme.space().m() : theme.space().l());
-    // A run of text is kept by the image before it, the first by the content: the paragraph
+    // Images among the text break the paragraph: text, a row of images, text, each a block of its
+    // own. A run of text is kept by the image before it, the first by the content: the paragraph
     // keeps its piece shown whole, for a view of the same document without images.
+    El blocks = col().gap(c.compact ? theme.space().m() : theme.space().l());
     Object owner = content;
     List<Inline> run = new ArrayList<>();
-    for (Inline part : content) {
-      if (part instanceof MarkdownDocument.Image image) {
-        run(c, owner, run, blocks);
-        blocks.child(image(c, image));
-        owner = image;
-        run = new ArrayList<>();
-      } else {
-        run.add(part);
+    List<Picture> pictures = new ArrayList<>();
+    for (Object part : parts) {
+      if (!(part instanceof Picture picture)) {
+        run.add((Inline) part);
+        continue;
       }
+      // Images with only spaces or line breaks between them share a row.
+      if (!blank(run)) {
+        if (!pictures.isEmpty()) {
+          blocks.child(imageRow(c, pictures));
+        }
+        run(c, owner, run, blocks);
+        pictures = new ArrayList<>();
+      }
+      run = new ArrayList<>();
+      pictures.add(picture);
+      owner = picture.image();
     }
+    blocks.child(imageRow(c, pictures));
     run(c, owner, run, blocks);
     return blocks;
   }
 
+  /** An image of a block, with the destination of the link around it, if any. */
+  private record Picture(MarkdownDocument.Image image, String link) {}
+
+  /**
+   * The content with its images, however deep, taken out as {@link Picture}s, in order; the text
+   * between them stays in the emphasis and links it was in.
+   */
+  private static List<Object> split(List<Inline> content, String link) {
+    List<Object> out = new ArrayList<>();
+    for (Inline part : content) {
+      switch (part) {
+        case MarkdownDocument.Image x -> out.add(new Picture(x, link));
+        case MarkdownDocument.Emphasis x ->
+          rewrap(split(x.content(), link), MarkdownDocument.Emphasis::new, out);
+        case MarkdownDocument.Strong x ->
+          rewrap(split(x.content(), link), MarkdownDocument.Strong::new, out);
+        case MarkdownDocument.Strike x ->
+          rewrap(split(x.content(), link), MarkdownDocument.Strike::new, out);
+        case MarkdownDocument.Link x ->
+          rewrap(
+              split(x.content(), x.destination()),
+              run -> new MarkdownDocument.Link(x.destination(), x.title(), run),
+              out);
+        default -> out.add(part);
+      }
+    }
+    return out;
+  }
+
+  /** Puts each run of text among {@code parts} back into its wrapper, and the pictures as they are. */
+  private static void rewrap(
+      List<Object> parts, Function<List<Inline>, Inline> wrapper, List<Object> out) {
+    List<Inline> run = new ArrayList<>();
+    for (Object part : parts) {
+      if (part instanceof Inline inline) {
+        run.add(inline);
+        continue;
+      }
+      if (!run.isEmpty()) {
+        out.add(wrapper.apply(run));
+        run = new ArrayList<>();
+      }
+      out.add(part);
+    }
+    if (!run.isEmpty()) {
+      out.add(wrapper.apply(run));
+    }
+  }
+
+  /**
+   * The images of content that holds nothing else but spaces and line breaks (as a heading or a
+   * table cell made of badges), or none.
+   */
+  private static List<Picture> imagesOnly(List<Inline> content) {
+    List<Picture> pictures = new ArrayList<>();
+    List<Inline> rest = new ArrayList<>();
+    for (Object part : split(content, null)) {
+      if (part instanceof Picture picture) {
+        pictures.add(picture);
+      } else {
+        rest.add((Inline) part);
+      }
+    }
+    return blank(rest) ? pictures : List.of();
+  }
+
+  /** Whether the content shows nothing but spaces (no-break ones too) and line breaks. */
+  private static boolean blank(List<Inline> content) {
+    return MarkdownDocument.plainText(content).replace('\u00a0', ' ').isBlank();
+  }
+
+  /** A wrapping row of images (and linked images) that follow each other without text between. */
+  private static El imageRow(Context c, List<Picture> pictures) {
+    El out = row().wrap().gap(c.theme.space().s()).align(Style.Align.CENTER);
+    for (Picture picture : pictures) {
+      out.child(imageItem(c, picture.image, picture.link));
+    }
+    return out;
+  }
+
+  private static El imageItem(Context c, MarkdownDocument.Image image, String destination) {
+    String alt = image.alt().isEmpty() ? image.source() : image.alt();
+    com.rethinkj.ui.Image picture =
+        c.options.images == null ? null : c.options.images.apply(image.source());
+    El el = Image.image(picture, alt).minSize(0, 0);
+    if (picture == null) {
+      el.justify(Style.Content.START);
+    }
+    El out = destination == null
+        ? el
+        : link(c, alt, destination)
+            .radius(c.theme.radius().medium())
+            .align(Style.Align.START)
+            .minSize(0, 0)
+            .child(el);
+    if (picture != null && !image.title().isEmpty()) {
+      Tooltip.tooltip(out, image.title());
+    }
+    return out;
+  }
+
+  private static float imageRowWidth(Context c, List<Picture> pictures) {
+    Theme theme = c.theme;
+    float width = Math.max(0, pictures.size() - 1) * theme.space().s();
+    for (Picture item : pictures) {
+      MarkdownDocument.Image image = item.image;
+      com.rethinkj.ui.Image picture = c.options.images.apply(image.source());
+      if (picture != null) {
+        width += picture.width() / picture.scale();
+      } else {
+        String alt = image.alt().isEmpty() ? image.source() : image.alt();
+        width += theme.size().icon()
+            + theme.space().m()
+            + TextSizing.natural(Label.label(Label.Variant.MUTED, alt))
+            + 2 * (theme.space().l() + theme.size().stroke());
+      }
+    }
+    return width;
+  }
+
   /** A run of a paragraph's text between its images, without the breaks around it, if any. */
   private static void run(Context c, Object owner, List<Inline> run, El into) {
-    while (!run.isEmpty()
-        && (run.getFirst() instanceof MarkdownDocument.SoftBreak
-            || run.getFirst() instanceof MarkdownDocument.HardBreak)) {
-      run.removeFirst();
-    }
-    while (!run.isEmpty()
-        && (run.getLast() instanceof MarkdownDocument.SoftBreak
-            || run.getLast() instanceof MarkdownDocument.HardBreak)) {
-      run.removeLast();
-    }
-    if (!run.isEmpty() && run.getFirst() instanceof MarkdownDocument.Text x) {
-      run.set(0, new MarkdownDocument.Text(x.text().stripLeading()));
-    }
-    if (!run.isEmpty() && run.getLast() instanceof MarkdownDocument.Text x) {
-      run.set(run.size() - 1, new MarkdownDocument.Text(x.text().stripTrailing()));
-    }
-    if (MarkdownDocument.plainText(run).isBlank()) {
+    List<Inline> text = trimmed(trimmed(run, true), false);
+    if (text.isEmpty()) {
       return;
     }
     into.child(
-        field(c, piece(c, owner, run, false), c.theme.prose().body(), c.color).role("paragraph"));
+        field(c, piece(c, owner, text, false), c.theme.prose().body(), c.color).role("paragraph"));
+  }
+
+  /**
+   * The content without the spaces and line breaks at its start (or end), inside emphasis and links
+   * too.
+   */
+  private static List<Inline> trimmed(List<Inline> content, boolean start) {
+    List<Inline> out = new ArrayList<>(content);
+    while (!out.isEmpty() && blank(List.of(start ? out.getFirst() : out.getLast()))) {
+      out.remove(start ? 0 : out.size() - 1);
+    }
+    if (out.isEmpty()) {
+      return out;
+    }
+    int i = start ? 0 : out.size() - 1;
+    out.set(
+        i,
+        switch (out.get(i)) {
+          case MarkdownDocument.Text x ->
+            new MarkdownDocument.Text(start ? x.text().stripLeading() : x.text().stripTrailing());
+          case MarkdownDocument.Emphasis x ->
+            new MarkdownDocument.Emphasis(trimmed(x.content(), start));
+          case MarkdownDocument.Strong x ->
+            new MarkdownDocument.Strong(trimmed(x.content(), start));
+          case MarkdownDocument.Strike x ->
+            new MarkdownDocument.Strike(trimmed(x.content(), start));
+          case MarkdownDocument.Link x ->
+            new MarkdownDocument.Link(x.destination(), x.title(), trimmed(x.content(), start));
+          default -> out.get(i);
+        });
+    return out;
   }
 
   /**
@@ -1142,25 +1326,38 @@ public final class Markdown {
     List<Piece> header = new ArrayList<>();
     for (int j = 0; j < columns; j++) {
       List<Inline> content = table.header().get(j);
-      header.add(piece(c, content, content, true));
+      header.add(
+          c.options.images != null && !imagesOnly(content).isEmpty()
+              ? null
+              : piece(c, content, content, true));
     }
     cells.add(header);
     for (List<List<Inline>> row : table.rows()) {
       List<Piece> pieces = new ArrayList<>();
       for (int j = 0; j < columns; j++) {
         List<Inline> content = row.get(j);
-        pieces.add(piece(c, content, content, false));
+        pieces.add(
+            c.options.images != null && !imagesOnly(content).isEmpty()
+                ? null
+                : piece(c, content, content, false));
       }
       cells.add(pieces);
     }
     for (int r = 0; r < cells.size(); r++) {
       for (int j = 0; j < columns; j++) {
         Piece piece = cells.get(r).get(j);
-        Theme.TextStyle style = r == 0 ? head : body;
-        float width = TextSizing.natural(El.text(piece.text)
-            .font(style.font().get())
-            .fontSize(style.size())
-            .highlight(piece, piece));
+        float width;
+        if (piece == null) {
+          List<Inline> content =
+              r == 0 ? table.header().get(j) : table.rows().get(r - 1).get(j);
+          width = imageRowWidth(c, imagesOnly(content));
+        } else {
+          Theme.TextStyle style = r == 0 ? head : body;
+          width = TextSizing.natural(El.text(piece.text)
+              .font(style.font().get())
+              .fontSize(style.size())
+              .highlight(piece, piece));
+        }
         widths[j] = Math.max(widths[j], Math.min(width + 2, theme.prose().measure() / 2));
       }
     }
@@ -1177,18 +1374,30 @@ public final class Markdown {
       }
       for (int j = 0; j < columns; j++) {
         Piece piece = cells.get(r).get(j);
-        Style.Align align = switch (table.aligns().get(j)) {
-          case CENTER -> Style.Align.CENTER;
-          case RIGHT -> Style.Align.END;
-          default -> Style.Align.START;
-        };
-        El field = field(c, piece, r == 0 ? head : body, c.color).w(widths[j]).textAlign(align);
+        El cell;
+        if (piece == null) {
+          List<Inline> content =
+              r == 0 ? table.header().get(j) : table.rows().get(r - 1).get(j);
+          Style.Content justify = switch (table.aligns().get(j)) {
+            case CENTER -> Style.Content.CENTER;
+            case RIGHT -> Style.Content.END;
+            default -> Style.Content.START;
+          };
+          cell = imageRow(c, imagesOnly(content)).justify(justify).w(widths[j]);
+        } else {
+          Style.Align align = switch (table.aligns().get(j)) {
+            case CENTER -> Style.Align.CENTER;
+            case RIGHT -> Style.Align.END;
+            default -> Style.Align.START;
+          };
+          cell = field(c, piece, r == 0 ? head : body, c.color).w(widths[j]).textAlign(align);
+        }
         line.child(row()
             .role(r == 0 ? "columnheader" : "cell")
             .w(widths[j] + 2 * pad)
             .shrink(0)
             .padding(theme.space().s(), pad)
-            .child(field));
+            .child(cell));
       }
       if (r > 0) {
         grid.child(Divider.divider());
@@ -1213,7 +1422,11 @@ public final class Markdown {
               .append(MarkdownDocument.plainText(p.content()).replace("\n", "\n" + indent))
               .append("\n\n");
         case MarkdownDocument.CodeBlock code -> {
-          for (String line : code.code().split("\n", -1)) {
+          String raw = code.code();
+          if (raw.endsWith("\n")) {
+            raw = raw.substring(0, raw.length() - 1);
+          }
+          for (String line : raw.split("\n", -1)) {
             out.append(indent).append(line).append('\n');
           }
           out.append('\n');

@@ -30,7 +30,9 @@ By default, code blocks have no syntax highlighting. Pass highlighters to `langu
 | `state(Markdown.State)` | Preserves full-document selection and copy-button confirmation state |
 | `textColor(color)` | Overrides the prose text color (`0xAARRGGBB`, such as `theme.code().comment()`) for `markdown`, `fragment`, and `definitions` descriptions |
 
-Use `Markdown.rowOf(document, id)` with `app.scrollToRow` to jump to a heading, `document.headings()` to build an outline, and `Markdown.text(document)` to extract plain text. Raw HTML in Markdown is rendered safely as plain text.
+Use `Markdown.rowOf(document, id)` with `app.scrollToRow` to jump to a heading, `document.headings()` to build an outline, and `Markdown.text(document)` to extract plain text. A link with a title shows its title as a tooltip. Raw HTML in Markdown is rendered safely as plain text.
+
+With `images(...)`, images—including images inside links, emphasis, strong, or strikethrough—render as images; a linked image is a focusable `role=link` labeled by its alt text that passes its destination to `onLink`. Consecutive images in a paragraph separated only by spaces or line breaks sit in one wrapping row, while images among text break the paragraph above and below. Headings and table cells holding only images (and links or emphasis around them) show those images; headings and table cells that mix text and images keep the alt text, since a block of text is one field whose lines cannot make room for an image. Without `images(...)`, only an image alone in its paragraph renders as a framed placeholder, and all other images stay their alt text.
 
 Drag or Shift+click to select text across blocks (paragraphs, lists, quotes, tables, and code blocks)—including blocks scrolled out of view—and press Ctrl+C to copy the selected text with line breaks between blocks. Dragging near or past the top or bottom edge scrolls the document while extending the selection.
 
@@ -66,7 +68,7 @@ When a document grows at its end while streaming, keep the `MarkdownDocument` in
 
 ## State API
 
-Store one `Markdown.State` per document to track **Ctrl+A** full-document selection (`allSelected()`, `selectAll(boolean)`).
+Store one `Markdown.State` per document to track **Ctrl+A** full-document selection (`allSelected()`, `selectAll(boolean)`); a pointer press or **Escape** clears it.
 
 ## In a tree dump
 
