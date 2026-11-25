@@ -4744,8 +4744,9 @@ public final class App<S> {
           target.text().layOut();
         }
         float[] box = editor.caretBox();
+        float covered = now.scopeCoveredTop();
         if (box != null) {
-          reveal(target, box[0], box[1], box[2], box[3], false);
+          reveal(target, box[0], box[1] - covered, box[2], box[3] + covered, false);
         }
       }
       scrolled = true;
@@ -5447,8 +5448,7 @@ public final class App<S> {
 
   /**
    * Walks the fields of {@code scope} as {@link #scopeFields} numbers them: with {@code unbuilt}
-   * every row of its virtual list, building those that are not and whose texts its {@link
-   * RowHeights} does not keep, else only the built rows. A field of a row not built is null.
+   * every row of its virtual list, building those that are not, else only the built rows.
    */
   private static void walkScopeFields(El scope, boolean unbuilt, ScopeFieldVisitor visitor) {
     if (numbered(scope) && scope.opacity() != 0) {
@@ -5467,35 +5467,20 @@ public final class App<S> {
       int first = unbuilt ? 0 : el.firstRow();
       int last =
           !shown ? first : unbuilt ? el.rowCount() : first + el.children().size();
-      RowHeights heights = el.rowHeights();
       List<El> rowFields = new ArrayList<>();
       for (int row = first; row < last; row++) {
-        // A row out of view has the texts it had when last read, as it keeps its height.
-        String[] kept = el.hasRow(row) || heights == null ? null : heights.texts(row);
-        if (kept != null) {
-          for (int ord = 0; ord < kept.length; ord++) {
-            if (!kept[ord].isEmpty()) {
-              visitor.visit(row, ord, null, kept[ord]);
-            }
-          }
-          continue;
-        }
         El rowEl = el.rowElement(row);
         if (rowEl == null) {
           continue;
         }
         rowFields.clear();
         collectRowFields(rowEl, true, rowFields);
-        String[] texts = new String[rowFields.size()];
         for (int ord = 0; ord < rowFields.size(); ord++) {
           El field = rowFields.get(ord);
-          texts[ord] = field == null ? "" : fieldText(field);
-          if (!texts[ord].isEmpty()) {
-            visitor.visit(row, ord, field, texts[ord]);
+          String text = field == null ? "" : fieldText(field);
+          if (!text.isEmpty()) {
+            visitor.visit(row, ord, field, text);
           }
-        }
-        if (heights != null && !el.hasRow(row)) {
-          heights.texts(row, texts);
         }
       }
       pos[0] = ScopePosition.AFTER;

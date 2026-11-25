@@ -151,6 +151,7 @@ public final class El {
   private boolean holdsFocus; // see #holdFocus
   private boolean selectionScope; // see #selectionScope
   private Decorator scopeDecorator; // see #decorate on a selection scope
+  private float scopeCoveredTop; // see #coveredTop on a selection scope
   private Consumer<El> focusRestLook; // see #whenFocusVisibleFor
   private double focusRestDelay;
   private boolean skipsTab; // see #skipTab
@@ -1452,11 +1453,6 @@ public final class El {
   /** The version of this list's keyed {@link RowHeights} when it was built, 0 without one. */
   int rowsVersion() {
     return rows == null || rows.heights == null ? 0 : rows.heightsVersion;
-  }
-
-  /** This list's {@link RowHeights}, or null. */
-  RowHeights rowHeights() {
-    return rows == null ? null : rows.heights;
   }
 
   /** The key of a row of this list's keyed {@link RowHeights}, or null. */
@@ -3221,15 +3217,25 @@ public final class El {
    * How far down from its top something lies over a {@link #multiline} field, in logical pixels,
    * such as a find bar: as far as that reaches into its content box, the field can scroll above
    * its first row, and a selection the app makes ({@link App#select}) scrolls into view below it.
-   * The thumb of its {@link #scrollbars} reaches the top of the track there. 0 unless set.
+   * The thumb of its {@link #scrollbars} reaches the top of the track there. 0 unless set. On a
+   * {@link #selectionScope}, only a selection the app makes in it scrolls into view below it.
    */
   public El coveredTop(float height) {
-    editableOnly("coveredTop");
     if (height < 0 || Float.isNaN(height)) {
       throw new IllegalArgumentException("coveredTop must be 0 or more, was " + height);
     }
+    if (selectionScope) {
+      scopeCoveredTop = height;
+      return this;
+    }
+    editableOnly("coveredTop");
     field.coveredTop = height;
     return this;
+  }
+
+  /** How far down from its top something lies over this selection scope; see coveredTop. */
+  float scopeCoveredTop() {
+    return scopeCoveredTop;
   }
 
   /** How far a multi-line field can scroll above its first row; see {@link #coveredTop}. */

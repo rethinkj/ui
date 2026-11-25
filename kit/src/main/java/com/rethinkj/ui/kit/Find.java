@@ -340,9 +340,9 @@ public final class Find {
     // A match comes into view below the bar, also in the first line, a step xs clear of it.
     // shortcut: the whole width counts as covered, so a match left of the bar scrolls down too;
     // ask the bar's left edge when that should stay put.
-    if (!scope) {
-      field.coveredTop(barHeight(theme, state) + 2 * theme.space().xs());
-    }
+    // shortcut: in a scope a match in its first lines, which cannot scroll above the top, can
+    // stay under the bar; scroll a scope's list above its first row when that matters.
+    field.coveredTop(barHeight(theme, state) + 2 * theme.space().xs());
     return field.overlay(bar(theme, app, state, text, editable, scope));
   }
 

@@ -799,46 +799,4 @@ class FieldDragTest {
     app.frame();
     assertEquals("25 item", app.clipboard().read());
   }
-
-  @Test
-  void scopeTextReadsARowAgainOnceItWasBuilt() {
-    String[] texts = new String[40];
-    java.util.Arrays.setAll(texts, i -> "row " + i);
-    RowHeights heights = new RowHeights(i -> 30);
-    App<Object> app = new App<>(
-        new Object(),
-        state -> col()
-            .wFull()
-            .hFull()
-            .child(col()
-                .key("list")
-                .selectionScope()
-                .grow(1)
-                .minSize(0, 0)
-                .rows(
-                    texts.length,
-                    heights,
-                    i -> El.text(texts[i])
-                        .editable(v -> {})
-                        .readOnly()
-                        .multiline()
-                        .fitLines()
-                        .key("r" + i)
-                        .w(180))));
-    app.textRendering(TextRendering.LINUX);
-    app.resize(220, 160, 2);
-    app.frame();
-    assertTrue(app.scopeText(byKey(app.tree(), "list")).endsWith("\nrow 39"));
-
-    // Row 39 changes while it is built, then leaves the view: the text is the new one.
-    app.scrollToRow(byKey(app.tree(), "list"), 39);
-    app.frame();
-    texts[39] = "changed";
-    app.invalidate();
-    app.frame();
-    app.scrollToRow(byKey(app.tree(), "list"), 0);
-    app.frame();
-    assertEquals(null, byKey(app.tree(), "r39"), "row 39 is out of view");
-    assertTrue(app.scopeText(byKey(app.tree(), "list")).endsWith("\nchanged"));
-  }
 }

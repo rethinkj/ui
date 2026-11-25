@@ -763,6 +763,21 @@ class MarkdownTest {
     assertEquals("Order", app.clipboard().read());
   }
 
+  /** {x, y, width, height} of the first line of a tree dump that contains {@code part}. */
+  private static float[] bounds(String tree, String part) {
+    String line = tree.lines().filter(l -> l.contains(part)).findFirst().orElseThrow();
+    java.util.regex.Matcher m = java.util.regex.Pattern.compile(
+            " (-?[\\d.]+),(-?[\\d.]+) ([\\d.]+)x([\\d.]+)")
+        .matcher(line.substring(line.indexOf(part) + part.length()));
+    assertTrue(m.find(), line);
+    return new float[] {
+      Float.parseFloat(m.group(1)),
+      Float.parseFloat(m.group(2)),
+      Float.parseFloat(m.group(3)),
+      Float.parseFloat(m.group(4))
+    };
+  }
+
   @Test
   void findStepsIntoOutOfViewVirtualRows() throws IOException {
     StringBuilder source = new StringBuilder();
@@ -801,6 +816,18 @@ class MarkdownTest {
     assertTrue(p150 != null, "row 150 is built");
     assertFalse(p150.text().selection().isEmpty(), "row 150 shows the match selection");
     assertTrue(m2.contains("underline 23-29"), m2);
+
+    // Enter to row 195, then Shift+Enter back up to row 150: it comes into view below the bar.
+    Script.run("""
+        key Enter
+        frame
+        key Enter shift
+        frame
+        snap back""", app, out);
+    String back = Files.readString(out.resolve("back.tree.txt"));
+    float[] bar = bounds(back, "#find role=search");
+    float[] match = bounds(back, "\"Paragraph 150 contains needle here.\"");
+    assertTrue(match[1] >= bar[1] + bar[3], back);
 
     // Escape closes the bar while row 0 is scrolled out; Ctrl+C still copies the match in row 150.
     Script.run("""
