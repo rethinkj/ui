@@ -77,6 +77,7 @@ class DocsExamplesTest {
       Map.entry("combo-entries", List.of("open")),
       Map.entry("hue-button", List.of("open")),
       Map.entry("command-palette", List.of("tables")),
+      Map.entry("filter-list", List.of("open", "typed")),
       Map.entry("dialog-confirm", List.of("view")),
       Map.entry("dialog-danger", List.of("view")),
       Map.entry("dialog-prompt", List.of("view")),
@@ -222,6 +223,7 @@ class DocsExamplesTest {
     overlays(all, "context-menu", Overlays::menus, 360, 260);
     overlays(all, "menu-bar", Overlays::menuBar, 360, 200);
     overlays(all, "popover", Overlays::popover, 420, 260);
+    overlays(all, "filter-list", Overlays::filterList, 400, 300);
     overlays(all, "tooltip", Overlays::tooltip, 360, 160);
     overlays(all, "tooltip-content", Overlays::tooltipContent, 360, 160);
     overlays(all, "tooltip-kind", Overlays::tooltipKind, 360, 120);

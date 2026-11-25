@@ -23,19 +23,36 @@ import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
 /**
- * A list of entries filtered by a text that is typed, the part that a {@link ComboBox} and a
- * {@link CommandPalette} share: the entries that match the text {@link Fuzzy fuzzily}, best first,
- * with the characters that match in a heavier weight, or the entries the app finds for the text
- * itself, also on another thread ({@link Entries}). An entry has a text, an optional icon before
- * it, an optional muted detail and shortcut at its right, an optional group, under whose heading
- * it shows, and the handler that runs when it is chosen; without one it is disabled.
+ * A search field above a list of entries filtered by what is typed ({@link #filterList}), which an
+ * app can embed in a {@link Popover}, a {@link Card} or a side panel, and the filtered list that a
+ * {@link ComboBox} and a {@link CommandPalette} share. The entries match the typed text {@link
+ * Fuzzy fuzzily}, best first, with the characters that match in a heavier weight, or the app finds
+ * them for the text itself, also on another thread ({@link Entries}). An entry has a text, an
+ * optional icon or element before it, an optional muted detail, shortcut and check mark at its
+ * right, an optional group, under whose heading it shows, and the handler that runs when it is
+ * chosen; without one it is disabled.
  *
- * <p>The list is a virtual list ({@link El#rows}) of rows of one height, so that a
- * hundred thousand entries cost as much to show as twenty, and the filtering of a text that only
- * grows looks only at the entries the shorter text matched. In a tree dump it is {@code
- * role=listbox}, its entries {@code role=option} with their text as the label and the keys {@code
- * option-<row>}, the highlighted one {@code selected}, and the heading of each group a row {@code
- * role=group} with the group's name as its label, before the group's entries.
+ * <pre>{@code
+ * El trigger = Button.button(SECONDARY, state.model, state.modelPopover::toggle);
+ * Popover.popover(trigger, state.modelPopover, "Choose model",
+ *     FilterList.filterList(state.modelFilter, "Search models", FilterList.Entries.of(entries))
+ *         .w(280));
+ * }</pre>
+ *
+ * <p>While the field has the focus, Up and Down, Page Up and Page Down, Home and End move the
+ * highlight, and Enter or a press on an entry runs its handler while leaving the focus in the
+ * field. Escape is left to the parent (in a {@link Popover} it closes it). The element is {@code
+ * size().palette()} wide unless sized by the caller, its field {@code size().paletteField()} high
+ * and its list at most {@value CommandPalette#ROWS} rows of {@code size().paletteRow()}, then it
+ * scrolls.
+ *
+ * <p>The list is a virtual list ({@link El#rows}) of rows of one height, so that a hundred
+ * thousand entries cost as much to show as twenty, and the filtering of a text that only grows
+ * looks only at the entries the shorter text matched. In a tree dump the field is {@code
+ * role=textbox} and the list is {@code role=listbox}, its entries {@code role=option} with their
+ * text as the label and the keys {@code option-<row>}, the highlighted one {@code selected}, and
+ * the heading of each group a row {@code role=group} with the group's name as its label, before
+ * the group's entries.
  */
 public final class FilterList {
 
@@ -198,9 +215,10 @@ public final class FilterList {
     /**
      * The entries the app finds for the typed text on another thread ({@link App#background}),
      * shown in the order given once they arrive, meanwhile those found for the text before and a
-     * row "Loading…". A new text cancels the work for the one before, and so does closing what
-     * shows the list. {@code find} gets only the text: what it reads it takes in its closure, and
-     * nothing of the app's state that the app's thread changes.
+     * row "Loading…". A new text cancels the work for the one before, and so does closing a {@link
+     * ComboBox} or {@link CommandPalette} that shows the list; a {@link #filterList} has no close
+     * of its own, and its work runs to its end. {@code find} gets only the text: what it reads it
+     * takes in its closure, and nothing of the app's state that the app's thread changes.
      *
      * @param name what the work is called, which {@link App#await} names
      */
@@ -215,9 +233,9 @@ public final class FilterList {
 
   /**
    * What a list keeps between builds: the text typed, the highlighted row and what was filtered
-   * for it. The component that shows the list holds one in its state.
+   * for it. The app keeps one in its state for {@link #filterList}.
    */
-  static final class State {
+  public static final class State {
     static final int BEST = -2; // highlight the first entry that can be chosen at the next build
     static final int KEEP = -3;
 
@@ -242,6 +260,11 @@ public final class FilterList {
     String failure;
 
     Consumer<Entry> onHighlight; // told of an entry the keys or the pointer highlight
+
+    /** The text typed in the field, which filters the list. */
+    public String text() {
+      return query;
+    }
 
     /** Highlights a row, and tells {@link #onHighlight} of a new entry. */
     void light(int row) {
@@ -292,6 +315,53 @@ public final class FilterList {
       }
       asked = null;
     }
+  }
+
+  /**
+   * A search field above a filtered list of {@code entries}, which an app can embed in a {@link
+   * Popover}, a {@link Card} or a side panel. Typing filters the list; Up and Down, Page Up and
+   * Page Down, Home and End move the highlight while the field keeps the focus; Enter or a press
+   * on an entry runs its {@link Entry#onChoose}. The field does not take focus on its own (inside
+   * a {@link Popover} it receives focus as the first focusable element), and Escape is left to the
+   * parent.
+   *
+   * <p>The element is {@code size().palette()} wide by default (override with {@code .w(...)} or
+   * {@code .wFull()}), its field {@code size().paletteField()} high, and its list at most {@value
+   * CommandPalette#ROWS} rows of {@code size().paletteRow()} before scrolling.
+   *
+   * @param state what the list keeps between builds
+   * @param placeholder shown while the field is empty, and used as the label of the field and list
+   * @param entries where the entries come from
+   */
+  public static El filterList(State state, String placeholder, Entries entries) {
+    Objects.requireNonNull(state, "state");
+    Objects.requireNonNull(entries, "entries");
+    Theme theme = Theme.CURRENT.get();
+    Consumer<Entry> choose = e -> e.onChoose().run();
+    El field = TextField.textField(state.query, placeholder, v -> state.typed(v, true))
+        .key("query")
+        .label(placeholder)
+        .wFull()
+        .h(theme.size().paletteField())
+        // Enter without an entry to choose stays here, not a dialog's default button.
+        .onKey(k -> key(k, state, CommandPalette.ROWS, choose)
+            || k.modifiers() == 0 && (k.name().equals("Enter") || k.name().equals("NumpadEnter")));
+    Shown shown = shown(state, entries);
+    return col()
+        .w(theme.size().palette())
+        .gap(theme.space().s())
+        .minSize(0, 0)
+        .children(
+            TextField.withIcon(field, Symbol.SEARCH).wFull().shrink(0),
+            list(
+                    theme,
+                    state,
+                    shown,
+                    CommandPalette.ROWS,
+                    theme.size().paletteRow(),
+                    placeholder,
+                    choose)
+                .keepFocus());
   }
 
   /** What the list shows: its rows, each an entry's index or a group's heading. */
