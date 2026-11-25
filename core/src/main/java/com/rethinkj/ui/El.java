@@ -3811,9 +3811,10 @@ public final class El {
   /**
    * Tells {@code handler} that the user moved the view of this scroll area or of a scroll area
    * inside it: by the wheel, by a scrollbar (dragging its thumb, pressing its track or a tick), by
-   * PageUp or PageDown outside a text field, or by a key after which an area shows something else
-   * it keeps in view ({@link #revealRow}, {@link #reveal}, the focus). A text field's own keys move
-   * its caret, which {@link #onSelect} tells. Not when layout, a rebuild without such
+   * PageUp, PageDown, Home or End outside a text field, by Home or End without Shift in a read-only
+   * multi-line one, or by a key after which an area shows something else it keeps in view ({@link
+   * #revealRow}, {@link #reveal}, the focus). A text field's own keys move its caret, which {@link
+   * #onSelect} tells. Not when layout, a rebuild without such
    * input, {@link App#scrollTo}, {@link App#scrollToRow} or a {@link ScrollState} moves it, nor
    * when the input moved nothing, as a wheel at the end. As a {@code DataGrid}'s rows are an area
    * inside the element {@code dataGrid} returns, a handler on that element hears them. Like {@link
