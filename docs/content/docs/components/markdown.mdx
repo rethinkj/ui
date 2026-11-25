@@ -30,7 +30,7 @@ By default, code blocks have no syntax highlighting. Pass highlighters to `langu
 | `state(Markdown.State)` | Preserves full-document selection and copy-button confirmation state |
 | `textColor(color)` | Overrides the prose text color (`0xAARRGGBB`, such as `theme.code().comment()`) for `markdown`, `fragment`, and `definitions` descriptions |
 
-Use `Markdown.rowOf(document, id)` with `app.scrollToRow` to jump to a heading, `document.headings()` to build an outline, and `Markdown.text(document)` to extract plain text. Raw HTML in Markdown is rendered safely as plain text. Table columns take their natural width when the table fits, wrap proportionally to fit narrower containers, and scroll horizontally only when their longest words cannot fit.
+Use `Markdown.rowOf(document, id)` with `app.scrollToRow` to jump to a heading, `document.headings()` to build an outline, and `Markdown.text(document)` to extract plain text. A link with a title shows its title as a tooltip. Raw HTML in Markdown is rendered safely as plain text. Table columns take their natural width when the table fits, wrap proportionally to fit narrower containers, and scroll horizontally only when their longest words cannot fit.
 
 Drag or Shift+click to select text across blocks (paragraphs, lists, quotes, tables, and code blocks)—including blocks scrolled out of view—and press Ctrl+C to copy the selected text with line breaks between blocks. Dragging near or past the top or bottom edge scrolls the document while extending the selection.
 
@@ -66,7 +66,7 @@ When a document grows at its end while streaming, keep the `MarkdownDocument` in
 
 ## State API
 
-Store one `Markdown.State` per document to track **Ctrl+A** full-document selection (`allSelected()`, `selectAll(boolean)`).
+Store one `Markdown.State` per document to track **Ctrl+A** full-document selection (`allSelected()`, `selectAll(boolean)`); a pointer press or **Escape** clears it.
 
 ## In a tree dump
 

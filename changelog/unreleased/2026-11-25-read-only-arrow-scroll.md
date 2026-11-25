@@ -1,0 +1,1 @@
+- The arrow keys without modifiers in a focused read-only multi-line text field scroll the field, or the area around it, by a line instead of moving a caret the field does not show, as in a browser; Left and Right scroll only an area that can move sideways. Shift with an arrow key still selects from the hidden caret.

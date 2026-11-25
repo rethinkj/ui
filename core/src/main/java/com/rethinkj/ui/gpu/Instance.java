@@ -88,6 +88,8 @@ public final class Instance extends GpuObject {
       }
       MemorySegment descriptor = arena.allocate(InstanceDescriptor.LAYOUT);
       descriptor.set(ADDRESS, InstanceDescriptor.NEXT_IN_CHAIN, extras);
+      // After this thread's own linking, which it would slow down.
+      Wgpu.linkAhead();
       MemorySegment handle = Wgpu.createInstance(descriptor);
       if (handle.equals(MemorySegment.NULL)) {
         throw new GpuException(

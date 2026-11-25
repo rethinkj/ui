@@ -1618,6 +1618,7 @@ public final class App<S> {
    * previous one, around at the ends, and Page Up and Page Down without modifiers scroll the
    * innermost scroll area around the focused element that can still move that way by its height,
    * as in a browser, and Home and End, alone or with Control, scroll it to its start or its end,
+   * and in a read-only multi-line text field the arrow keys without modifiers scroll by a line,
    * or without one the first that can in the overlay around the focused element,
    * else in a {@link El#modal} overlay: a dialog's or a drawer's content while a button outside
    * it has the focus. Inside an overlay they never scroll the view it is attached to. Unlike in a browser, a press handler
@@ -1650,6 +1651,14 @@ public final class App<S> {
       rowGoals.clear();
       if (edits(key)) {
         wakeField();
+      } else if (key.name().startsWith("Arrow")
+          && key.modifiers() == Key.SHIFT
+          && focus.element() == null
+          && focusedEditor() != null
+          && !focusedEditor().editable()
+          && focusedEditor().element().text().multiline()) {
+        rowGoals.clear();
+        wake(); // the selection starts at the caret its row kept
       }
       if (key.name().equals("Escape")) {
         focus.clearTypeAhead();
@@ -1777,25 +1786,43 @@ public final class App<S> {
     // Home and End, with or without Control, scroll to the start or the end, as in a browser.
     boolean edge = (key.name().equals("Home") || key.name().equals("End"))
         && (key.modifiers() & ~Key.CONTROL) == 0;
-    if (byPage || edge) {
-      int direction = key.name().equals("PageUp") || key.name().equals("Home") ? -1 : 1;
+    // The arrow keys that a read-only multi-line field leaves (it shows no caret) scroll by a line,
+    // also while its row is out of range.
+    Editor reader = focusedEditor();
+    Text text = reader == null ? null : reader.element().text();
+    boolean byLine = key.name().startsWith("Arrow")
+        && key.modifiers() == 0
+        && reader != null
+        && !reader.editable()
+        && text.multiline();
+    boolean horizontal = key.name().equals("ArrowLeft") || key.name().equals("ArrowRight");
+    if (byPage || edge || byLine) {
+      int direction = switch (key.name()) {
+        case "PageUp", "Home", "ArrowUp", "ArrowLeft" -> -1;
+        default -> 1;
+      };
       El area = null;
       // An overlay is a page of its own, as a dialog or a drawer: not its anchor's view.
       List<El> page = fromOverlay(path);
       for (El el : page.reversed()) { // the innermost area around the focus that can move so
-        if (el.isScrollArea() && el.canScroll(false, direction)) {
+        if (el.isScrollArea() && el.canScroll(byLine && horizontal, direction)) {
           area = el;
           break;
         }
       }
-      if (area == null) {
+      if (area == null && !byLine) { // a line is the focus's own: not another area's
         El overlay = page != path ? page.getFirst() : modal();
         area = overlay == null ? null : pageArea(overlay, direction);
       }
       if (area != null) {
-        boolean moved = byPage
-            ? area.page(true, direction)
-            : area.scrollTo(area.scrollX(), direction * Double.POSITIVE_INFINITY);
+        double line = byLine ? direction * text.lineHeight() / text.scale() : 0;
+        boolean moved = byLine
+            ? horizontal
+                ? area.scrollTo(area.scrollX() + line, area.scrollY())
+                : area.scrollTo(area.scrollX(), area.scrollY() + line)
+            : byPage
+                ? area.page(true, direction)
+                : area.scrollTo(area.scrollX(), direction * Double.POSITIVE_INFINITY);
         scrolled |= moved;
         if (moved) {
           tellUserScroll(area);
@@ -2559,11 +2586,15 @@ public final class App<S> {
 
   /** Whether the focus {@link Focus#waits} on an editable text field, whose editor stays. */
   private boolean fieldWaits() {
-    if (focus.element() != null || !focus.waits()) {
-      return false;
-    }
-    Editor editor = editors.get(focus.id());
-    return editor != null && editor.editable();
+    Editor editor = focusedEditor();
+    return editor != null && focus.element() == null && editor.editable();
+  }
+
+  /** The focused field's editor, also while its row {@link Focus#waits}; null without one. */
+  private Editor focusedEditor() {
+    return focus.element() != null
+        ? focus.element().editor()
+        : focus.waits() ? editors.get(focus.id()) : null;
   }
 
   /**
@@ -2593,8 +2624,11 @@ public final class App<S> {
   private void wake() {
     if (focus.element() == null && focus.waits()) {
       Animator.InRow in = animator.inRow(focus.id());
-      keyRevealed(
-          in.listId(), in.list().scrollTo(in.list().scrollX(), in.list().offsetShowing(in.row())));
+      El list = in.list();
+      keyRevealed(in.listId(), list.scrollTo(list.scrollX(), list.offsetShowing(in.row())));
+      // A list that the areas around it scrolled out of the window builds no rows: show the row.
+      float[] row = list.rowBox(in.row());
+      reveal(list, 0, row[0], list.width(), row[1], false, null, 0);
       fillRows();
       placeEditors(false, false); // the parts of its fields, where the focus may be
       refocus();
