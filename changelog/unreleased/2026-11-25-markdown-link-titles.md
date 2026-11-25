@@ -1,0 +1,1 @@
+- `Markdown` now shows a link's title as a tooltip, draws strikethrough over links in the link color, uses `Font.monoBold()` for inline code in strong text, headings, and table headers, and uses the theme's `type().mono()` font for other inline code.

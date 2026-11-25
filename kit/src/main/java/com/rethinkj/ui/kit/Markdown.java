@@ -53,11 +53,11 @@ import java.util.function.Function;
  * app marks the container {@link El#selectionScope}.
  *
  * <p>A link is an element over its range of the text ({@link El#range}): {@code role=link} with
- * its text as the label, in {@link Theme.Prose#link} and underlined, with the pointer's cursor and
- * a tint under it, one stop for Tab, and pressed by Enter; it hands its destination to {@link
- * Options#onLink}. Headings have the key {@code heading-<id>} with GitHub's anchor as the id
- * ({@link MarkdownDocument.Heading#id}), so that the app finds one to scroll to for a link {@code
- * #id}.
+ * its text as the label, its title (if it has one) as its tooltip, in {@link Theme.Prose#link} and
+ * underlined, with the pointer's cursor and a tint under it, one stop for Tab, and pressed by
+ * Enter; it hands its destination to {@link Options#onLink}. Headings have the key {@code
+ * heading-<id>} with GitHub's anchor as the id ({@link MarkdownDocument.Heading#id}), so that the
+ * app finds one to scroll to for a link {@code #id}.
  *
  * <p>Code blocks are in the mono type on the raised surface, scroll sideways, and are colored by
  * the highlighter {@link Options#languages} gives for their language; with {@link Options#copy} a
@@ -628,8 +628,8 @@ public final class Markdown {
   private static final int UNDERLINE = 3;
   private static final int STRIKE = 4;
 
-  /** A link of a piece: its range, what it shows and where it goes. */
-  private record Link(int from, int to, String label, String destination) {}
+  /** A link of a piece: its range, what it shows, where it goes and its title. */
+  private record Link(int from, int to, String label, String destination, String title) {}
 
   /**
    * The text of a block with its ranges, its own highlighter: it hands each line the spans of its
@@ -712,7 +712,10 @@ public final class Markdown {
         case MarkdownDocument.HardBreak _ -> text.append('\n');
         case MarkdownDocument.Code x -> {
           text.append(x.code());
-          spans.add(new Span(FONT, from, text.length(), 0, Font.mono()));
+          Font mono = heading || (style & STRONG) != 0
+              ? Font.monoBold()
+              : theme.type().mono().font().get();
+          spans.add(new Span(FONT, from, text.length(), 0, mono));
           spans.add(new Span(BACKGROUND, from, text.length(), theme.prose().code(), null));
         }
         case MarkdownDocument.Emphasis x ->
@@ -726,7 +729,8 @@ public final class Markdown {
           if (text.length() > from) {
             spans.add(new Span(COLOR, from, text.length(), theme.prose().link(), null));
             spans.add(new Span(UNDERLINE, from, text.length(), theme.prose().link(), null));
-            links.add(new Link(from, text.length(), text.substring(from), x.destination()));
+            links.add(
+                new Link(from, text.length(), text.substring(from), x.destination(), x.title()));
           }
           continue;
         }
@@ -758,7 +762,7 @@ public final class Markdown {
         }
       }
       if (strike && to > from) {
-        spans.add(new Span(STRIKE, from, to, c.color, null));
+        spans.add(new Span(STRIKE, from, to, link != null ? theme.prose().link() : c.color, null));
       }
     }
   }
@@ -861,7 +865,11 @@ public final class Markdown {
     }
     for (int i = 0; i < piece.links.size(); i++) {
       Link link = piece.links.get(i);
-      field.child(link(c, link.label, link.destination).key("link-" + i).range(link.from, link.to));
+      El el = link(c, link.label, link.destination).key("link-" + i).range(link.from, link.to);
+      if (!link.title.isEmpty()) {
+        Tooltip.tooltip(el, link.title);
+      }
+      field.child(el);
     }
     return field;
   }

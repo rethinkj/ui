@@ -43,7 +43,7 @@ class MarkdownTest {
   private static final String DOC = """
       # Guide
 
-      Read the [spec](https://spec.commonmark.org) and the [notes](#notes), *now*.
+      Read the [spec](https://spec.commonmark.org "CommonMark") and the [notes](#notes), *now*.
 
       ```sql
       SELECT 1;
@@ -154,6 +154,11 @@ class MarkdownTest {
     assertEquals(List.of("https://spec.commonmark.org", "#notes"), app.state().links);
     tree = run(app, "key Tab shift\nframe");
     assertTrue(line(tree, "label=\"spec\"").contains(" focused"), tree);
+    // A link with a title shows it as a tooltip; one without shows none.
+    tree = run(app, "move role=link label=\"spec\"\nframe\nadvance 1\nframe");
+    assertTrue(line(tree, "role=tooltip").contains("label=\"CommonMark\""), tree);
+    tree = run(app, "key Tab\nmove role=link label=\"notes\"\nframe\nadvance 1\nframe");
+    assertFalse(tree.contains("role=tooltip"), tree);
   }
 
   @Test
@@ -327,6 +332,67 @@ class MarkdownTest {
     assertSame(Font.sansItalic(), glyphs.font(text.indexOf("a b")));
     assertSame(Font.sansBoldItalic(), glyphs.font(text.indexOf("b c")));
     assertSame(Font.sansItalic(), glyphs.font(text.indexOf(" c") + 1));
+  }
+
+  @Test
+  void inlineCodeUsesThemeMonoOrMonoBoldAndStruckLinkUsesLinkColor() {
+    Font customMono = Font.sansMedium();
+    Theme.Type base = Theme.DARK.type();
+    Theme theme = Theme.DARK.withType(new Theme.Type(
+        base.body(),
+        new Theme.TextStyle(() -> customMono, base.mono().size()),
+        base.heading(),
+        base.title(),
+        base.strong(),
+        base.dialog(),
+        base.small(),
+        base.section()));
+    MarkdownDocument doc = Markdown.parse("""
+        # Head `h`
+
+        Plain `p` and **`s`** and *`e`* and ~~[gone](https://example.com)~~ and ~~plain~~.
+
+        | `th` |
+        | --- |
+        | `td` |
+        """);
+    App<Object> app = new App<>(
+            new Object(),
+            state -> col()
+                .wFull()
+                .hFull()
+                .child(Markdown.markdown(doc, Markdown.options()).grow(1)))
+        .provide(Theme.CURRENT, state -> theme);
+    app.resize(640, 320, 1);
+    app.frame();
+
+    El heading = role(app.tree(), "heading");
+    assertSame(
+        Font.monoBold(), heading.text().lines().getFirst().glyphs().font("Head h".indexOf('h')));
+
+    El p = paragraph(app.tree());
+    GlyphRun glyphs = p.text().lines().getFirst().glyphs();
+    String line = p.text().string();
+    assertSame(customMono, glyphs.font(line.indexOf(" p ") + 1));
+    assertSame(Font.monoBold(), glyphs.font(line.indexOf(" s ") + 1));
+    assertSame(customMono, glyphs.font(line.indexOf(" e ") + 1));
+
+    El headerCell = role(app.tree(), "columnheader").children().getFirst();
+    assertSame(Font.monoBold(), headerCell.text().lines().getFirst().glyphs().font(0));
+    El bodyCell = role(app.tree(), "cell").children().getFirst();
+    assertSame(customMono, bodyCell.text().lines().getFirst().glyphs().font(0));
+
+    List<Text.Mark> linkMarks =
+        p.text().marks().stream().filter(m -> m.color() == theme.prose().link()).toList();
+    List<Text.Mark> plainMarks = p.text().marks().stream()
+        .filter(m -> m.color() == theme.text().primary())
+        .toList();
+    assertEquals(1, plainMarks.size(), "one strike over plain text");
+    assertEquals(2, linkMarks.size(), "underline and strike over struck-out link");
+    float strikeY = plainMarks.getFirst().box().y();
+    assertTrue(
+        linkMarks.stream().anyMatch(m -> m.box().y() == strikeY),
+        "link strike is drawn in the link color");
   }
 
   @Test
@@ -1605,11 +1671,15 @@ class MarkdownTest {
   }
 
   private static El paragraph(El el) {
-    if ("paragraph".equals(el.role())) {
+    return role(el, "paragraph");
+  }
+
+  private static El role(El el, String role) {
+    if (role.equals(el.role())) {
       return el;
     }
     for (El child : el.children()) {
-      El found = paragraph(child);
+      El found = role(child, role);
       if (found != null) {
         return found;
       }
