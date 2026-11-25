@@ -488,5 +488,15 @@ class ScrollStateTest {
     app.frame();
     assertTrue(state.atEnd());
     assertEquals(500, app.tree().scrollY());
+
+    state.followEnd(); // a list that follows its end follows what the user's move found below it
+    state.scrollTo(0, 0);
+    app.invalidate();
+    app.frame();
+    count[0] = 40;
+    app.wheel(50, 50, 0, 1000);
+    app.frame();
+    assertEquals(60, app.tree().rowCount());
+    assertTrue(state.atEnd());
   }
 }
