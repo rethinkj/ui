@@ -6157,17 +6157,31 @@ public final class El {
 
   /**
    * Whether this virtual list's rows came to another height than layout measured it at, as rows
-   * built and measured since make them: a list as high as its rows, in a row of another list, is
-   * then laid out again with that row. Counts the change once.
+   * built and measured since make them: a list as high as its rows, in a row of another list, has
+   * that row laid out again, and then {@link #rowsSettled}.
    */
   boolean rowsRegrown() {
-    if (rows == null || rows.heights == null || Float.isNaN(rows.laidTotal)) {
-      return false;
-    }
-    float total = laidRowsTotal();
-    boolean regrown = total != rows.laidTotal;
-    rows.laidTotal = total;
-    return regrown;
+    return rows != null
+        && rows.heights != null
+        && !Float.isNaN(rows.laidTotal)
+        && laidRowsTotal() != rows.laidTotal;
+  }
+
+  /**
+   * Takes the height of the rows as measured, also where layout did not ask, as for a list of a
+   * height of its own.
+   */
+  void rowsSettled() {
+    rows.laidTotal = laidRowsTotal();
+  }
+
+  /**
+   * Measures how far the areas in this list's rows scroll after the row with this index was laid
+   * out again, and keeps the offsets of that row's areas within it.
+   */
+  void remeasureRow(int index) {
+    measureRowScrolls();
+    children.get(index).clampScrolls();
   }
 
   private float laidRowsTotal() {

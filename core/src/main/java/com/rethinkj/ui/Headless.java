@@ -60,9 +60,10 @@ public final class Headless {
 
   /**
    * Builds the rows of the virtual lists ({@link El#rows}) that show at their offset of 0, and
-   * measures how far each scroll area could scroll, for its bars.
+   * measures how far each scroll area could scroll, for its bars. A row whose lists, as high as
+   * their rows, grew with rows they measured is laid out again, as {@link App} does.
    *
-   * @return whether a list in a row of another, as high as its rows, grew with what they measured
+   * @return whether such a list at or below {@code el} grew and no list around it took that yet
    */
   private static boolean fillRows(
       El el,
@@ -79,7 +80,45 @@ public final class Headless {
     el.measureScroll();
     float left = parentX + el.x();
     float top = parentY + el.y();
-    int[] range = el.wantedRows(left, top, clipLeft, clipRight, windowWidth, windowHeight);
+    buildRows(
+        el,
+        el.wantedRows(left, top, clipLeft, clipRight, windowWidth, windowHeight),
+        windowWidth,
+        windowHeight,
+        scale);
+    if (el.style().overflowX != Style.Overflow.VISIBLE) {
+      clipLeft = Math.max(clipLeft, left);
+      clipRight = Math.min(clipRight, left + el.width());
+    }
+    boolean regrown = el.rowsRegrown();
+    for (int round = 0; ; round++) {
+      boolean relaid = false;
+      List<El> children = el.children();
+      for (int i = 0; i < children.size(); i++) {
+        boolean grew = fillRows(
+            children.get(i), left, top, clipLeft, clipRight, windowWidth, windowHeight, scale);
+        if (grew && el.isVirtualList() && el.measuresRows() && round < 3) {
+          el.layoutRow(i, scale, false);
+          el.remeasureRow(i);
+          settle(children.get(i));
+          relaid = true;
+        }
+        regrown |= grew && !el.isVirtualList();
+      }
+      if (!relaid) {
+        return regrown;
+      }
+      buildRows(
+          el,
+          el.wantedRows(left, top, clipLeft, clipRight, windowWidth, windowHeight),
+          windowWidth,
+          windowHeight,
+          scale);
+    }
+  }
+
+  private static void buildRows(
+      El el, int[] range, float windowWidth, float windowHeight, float scale) {
     if (range.length != 0) {
       el.makeRows(range[0], range[1], row -> true); // layout placed the rows it has
       el.layoutRows(scale, false);
@@ -88,22 +127,15 @@ public final class Headless {
       }
       el.measureRowScrolls();
     }
-    if (el.style().overflowX != Style.Overflow.VISIBLE) {
-      clipLeft = Math.max(clipLeft, left);
-      clipRight = Math.min(clipRight, left + el.width());
+  }
+
+  /** Takes the heights of the lists in a row laid out again as they measured. */
+  private static void settle(El el) {
+    if (el.rowsRegrown()) {
+      el.rowsSettled();
     }
-    boolean regrown = el.rowsRegrown();
-    List<El> children = el.children();
-    for (int i = 0; i < children.size(); i++) {
-      boolean grew = fillRows(
-          children.get(i), left, top, clipLeft, clipRight, windowWidth, windowHeight, scale);
-      for (int pass = 0; grew && el.isVirtualList() && el.measuresRows() && pass < 3; pass++) {
-        el.layoutRow(i, scale, false); // as App does: the row as high as its list's rows now
-        grew = fillRows(
-            children.get(i), left, top, clipLeft, clipRight, windowWidth, windowHeight, scale);
-      }
-      regrown |= grew && !el.isVirtualList();
+    for (El child : el.children()) {
+      settle(child);
     }
-    return regrown;
   }
 }

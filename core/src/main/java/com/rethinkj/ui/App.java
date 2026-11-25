@@ -6613,8 +6613,11 @@ public final class App<S> {
    *
    * @return whether a list built its rows
    */
-  // Whether a list in a row of another, as high as its rows, grew since layout: see fillRows.
-  private boolean regrown;
+  // Lists in rows of another, as high as their rows, that grew since layout, for the row around
+  // them to lay out again (fillChildren); and how often that waited for the next frame.
+  private final List<El> regrownLists = new ArrayList<>();
+
+  private int regrownPending;
 
   private boolean fillRows() {
     if (root == null) {
@@ -6629,7 +6632,7 @@ public final class App<S> {
     float far = Float.POSITIVE_INFINITY;
     rowsWanted = false;
     rowKeyHooks = false;
-    regrown = false;
+    regrownLists.clear();
     inViewLists.clear();
     boolean built = fillRows(root, new ArrayList<>(), 0, 0, -far, far, false);
     if (!rowGoals.isEmpty() && followRowGoals()) {
@@ -6785,6 +6788,46 @@ public final class App<S> {
     if (el.onRowsInView() != null) {
       inViewLists.put(Animator.identities(path).getLast(), el);
     }
+    range = buildRows(el, path, range, left, top, clipLeft, clipRight);
+    if (el.style().overflowX != Style.Overflow.VISIBLE) {
+      clipLeft = Math.max(clipLeft, left);
+      clipRight = Math.min(clipRight, left + el.width());
+    }
+    if (inRows && el.rowsRegrown()) {
+      regrownLists.add(el);
+    }
+    int pending = regrownPending;
+    built |= fillChildren(el, path, left, top, clipLeft, clipRight, inRows);
+    if (regrownPending != pending) {
+      range = el.wantedRows(left, top, clipLeft, clipRight, width, height);
+    }
+    rowsWanted |= range.length != 0; // beyond the passes of one frame: the next frame goes on
+    boolean tail = !el.isVirtualList()
+        || !el.measuresRows()
+        || el.rowCount() == 0
+        || el.hasRow(el.rowCount() - 1);
+    // A field's editor lays out its rows after this and ends it then.
+    if (el.toEnd() && (el.text() == null || !el.text().multiline())) {
+      rowGoals.remove(Animator.identities(path).getLast()); // the later end wins
+      // done once its last rows are measured, with the lists in them
+      el.toEnd(range.length != 0 || !tail || regrownPending != pending);
+    }
+    float far = Float.POSITIVE_INFINITY;
+    for (El overlay : el.overlays()) { // in window coordinates
+      built |= fillRows(overlay, path, 0, 0, -far, far, inRows);
+    }
+    path.removeLast();
+    return built;
+  }
+
+  /**
+   * Builds and lays out the rows {@code range} of virtual list {@code el}, then those that the
+   * heights they measured show, a few times at most.
+   *
+   * @return the rows still wanted after those passes, which the next frame builds
+   */
+  private int[] buildRows(
+      El el, List<El> path, int[] range, float left, float top, float clipLeft, float clipRight) {
     // Rows as high as their content may cover less or more than estimated: a second pass, or a
     // third, builds the rows the measured heights show.
     for (int pass = 0; range.length != 0 && pass < 3; pass++) {
@@ -6830,42 +6873,55 @@ public final class App<S> {
           : El.NO_ROWS;
     }
     rowsWanted |= range.length != 0; // beyond the passes of one frame: the next frame goes on
-    boolean tail = !el.isVirtualList()
-        || !el.measuresRows()
-        || el.rowCount() == 0
-        || el.hasRow(el.rowCount() - 1);
-    // A field's editor lays out its rows after this and ends it then.
-    if (el.toEnd() && (el.text() == null || !el.text().multiline())) {
-      rowGoals.remove(Animator.identities(path).getLast()); // the later end wins
-      el.toEnd(range.length != 0 || !tail); // done once its last rows are measured
-    }
-    if (el.style().overflowX != Style.Overflow.VISIBLE) {
-      clipLeft = Math.max(clipLeft, left);
-      clipRight = Math.min(clipRight, left + el.width());
-    }
-    regrown |= inRows && el.rowsRegrown();
-    List<El> children = el.children();
-    for (int i = 0; i < children.size(); i++) {
-      boolean outer = regrown;
-      regrown = false;
-      built |= fillRows(
-          children.get(i), path, left, top, clipLeft, clipRight, inRows || el.isVirtualList());
-      // A list in this row grew with rows it measured: the row is laid out again, as high as they
-      // are, and its lists build the rows that are in view then; a few times at most.
-      for (int pass = 0; regrown && el.isVirtualList() && el.measuresRows() && pass < 3; pass++) {
-        regrown = false;
-        el.layoutRow(i, scale, systemFonts);
-        built = true;
-        built |= fillRows(children.get(i), path, left, top, clipLeft, clipRight, true);
+    return range;
+  }
+
+  /**
+   * Fills the rows of the lists below {@code el}. In a virtual list as high as its rows' content,
+   * a row whose own lists, as high as their rows, grew with rows they measured is laid out again:
+   * the rows below it move, and the list builds the rows that come into view then and fills them,
+   * a few times at most; what is left waits for the next frame.
+   */
+  private boolean fillChildren(
+      El el,
+      List<El> path,
+      float left,
+      float top,
+      float clipLeft,
+      float clipRight,
+      boolean inRows) {
+    boolean built = false;
+    boolean list = el.isVirtualList();
+    for (int round = 0; ; round++) {
+      boolean relaid = false;
+      List<El> children = el.children();
+      for (int i = 0; i < children.size(); i++) {
+        int mark = regrownLists.size();
+        built |= fillRows(children.get(i), path, left, top, clipLeft, clipRight, inRows || list);
+        if (!list || regrownLists.size() == mark) {
+          continue;
+        }
+        List<El> grown = regrownLists.subList(mark, regrownLists.size());
+        if (el.measuresRows() && round < 3) {
+          el.layoutRow(i, scale, systemFonts); // which measures its lists again
+          el.remeasureRow(i);
+          grown.forEach(El::rowsSettled);
+          relaid = true;
+        } else {
+          regrownPending++; // still to lay out: the lists stay grown for the next frame
+          rowsWanted |= el.measuresRows();
+        }
+        grown.clear(); // a list takes its rows' growth
       }
-      regrown = outer || regrown && !el.isVirtualList(); // a list takes its rows' growth
+      if (!relaid) {
+        return built;
+      }
+      built = true;
+      int[] range = el.wantedRows(left, top, clipLeft, clipRight, width, height);
+      if (range.length != 0) { // rows below the grown ones moved, others came into view
+        buildRows(el, path, range, left, top, clipLeft, clipRight);
+      }
     }
-    float far = Float.POSITIVE_INFINITY;
-    for (El overlay : el.overlays()) { // in window coordinates
-      built |= fillRows(overlay, path, 0, 0, -far, far, inRows);
-    }
-    path.removeLast();
-    return built;
   }
 
   /**
