@@ -90,6 +90,53 @@ class ScrollbarTest {
     assertEquals(List.of(), app.state().log, "no press of a row or of the list");
   }
 
+  /**
+   * 40 rows of 10 in a list of 100 by 100, whose last 20 are estimated at 1, so that the first
+   * move to the end reaches an end that the rows it builds then move on to 400.
+   */
+  private static App<Object> underestimated() {
+    RowHeights heights = new RowHeights(row -> row < 20 ? 10 : 1);
+    App<Object> app = new App<>(
+        new Object(),
+        s -> col()
+            .size(100, 100)
+            .scrollbars(LOOK)
+            .rows(40, heights, row -> el().key("row-" + row).h(10).focusable()));
+    app.resize(100, 100, 1);
+    app.frame();
+    return app;
+  }
+
+  @Test
+  void theThumbPageDownAndTheWheelAtTheEstimatedEndShowTheBottomOfTheLastRow() {
+    App<Object> app = underestimated();
+    String line = app.tree().dump().lines().findFirst().orElseThrow(); // ... thumb-y 92,2 6x<long>
+    float end = 2 + 96 - Float.parseFloat(line.substring(line.lastIndexOf('x') + 1));
+    app.pointerDown(95, 3);
+    app.pointerMove(95, end + 0.5f); // half a pixel short, as a pointer at 150% may stop
+    app.frame();
+    assertEquals(300, app.tree().scrollY(), "the thumb at the end of the track");
+    app.pointerMove(95, end + 1); // on down, where the thumb that the measured rows shortened is
+    app.frame();
+    app.pointerUp(95, end + 1);
+    app.frame();
+    assertEquals(300, app.tree().scrollY(), "and stays there");
+
+    app = underestimated();
+    app.focus(app.tree().children().getFirst());
+    for (int i = 0; i < 2; i++) { // the second reaches the end estimated then
+      app.keyDown(new Key("PageDown", 0, false));
+      app.keyUp(new Key("PageDown", 0, false));
+      app.frame();
+    }
+    assertEquals(300, app.tree().scrollY(), "Page Down");
+
+    app = underestimated();
+    app.wheel(50, 50, 0, 1000);
+    app.frame();
+    assertEquals(300, app.tree().scrollY(), "the wheel");
+  }
+
   @Test
   void aPressOnTheTrackPagesByTheHeightTowardsThePointer() {
     App<Log> app = million();
