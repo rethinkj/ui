@@ -709,9 +709,8 @@ final class Layouts {
             200)
         .grow(1)
         .padding(theme.space().m());
-    El window = row().wFull().hFull().fill(theme.surface().window()).children(rail, content);
+    return row().wFull().hFull().fill(theme.surface().window()).children(rail, content);
     // docs:end rail
-    return window;
   }
 
   static El details(Layouts state) {

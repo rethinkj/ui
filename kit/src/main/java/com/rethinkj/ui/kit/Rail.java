@@ -209,7 +209,7 @@ public final class Rail {
       IntConsumer onSelect) {
     for (Entry entry : entries) {
       switch (entry) {
-        case Separator ignored -> rail.child(separator(theme));
+        case Separator _ -> rail.child(separator(theme));
         case Item item -> {
           int itemIndex = index++;
           boolean isOpen = itemIndex == open;
@@ -219,7 +219,7 @@ public final class Rail {
             options.tipDescription(item.dot().text());
           }
           Consumer<Boolean> onToggle =
-              onSelect == null ? null : next -> onSelect.accept(next ? itemIndex : -1);
+              onSelect == null ? null : _ -> onSelect.accept(isOpen ? -1 : itemIndex);
           // keyed by place, so that a separator that comes or goes leaves the focus where it is
           El button = Button.toggleIcon(item.icon(), item.label(), isOpen, onToggle, options)
               .key("item " + itemIndex);
