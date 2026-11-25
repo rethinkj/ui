@@ -475,6 +475,12 @@ public final class El {
     float builtTo;
     int firstRow;
     boolean rowsBuilt; // for this tree; a rebuild of the view starts without rows
+    // What measureScrolls passed this list, relative to its border box, for rows built later.
+    float barLeft = Float.POSITIVE_INFINITY;
+    float barTop = Float.POSITIVE_INFINITY;
+    float clipRight = Float.POSITIVE_INFINITY;
+    float clipBottom = Float.POSITIVE_INFINITY;
+    float coverBottom = Float.NEGATIVE_INFINITY;
   }
 
   /** The state of a text field, which {@link #editable} makes, beyond its {@link Text}. */
@@ -5413,6 +5419,13 @@ public final class El {
     measureScroll();
     float x = parentX + this.x;
     float y = parentY + this.y;
+    if (rows != null) { // what it got, for measureRowScrolls
+      rows.barLeft = barLeft - x;
+      rows.barTop = barTop - y;
+      rows.clipRight = clipRight - x;
+      rows.clipBottom = clipBottom - y;
+      rows.coverBottom = coverBottom - y;
+    }
     if (selectionScope && scopeCoveredTop > 0) {
       coverBottom = Math.max(coverBottom, y + scopeCoveredTop);
     }
@@ -5466,6 +5479,36 @@ public final class El {
       for (El overlay : overlays) {
         measureScrolls(overlay);
       }
+    }
+  }
+
+  /**
+   * Measures this virtual list and its rows again as {@link #measureScrolls} does, with what that
+   * passed it, for rows built after it ran, whose heights may also have changed the list's bars.
+   */
+  void measureRowScrolls() {
+    if (rows == null) {
+      return;
+    }
+    measureScrolls(
+        -x, -y, rows.barLeft, rows.barTop, rows.clipRight, rows.clipBottom, rows.coverBottom);
+    for (El row : children) {
+      if (row.kept) { // visit clamps only the rows built new
+        row.clampScrolls();
+      }
+    }
+  }
+
+  /**
+   * Clamps the offsets of the scroll areas from this one down to what they measure now, but not
+   * one the app moved since the last build ({@link ScrollState#scrollTo}), which that build takes.
+   */
+  private void clampScrolls() {
+    if (scrollArea && (scrollState == null || scrollState.el != this || !scrollState.placed)) {
+      setScroll(scrollX, scrollY);
+    }
+    for (El child : children) {
+      child.clampScrolls();
     }
   }
 
