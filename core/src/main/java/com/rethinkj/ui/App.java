@@ -2739,7 +2739,7 @@ public final class App<S> {
     for (int j = 0; cover != null && covered > 0 && j < path.size(); j++) {
       coverY += path.get(j).y();
       if (path.get(j) == cover) {
-        coveredTo = coverY + covered;
+        coveredTo = Math.max(coverY, 0) + covered; // an overlay stays in the window
         break;
       }
     }
