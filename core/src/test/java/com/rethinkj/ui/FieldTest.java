@@ -735,6 +735,52 @@ class FieldTest {
   }
 
   @Test
+  void arrowKeysInFocusedReadOnlyTextScrollByALineAndShiftSelectsFromTheHiddenCaret() {
+    App<Object> app = new App<>(new Object(), s -> {
+      El area = col().key("area").scroll().size(150, 40);
+      for (int i = 0; i < 6; i++) {
+        area.child(El.text("line " + i)
+            .editable(e -> {})
+            .readOnly()
+            .multiline()
+            .fitLines()
+            .shrink(0));
+      }
+      El log = El.text("a\nb\nc\nd\ne\nf")
+          .editable(e -> {})
+          .readOnly()
+          .multiline()
+          .size(150, 30)
+          .shrink(0);
+      return col().children(area, log);
+    });
+    app.textRendering(TextRendering.LINUX);
+    app.resize(200, 80, 1);
+    app.frame();
+    app.focus(app.tree().children().get(1));
+    app.frame();
+    El log = app.focused();
+    double line = log.text().lineHeight() / log.text().scale();
+    key(app, "ArrowDown");
+    assertEquals(line, app.focused().scrollY(), 0.01, "Down scrolls a field that scrolls itself");
+    assertNull(app.focused().text().caret(), "and moves no caret");
+    key(app, "ArrowDown", SHIFT);
+    assertEquals(0, app.focused().editor().anchor(), "Shift+Down selects from the hidden caret");
+    assertEquals(2, app.focused().editor().caret());
+    key(app, "ArrowUp");
+    assertEquals(0, app.focused().scrollY(), 0.01, "Up scrolls back, the selection stays");
+    assertEquals(2, app.focused().editor().caret());
+
+    app.focus(app.tree().children().getFirst().children().getFirst());
+    app.frame();
+    key(app, "ArrowDown");
+    assertEquals(line, app.tree().children().getFirst().scrollY(), 0.01, "or the area around it");
+    key(app, "ArrowRight");
+    assertEquals(0, app.tree().children().getFirst().scrollX(), "nothing scrolls sideways");
+    assertEquals(0, app.focused().editor().caret(), "and no caret moves");
+  }
+
+  @Test
   void anInactiveWindowShowsNoCaretAndDrawsNothingUntilItIsActiveAgain() {
     App<Model> app = start("abc");
     focus(app);
