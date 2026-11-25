@@ -174,8 +174,6 @@ final class LinuxNotifications {
   private static boolean started;
   // The unique bus name that answered Notify: only its signals click or close, as with libnotify.
   private static String service; // on the listener thread
-  // Whether the daemon reads the body as markup (GetCapabilities), so it is escaped; null: unasked.
-  private static Boolean markup; // on the listener thread
 
   static void show(
       Window window, String title, String body, Runnable clicked, Consumer<String> failed) {
@@ -237,7 +235,6 @@ final class LinuxNotifications {
           close(conn);
           conn = MemorySegment.NULL;
           handlers.clear();
-          markup = null;
         }
       }
     }
@@ -283,9 +280,8 @@ final class LinuxNotifications {
 
   private static void send(MemorySegment conn, Request req, Map<Integer, Runnable> handlers) {
     try (Arena arena = Arena.ofConfined()) {
-      if (markup == null) {
-        markup = bodyMarkup(arena, conn);
-      }
+      // Asked each time: a daemon such as dunst may change its markup setting on reload.
+      boolean markup = req.body.matches("(?s).*[&<>].*") && bodyMarkup(arena, conn);
       MemorySegment msg = (MemorySegment) H.NEW_METHOD_CALL_H.invokeExact(
           arena.allocateFrom(BUS_NAME),
           arena.allocateFrom(OBJECT_PATH),
@@ -298,7 +294,7 @@ final class LinuxNotifications {
       MemorySegment error = arena.allocate(DBUS_ERROR_SIZE, 8);
       H.ERROR_INIT_H.invokeExact(error);
       try {
-        if (!buildNotifyArgs(arena, msg, req)) {
+        if (!buildNotifyArgs(arena, msg, req, markup)) {
           fail(req, "Could not encode D-Bus Notify arguments.");
           return;
         }
@@ -327,8 +323,8 @@ final class LinuxNotifications {
   }
 
   /** Appends Notify's {@code susssasa{sv}i} arguments. */
-  private static boolean buildNotifyArgs(Arena arena, MemorySegment msg, Request req)
-      throws Throwable {
+  private static boolean buildNotifyArgs(
+      Arena arena, MemorySegment msg, Request req, boolean markup) throws Throwable {
     MemorySegment iter = arena.allocate(DBUS_MESSAGE_ITER_SIZE, 8);
     H.ITER_INIT_APPEND_H.invokeExact(msg, iter);
     if (!appendString(arena, iter, req.appName)
