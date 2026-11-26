@@ -158,8 +158,8 @@ class TypedChoicesTest {
     assertTrue(key(list, "ArrowUp"), "from About past the heading to Keymap");
     assertTrue(key(list, "Home"));
     press(list, "Keymap");
-    press(list, "About"); // selected already: not told
-    assertEquals(List.of(Page.KEYMAP, Page.GENERAL, Page.KEYMAP), told);
+    press(list, "About"); // selected already: told again
+    assertEquals(List.of(Page.KEYMAP, Page.GENERAL, Page.KEYMAP, Page.ABOUT), told);
 
     assertTrue(key(NavList.navList(pages, null, Page::item, p -> p.group, told::add), "End"));
     assertEquals(Page.ABOUT, told.getLast(), "from none, End selects the last");

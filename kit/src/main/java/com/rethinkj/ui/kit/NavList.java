@@ -208,8 +208,8 @@ public final class NavList {
 
   /**
    * @param selected the index of the selected item, -1 for none
-   * @param onSelect told the index of the item the user selects, only when it changes; null
-   *     disables the list
+   * @param onSelect told the index of the item the user selects; also told when the user presses
+   *     the selected item, as an outline scrolls back to its heading; null disables the list
    */
   public static El navList(List<? extends Entry> entries, int selected, IntConsumer onSelect) {
     Theme theme = Theme.CURRENT.get();
@@ -235,7 +235,8 @@ public final class NavList {
    *
    * @param selected the selected value, found by {@code equals}; null, or a value not among them,
    *     for none
-   * @param onSelect told the value the user selects, only when it changes; null disables the list
+   * @param onSelect told the value the user selects; also told when the user presses the selected
+   *     item; null disables the list
    */
   public static <T> El navList(
       List<T> values, T selected, Function<? super T, Item> item, Consumer<? super T> onSelect) {
@@ -492,11 +493,7 @@ public final class NavList {
       if (!enabled) {
         return entry.disabled() ? r.disabled(true) : r;
       }
-      r.cursor(Cursor.POINTER).onPress(() -> {
-        if (!on) {
-          onSelect.accept(i);
-        }
-      });
+      r.cursor(Cursor.POINTER).onPress(() -> onSelect.accept(i));
       if (!on) {
         El reveal = actions;
         r.whenHovered(e -> {
