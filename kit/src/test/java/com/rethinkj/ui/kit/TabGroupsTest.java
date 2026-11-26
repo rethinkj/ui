@@ -1955,5 +1955,19 @@ class TabGroupsTest {
     withEmpty.invalidate();
     Script.run("size 400 160\nframe\nkey F6 shift\nframe", withEmpty, out);
     assertSame(nonEmptySibling, wd.groups.main().active());
+
+    // With groups on both sides, F6 from the empty group goes right and Shift+F6 left.
+    wd.groups.add(nonEmptySibling, 1, "x");
+    Group<String> leftOfEmpty = wd.groups.split(nonEmptySibling, 1, emptyMain, Side.LEFT);
+    assertEquals(
+        List.of(leftOfEmpty, emptyMain, nonEmptySibling), wd.groups.main().groups());
+    wd.groups.focusGroup(emptyMain);
+    withEmpty.invalidate();
+    Script.run("size 400 160\nframe\nkey F6\nframe", withEmpty, out);
+    assertSame(nonEmptySibling, wd.groups.main().active());
+    wd.groups.focusGroup(emptyMain);
+    withEmpty.invalidate();
+    Script.run("size 400 160\nframe\nkey F6 shift\nframe", withEmpty, out);
+    assertSame(leftOfEmpty, wd.groups.main().active());
   }
 }

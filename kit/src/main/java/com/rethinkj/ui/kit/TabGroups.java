@@ -593,25 +593,24 @@ public final class TabGroups<T> {
       }
     }
     if ((k.modifiers() & ~Key.SHIFT) == 0 && name.equals("F6")) {
-      List<Group<T>> nonEmpty = new ArrayList<>(all.size());
-      for (Group<T> g : all) {
-        if (!g.tabs.isEmpty()) {
-          nonEmpty.add(g);
+      boolean back = (k.modifiers() & Key.SHIFT) != 0;
+      int n = all.size();
+      int start = all.indexOf(frame.active);
+      if (start < 0) {
+        start = back ? n : -1;
+      }
+      // From the active group's place, also an empty one's, to the next group with tabs.
+      for (int i = 1; i <= n; i++) {
+        Group<T> next = all.get(Math.floorMod(start + (back ? -i : i), n));
+        if (next != frame.active && !next.tabs.isEmpty()) {
+          if (frame.active != null) {
+            frame.active.menu.close();
+          }
+          focusGroup(next);
+          return true;
         }
       }
-      int current = nonEmpty.indexOf(frame.active);
-      if (nonEmpty.isEmpty() || (nonEmpty.size() == 1 && current == 0)) {
-        return false;
-      }
-      boolean back = (k.modifiers() & Key.SHIFT) != 0;
-      int next = current < 0
-          ? (back ? nonEmpty.size() - 1 : 0)
-          : Math.floorMod(current + (back ? -1 : 1), nonEmpty.size());
-      if (frame.active != null) {
-        frame.active.menu.close();
-      }
-      focusGroup(nonEmpty.get(next));
-      return true;
+      return false;
     }
     return false;
   }
