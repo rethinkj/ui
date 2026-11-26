@@ -1,12 +1,12 @@
 el 0,0 580x416
   el 12,12 556x411
     el role=article label="User message" 29,29 522x61
-      el 276,29 275x35
-        text role=paragraph "Why did the orders query slow down?" 289,38 249x17 readonly lines 1-1/1
-      el 488,66 63x24
-        el #copy role=button label="Copy message" 488,66 24x24
-          text label="copy" "\u{F32A}" 492,70 16x16
-        text "14:31" 516,71 35x15
+      el 278,29 273x35
+        text role=paragraph "Why did the orders query slow down?" 291,38 247x17 readonly lines 1-1/1
+      el 489,66 62x24
+        el #copy role=button label="Copy message" 489,66 24x24
+          text label="copy" "\u{F32A}" 493,70 16x16
+        text "14:31" 517,71 34x15
     el role=article label="Agent message" 29,102 522x238
       el 29,102 522x63
         el role=button label="Inspect EXPLAIN plan" 30,103 520x28 expanded value="Done"
@@ -27,17 +27,17 @@ el 0,0 580x416
         text role=paragraph "The orders table has no composite index on status and created_at, so PostgreSQL falls back to a sequential scan:" 29,211 522x34 readonly lines 1-1/1
         el role=group 29,253 522x55
           el 30,254 520x29
-            el label="sql" 38,259 28x18
-              text "sql" 44,261 16x15
-            el 70,268 448x0
+            el label="sql" 38,259 29x18
+              text "sql" 44,261 17x15
+            el 71,268 447x0
             el 522,258 20x20
               el #copy role=button label="Copy code" 522,258 20x20
                 text label="copy" "\u{F32A}" 524,260 16x16
           text role=code label="sql" "CREATE INDEX orders_status_created ON orders (status, created_at);" 30,283 520x24 readonly lines 1-1/1
-      el 29,316 63x24
+      el 29,316 62x24
         el #copy role=button label="Copy message" 29,316 24x24
           text label="copy" "\u{F32A}" 33,320 16x16
-        text "14:32" 57,321 35x15
+        text "14:32" 57,321 34x15
     el role=article label="Agent message" 29,352 522x54
       el 29,352 522x30
         el role=button label="Verify index size" 30,353 520x28 busy expanded=false value="Running"

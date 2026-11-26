@@ -244,18 +244,18 @@ class TextRenderTest {
    */
   @Test
   void theCorrectedInkIsCloseToGammaSpaceBlending() {
-    TextRendering linear = new TextRendering(TextRendering.Hinting.LIGHT, 1, 1);
+    TextRendering linear = new TextRendering(TextRendering.Hinting.NONE, 1, 1);
     double darkOnLight = inkRatio(0xFF1A1A1A, 0xFFFFFFFF, PINNED, 0);
     assertEquals(1, darkOnLight, 0.05, "dark on light");
     assertEquals(0.74, inkRatio(0xFF1A1A1A, 0xFFFFFFFF, linear, 0), 0.05, "without correction");
 
     double lightOnDark = inkRatio(0xFFDCDCDC, 0xFF1E1F22, PINNED, 0);
-    assertEquals(1, lightOnDark, 0.05, "light on dark");
+    assertEquals(1.06, lightOnDark, 0.05, "light on dark (gamma 1.5)");
     assertEquals(1.23, inkRatio(0xFFDCDCDC, 0xFF1E1F22, linear, 0), 0.05, "without correction");
 
     double grayOnLight = inkRatio(0xFF999999, 0xFFFFFFFF, PINNED, 0);
     double thinned = inkRatio(0xFF999999, 0xFFFFFFFF, PINNED, 0xFF000000); // told it is on black
-    assertTrue(grayOnLight >= 1 && grayOnLight < 1.2, "gray on light: " + grayOnLight);
+    assertTrue(grayOnLight >= 1 && grayOnLight < 1.25, "gray on light: " + grayOnLight);
     assertTrue(Math.abs(thinned - 1) > grayOnLight - 1, "thinned: " + thinned);
   }
 
@@ -340,10 +340,11 @@ class TextRenderTest {
     assertEquals(128 / 255f, scene.get(h, Scene.COLOR), "white, premultiplied by its alpha");
     assertEquals(128 / 255f, scene.get(h, Scene.COLOR + 12));
     assertEquals(1, scene.get(h, Scene.LIGHT_SHARE), "lighter than the black around it");
-    assertEquals(1.8f, scene.get(h, Scene.DARK_GAMMA));
-    assertEquals(1.8f, scene.get(h, Scene.LIGHT_GAMMA));
+    assertEquals(2.0f, scene.get(h, Scene.DARK_GAMMA));
+    assertEquals(1.5f, scene.get(h, Scene.LIGHT_GAMMA));
     Scene windows = Scene.of(root, null, 0, new Atlas(), TextRendering.WINDOWS);
-    assertEquals(1.4f, windows.get(h, Scene.LIGHT_GAMMA));
+    assertEquals(2.0f, windows.get(h, Scene.DARK_GAMMA));
+    assertEquals(1.5f, windows.get(h, Scene.LIGHT_GAMMA));
   }
 
   @Test
@@ -401,8 +402,8 @@ class TextRenderTest {
   @Test
   void textInABoxAtAFractionalPositionIsDrawnFromTheSameBitmaps() {
     for (float scale : new float[] {1, 1.25f, 2}) {
-      // At 1 and 1.25 whole physical pixels; at 2 quarters horizontally: 10.3 * 2 = 20.6 is 20.5.
-      float snappedX = scale == 2 ? 10.25f : Math.round(10.3f * scale) / scale;
+      // Quarter physical pixels horizontally at every scale, whole pixels vertically.
+      float snappedX = Math.round(10.3f * scale * 4) / (scale * 4);
       float snappedY = Math.round(5.6f * scale) / scale;
       Pixels between = textAt(10.3f, 5.6f, scale);
       Pixels on = textAt(snappedX, snappedY, scale);

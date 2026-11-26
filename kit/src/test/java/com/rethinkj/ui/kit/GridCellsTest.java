@@ -574,10 +574,10 @@ class GridCellsTest {
 
   @Test
   void aCellCutOnlyAtScaleTwoShowsItsTooltipWhileAFittingOneDoesNot() throws IOException {
-    String value = "0".repeat(20);
-    Theme.TextStyle mono = T.type().mono();
-    float atOne = mono.font().get().shape(value, mono.size(), 1).width();
-    float atTwo = mono.font().get().shape(value, mono.size(), 2).width() / 2;
+    String value = "&".repeat(20);
+    Theme.TextStyle body = T.type().body();
+    float atOne = body.font().get().shape(value, body.size(), 1).width();
+    float atTwo = body.font().get().shape(value, body.size(), 2).width() / 2;
     assertTrue(atTwo > atOne + 1, "wider at scale 2 than at scale 1");
     float chrome = 2 * T.space().s() + T.size().stroke();
     float cutWidth = (float) Math.ceil(atOne) + chrome;
@@ -588,9 +588,10 @@ class GridCellsTest {
             .size(560, 240)
             .child(DataGrid.dataGrid(
                     List.of(
-                        new DataGrid.Column("cut", cutWidth, DataGrid.Align.LEFT, true, i -> value),
                         new DataGrid.Column(
-                            "fit", fitWidth, DataGrid.Align.LEFT, true, i -> value)),
+                            "cut", cutWidth, DataGrid.Align.LEFT, false, i -> value),
+                        new DataGrid.Column(
+                            "fit", fitWidth, DataGrid.Align.LEFT, false, i -> value)),
                     1,
                     DataGrid.options())
                 .key("grid")

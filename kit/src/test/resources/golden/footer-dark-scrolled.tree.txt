@@ -10,9 +10,9 @@ el 0,0 560x240
         el -45,8 1x24
         el #column-2 role=columnheader label="customer" -44,8 139x24 pos=3/8
           text label="text_case_title" "\u{ECEC}" -40,12 16x16
-          el -20,12 86x16
-            text "customer" -20,12 59x16
-            text "text" 43,12 23x16
+          el -20,12 85x16
+            text "customer" -20,12 58x16
+            text "text" 42,12 23x16
         el 95,8 1x24
         el #column-3 role=columnheader label="paid" 96,8 79x24 pos=4/8
           text label="checkbox_checked" "\u{F27C}" 100,12 16x16
@@ -34,15 +34,15 @@ el 0,0 560x240
         el 435,8 1x24
         el #column-6 role=columnheader label="created_at" 436,8 189x24 pos=7/8
           text label="calendar_clock" "\u{E243}" 440,12 16x16
-          el 460,12 145x16
+          el 460,12 144x16
             text "created_at" 460,12 65x16
-            text "timestamptz" 529,12 76x16
+            text "timestamptz" 529,12 75x16
         el 625,8 1x24
         el #column-7 role=columnheader label="note" 626,8 239x24 pos=8/8
           text label="text_case_title" "\u{ECEC}" 630,12 16x16
-          el 650,12 55x16
-            text "note" 650,12 28x16
-            text "text" 682,12 23x16
+          el 650,12 54x16
+            text "note" 650,12 27x16
+            text "text" 681,12 23x16
         el 865,8 1x24
         el #resize-1 role=separator label="Resize customer_id" -47,8 6x24
         el #resize-2 role=separator label="Resize customer" 93,8 6x24
@@ -76,7 +76,7 @@ el 0,0 560x240
           el 175,-39 1x23
           el #cell-17-4 role=gridcell 176,-39 129x23 pos=5/8
             text label="record" "\u{F660}" 180,-35 16x16
-            text "refunded" 200,-35 56x15
+            text "refunded" 200,-35 55x15
           el 305,-39 1x23
           el #cell-17-5 role=gridcell 306,-39 129x23 pos=6/8
             text "1346.21" 380,-35 51x16
@@ -99,7 +99,7 @@ el 0,0 560x240
             text "2543" -78,-11 29x16
           el -45,-15 1x23
           el #cell-18-2 role=gridcell -44,-15 139x23 pos=3/8
-            text "Donald Hopper" -40,-11 93x15
+            text "Donald Hopper" -40,-11 92x15
           el 95,-15 1x23
           el #cell-18-3 role=gridcell label="true" 96,-15 79x23 pos=4/8
             text label="checkmark" "\u{E305}" 100,-11 16x16
@@ -159,14 +159,14 @@ el 0,0 560x240
             text "3381" -78,37 29x16
           el -45,33 1x23
           el #cell-20-2 role=gridcell -44,33 139x23 pos=3/8
-            text "Ada Torvalds" -40,37 81x15
+            text "Ada Torvalds" -40,37 80x15
           el 95,33 1x23
           el #cell-20-3 role=gridcell label="NULL" 96,33 79x23 pos=4/8
             text label="prohibited" "\u{F705}" 100,37 16x16
           el 175,33 1x23
           el #cell-20-4 role=gridcell 176,33 129x23 pos=5/8
             text label="record" "\u{F660}" 180,37 16x16
-            text "paid" 200,37 27x15
+            text "paid" 200,37 26x15
           el 305,33 1x23
           el #cell-20-5 role=gridcell 306,33 129x23 pos=6/8
             text "1583.60" 380,37 51x16
@@ -196,7 +196,7 @@ el 0,0 560x240
           el 175,57 1x23
           el #cell-21-4 role=gridcell 176,57 129x23 pos=5/8
             text label="record" "\u{F660}" 180,61 16x16
-            text "refunded" 200,61 56x15
+            text "refunded" 200,61 55x15
           el 305,57 1x23
           el #cell-21-5 role=gridcell 306,57 129x23 pos=6/8
             text "1662.73" 380,61 51x16
@@ -249,7 +249,7 @@ el 0,0 560x240
             text "2138" -78,109 29x16
           el -45,105 1x23
           el #cell-23-2 role=gridcell -44,105 139x23 pos=3/8
-            text "Margaret Torvalds" -40,109 112x15
+            text "Margaret Torvalds" -40,109 111x15
           el 95,105 1x23
           el #cell-23-3 role=gridcell label="true" 96,105 79x23 pos=4/8
             text label="checkmark" "\u{E305}" 100,109 16x16
@@ -279,14 +279,14 @@ el 0,0 560x240
             text "57" -63,133 14x16
           el -45,129 1x23
           el #cell-24-2 role=gridcell -44,129 139x23 pos=3/8
-            text "Ken Torvalds" -40,133 80x15
+            text "Ken Torvalds" -40,133 79x15
           el 95,129 1x23
           el #cell-24-3 role=gridcell label="true" 96,129 79x23 pos=4/8
             text label="checkmark" "\u{E305}" 100,133 16x16
           el 175,129 1x23
           el #cell-24-4 role=gridcell 176,129 129x23 pos=5/8
             text label="record" "\u{F660}" 180,133 16x16
-            text "paid" 200,133 27x15
+            text "paid" 200,133 26x15
           el 305,129 1x23
           el #cell-24-5 role=gridcell 306,129 129x23 pos=6/8
             text "1900.12" 380,133 51x16
@@ -309,14 +309,14 @@ el 0,0 560x240
             text "2976" -78,157 29x16
           el -45,153 1x23
           el #cell-25-2 role=gridcell -44,153 139x23 pos=3/8
-            text "Barbara Torvalds" -40,157 105x15
+            text "Barbara Torvalds" -40,157 104x15
           el 95,153 1x23
           el #cell-25-3 role=gridcell label="false" 96,153 79x23 pos=4/8
             text label="subtract" "\u{EBCF}" 100,157 16x16
           el 175,153 1x23
           el #cell-25-4 role=gridcell 176,153 129x23 pos=5/8
             text label="record" "\u{F660}" 180,157 16x16
-            text "refunded" 200,157 56x15
+            text "refunded" 200,157 55x15
           el 305,153 1x23
           el #cell-25-5 role=gridcell 306,153 129x23 pos=6/8
             text "1979.25" 380,157 51x16
@@ -339,7 +339,7 @@ el 0,0 560x240
             text "895" -71,181 22x16
           el -45,177 1x23
           el #cell-26-2 role=gridcell -44,177 139x23 pos=3/8
-            text "Edsger Torvalds" -40,181 100x15
+            text "Edsger Torvalds" -40,181 99x15
           el 95,177 1x23
           el #cell-26-3 role=gridcell label="true" 96,177 79x23 pos=4/8
             text label="checkmark" "\u{E305}" 100,181 16x16
@@ -399,14 +399,14 @@ el 0,0 560x240
             text "1733" -78,229 29x16
           el -45,225 1x23
           el #cell-28-2 role=gridcell -44,225 139x23 pos=3/8
-            text "Donald Torvalds" -40,229 100x15
+            text "Donald Torvalds" -40,229 99x15
           el 95,225 1x23
           el #cell-28-3 role=gridcell label="false" 96,225 79x23 pos=4/8
             text label="subtract" "\u{EBCF}" 100,229 16x16
           el 175,225 1x23
           el #cell-28-4 role=gridcell 176,225 129x23 pos=5/8
             text label="record" "\u{F660}" 180,229 16x16
-            text "paid" 200,229 27x15
+            text "paid" 200,229 26x15
           el 305,225 1x23
           el #cell-28-5 role=gridcell 306,225 129x23 pos=6/8
             text "2217.64" 380,229 51x16
@@ -436,7 +436,7 @@ el 0,0 560x240
           el 175,249 1x23
           el #cell-29-4 role=gridcell 176,249 129x23 pos=5/8
             text label="record" "\u{F660}" 180,253 16x16
-            text "refunded" 200,253 56x15
+            text "refunded" 200,253 55x15
           el 305,249 1x23
           el #cell-29-5 role=gridcell 306,249 129x23 pos=6/8
             text "2296.77" 380,253 51x16

@@ -78,7 +78,7 @@ class MenuBarTest {
     App<Studio> app = Studio.assertScript("menubar", theme, scale, out, "open");
     String open = Studio.tree(out, "menubar", theme, scale, "open");
     assertEquals(
-        "el #title-0 role=menuitem label=\"File\" 28,4 38x24 expanded", line(open, "title-0"));
+        "el #title-0 role=menuitem label=\"File\" 28,4 37x24 expanded", line(open, "title-0"));
     assertTrue(
         open.contains("\noverlay bottom start gap 2 on #title-0 role=menuitem" + " label=\"File\""),
         open);

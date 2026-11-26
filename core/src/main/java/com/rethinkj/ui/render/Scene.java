@@ -452,11 +452,10 @@ import java.util.Map;
  *
  * <p>A text element's glyphs come after its own fill and border. Its content box is snapped to
  * the physical pixel grid before the glyphs are placed: vertically to whole pixels, horizontally
- * to the grid of the glyph positions, whole pixels below scale 1.5 and quarter pixels from there
- * (see {@link com.rethinkj.ui.text.Font#shape}), whole pixels at every scale for a font such as
- * the icons that is placed on {@link com.rethinkj.ui.text.Font#wholePixels whole pixels}. So text
- * in a box at a fractional position, moving or scrolled, is drawn from the same bitmaps as at a
- * whole one.
+ * to the grid of the glyph positions, quarter pixels at every scale (see {@link
+ * com.rethinkj.ui.text.Font#shape}), or whole pixels at every scale for a font such as the icons
+ * that is placed on {@link com.rethinkj.ui.text.Font#wholePixels whole pixels}. So text in a box
+ * at a fractional position, moving or scrolled, is drawn from the same bitmaps as at a whole one.
  *
  * <p>Which correction a glyph gets depends on the background behind its text: the color set
  * with {@link El#textBackground}, or else the fills of the text element and its ancestors, each
@@ -1020,7 +1019,7 @@ public final class Scene {
           double scale = fieldText.scale();
           double boxLeft = (left + el.padding(Side.LEFT) + el.border(Side.LEFT)) * scale;
           double boxTop = (top + el.padding(Side.TOP) + el.border(Side.TOP)) * scale;
-          double grid = scale >= 1.5 && !fieldText.font().wholePixels() ? 4 : 1;
+          double grid = fieldText.font().wholePixels() ? 1 : 4;
           boxLeft = Math.round(boxLeft * grid) / grid;
           boxTop = Math.round(boxTop);
           for (Text.Box tint : fieldText.blockSelection()) {
@@ -1689,7 +1688,7 @@ public final class Scene {
     double scale = text.scale();
     double left = (x + el.padding(Side.LEFT) + el.border(Side.LEFT)) * scale;
     double top = (y + el.padding(Side.TOP) + el.border(Side.TOP)) * scale;
-    double grid = scale >= 1.5 && !text.font().wholePixels() ? 4 : 1;
+    double grid = text.font().wholePixels() ? 1 : 4;
     left = Math.round(left * grid) / grid;
     top = Math.round(top);
     float background = text.background() != 0 ? luminance(text.background()) : behind;
@@ -1768,8 +1767,12 @@ public final class Scene {
           shareOf = glyphColor;
           share = lightShare(glyphColor, background);
         }
-        // On the quarter grid, or whole below 1.5, as the line's start is.
+        // On the quarter grid, as the line's start is; a fallback such as the icons on whole
+        // pixels.
         double origin = left + line.x() + run.x(i) - scroll;
+        if (run.font(i).wholePixels()) {
+          origin = Math.round(origin);
+        }
         double whole = Math.floor(origin);
         Atlas.Slot slot =
             atlas.glyph(run.font(i), run.pixelSize(), rendering.hinting(), run.glyph(i), (int)

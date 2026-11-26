@@ -1,0 +1,1 @@
+- Text looks closer to macOS on Linux and Windows alike: glyphs are placed on quarter pixels at every scale, outlines are slightly darkened, the bundled Inter faces get size-dependent tracking, and `TextRendering.LINUX` and `TextRendering.WINDOWS` are now both unhinted (the new `TextRendering.Hinting.NONE`) with exponents 2.0 for dark and 1.5 for light text.

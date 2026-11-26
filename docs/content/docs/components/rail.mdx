@@ -7,7 +7,7 @@ description: Vertical strip of icon buttons along a window edge for toggling too
 
 Use `Rail` for edge-docked tool windows and compact icon selectors. For labeled sidebar navigation, use [NavList](/docs/components/nav-list); for document switching, use [Tabs](/docs/components/tabs); for a horizontal row of actions, use [Toolbar](/docs/components/toolbar).
 
-Javadoc: [`Rail`](/api/com/rethinkj/ui/kit/Rail.html), [`Rail.Item`](/api/com/rethinkj/ui/kit/Rail.Item.html), [`Rail.Action`](/api/com/rethinkj/ui/kit/Rail.Action.html), [`Rail.Options`](/api/com/rethinkj/ui/kit/Rail.Options.html), [`Rail.State`](/api/com/rethinkj/ui/kit/Rail.State.html), [`Rail.Dot`](/api/com/rethinkj/ui/kit/Rail.Dot.html).
+Javadoc: [`Rail`](/api/com/rethinkj/ui/kit/Rail.html), [`Rail.Item`](/api/com/rethinkj/ui/kit/Rail.Item.html), [`Rail.Action`](/api/com/rethinkj/ui/kit/Rail.Action.html), [`Rail.Options`](/api/com/rethinkj/ui/kit/Rail.Options.html), [`Rail.State`](/api/com/rethinkj/ui/kit/Rail.State.html), [`Rail.Dot`](/api/com/rethinkj/ui/kit/Rail.Dot.html), [`Rail.Count`](/api/com/rethinkj/ui/kit/Rail.Count.html), [`Rail.Size`](/api/com/rethinkj/ui/kit/Rail.Size.html), [`Rail.Surface`](/api/com/rethinkj/ui/kit/Rail.Surface.html).
 
 <Shot src="examples/docs/rail/view-{theme}" alt="A left rail with Explorer open, Search, a separator, Problems with a red dot, and Settings pinned to the bottom, beside a split showing the Explorer pane and an editor" />
 
@@ -31,32 +31,43 @@ Store one `Rail.State` per rail in your app state. Item indexes count only toggl
 | `Rail.action(icon, label, onPress)` | Icon command button independent of panel selection (`null` handler disables it) |
 | `Rail.separator()` | Horizontal hairline separating groups of entries |
 | `.shortcut(modifiers, key)` | Displays a key combination on keycaps in the tooltip (display only — bind the shortcut in your app) |
-| `.description(text)` | Secondary text below the label in the tooltip (followed by `— <dot text>` when both are set) |
+| `.description(text)` | Secondary text below the label in the tooltip (followed by `— <status>` when a dot or count is also set) |
 | `.dot(kind, text)` | Colored status dot (`Badge.Kind`) at the button's top right, dimmed when disabled; nonempty `text` appears in the tooltip and tree dump |
-| `.key(name)` | Stable key for scripts (`#<name>`) and for keeping the roving Tab stop on the same entry when entries are added or removed |
+| `.count([kind,] text)` | Compact count pill (`"3"`, `"99+"`) at the button's top right, defaulting to `Badge.Kind.NEUTRAL` and dimmed when disabled; visually replaces any dot when nonempty |
+| `.contextMenu(items)` | Secondary-press context menu on an enabled entry (also opened with the Menu key or Shift+F10); managed by `Rail.State.contextMenu()` |
+| `.key(name)` | Stable key for scripts (`#<name>`) and for keeping the roving Tab stop and open context menu across dynamic entry changes |
 | `.disabled(true)` | Disables a single entry and skips it during keyboard navigation |
-| `.busy(true)` | Shows a spinner on an enabled entry and ignores presses while keeping keyboard focus |
+| `.busy(true)` | Shows a spinner on an enabled entry and ignores presses while keeping keyboard focus and any context menu |
 | `.progress(fraction)` | Replaces the busy spinner with a determinate progress ring (`0`–`1`, clamped; `NaN` restores the spinner) |
+
+When both a dot and a count are set on an entry, a nonempty count pill replaces the dot visually while nonempty dot text still takes precedence in the tooltip and the button's `value`.
 
 ## Options and typed values
 
-Pass `Rail.options().closable(false)` when one item should always stay selected — pressing the open item then does nothing instead of calling `onSelect` with `-1`. The [AgentChat model picker](/docs/examples/agent-chat) uses this pattern inside a [Popover](/docs/components/popover) to filter models by provider.
+| Option | Description |
+| --- | --- |
+| `closable(false)` | Keeps the open item selected when pressed again instead of passing `-1` (for persistent selectors such as the provider filter in the [AgentChat model picker](/docs/examples/agent-chat)) |
+| `size(Rail.Size.REGULAR)` | Compact 24 px buttons (`Rail.Size.LARGE` is the default 32 px) for rails embedded inside popovers or cards |
+| `surface(Rail.Surface)` | Background fill: `WINDOW` (default), `BAND` (for rails inside a card or popover), or `TRANSPARENT` (lets a parent glow or wash show through) |
+| `indicator(true)` | Draws a vertical accent bar along the rail's outer edge beside the open item |
 
 To select typed values instead of integer indexes (such as enum constants), use `Rail.rail(state, label, side, values, open, value -> item, onSelect)` (with an optional trailing `Rail.Options`). Equal values are deduplicated to their first occurrence, a `null` or missing `open` value leaves the rail closed, and closing the open item passes `null` to `onSelect`.
 
-## Placement and styling
+## Placement, styling, and overflow
 
-The inner hairline and tooltips always face inward — to the right of a `Side.LEFT` rail and to the left of a `Side.RIGHT` rail. `Rail.width()` returns the rail's total width in the current theme (button, padding, and hairline), useful when aligning other window chrome with the rail.
+The inner hairline and tooltips always face inward — to the right of a `Side.LEFT` rail and to the left of a `Side.RIGHT` rail. `Rail.width()` (or `Rail.width(Rail.Size)`) returns the rail's total width in the current theme (button, padding, and hairline), useful when aligning other window chrome with the rail.
 
-To continue a project color wash from a [TitleBar](/docs/components/title-bar) down through the rail, attach `TitleBar.glow(...)` to the window root and clear both fills with `.fill(Colors.TRANSPARENT)`. See [Extending the tint across the title bar and rail](/docs/components/title-bar#extending-the-tint-across-the-title-bar-and-rail).
+To continue a project color wash from a [TitleBar](/docs/components/title-bar) down through the rail, attach `TitleBar.glow(...)` to the window root, clear the title bar's fill with `.fill(Colors.TRANSPARENT)`, and pass `Rail.options().surface(Rail.Surface.TRANSPARENT)`. See [Extending the tint across the title bar and rail](/docs/components/title-bar#extending-the-tint-across-the-title-bar-and-rail).
+
+When a rail runs out of height, it scrolls with the wheel and follows keyboard focus without a scrollbar. While entries lie past the top or bottom edge, the rail shows a subtle fade on solid surfaces (`WINDOW`, `BAND`) or a divider hairline on `TRANSPARENT` and custom backgrounds so clipped entries stay discoverable.
 
 ## Keyboard
 
-The rail is a single Tab stop that remembers the last focused button. **Up/Down** wrap through enabled buttons across separators and groups, **Home/End** jump to the first and last, and **Enter/Space** activate the focused button. Pointer clicks leave keyboard focus where it was. When a rail runs out of height, it scrolls with the wheel and follows keyboard focus without a scrollbar.
+The rail is a single Tab stop that remembers the last focused button. **Up/Down** wrap through enabled buttons across separators and groups, **Home/End** jump to the first and last, **Enter/Space** activate the focused button, and **Menu** or **Shift+F10** open the focused entry's context menu. Pointer clicks leave keyboard focus where it was.
 
 ## In a tree dump
 
-`role=toolbar` with its `label` (and `disabled` when no buttons are enabled), separators as `role=separator`, toggle items as `role=button` with key `#item-<index>` and `checked` / `checked=false`, and actions as `role=button` with key `#action-<index>` without `checked`. Custom keys override the default `#item-` / `#action-` keys; entries may also report `disabled`, `busy`, and a nonempty dot description as `value`:
+`role=toolbar` with its `label` (and `disabled` when no buttons are enabled), containing `#rail-items` and optional `#overflow-top` / `#overflow-bottom` indicators. Inside `#rail-items`, separators are `role=separator`, toggle items are `role=button` (`#item-<index>`, `checked` / `checked=false`), and actions are `role=button` (`#action-<index>`, without `checked`). Custom keys override `#item-` / `#action-`; entries may also report `disabled`, `busy`, `value` (from a dot or count), `#count`, and `#indicator`:
 
-```text file="examples/src/test/resources/golden/docs/rail/view.tree.txt" start="role=toolbar" count="11"
+```text file="examples/src/test/resources/golden/docs/rail/view.tree.txt" start="role=toolbar" count="16"
 ```

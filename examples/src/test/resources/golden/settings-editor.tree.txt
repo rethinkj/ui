@@ -5,7 +5,7 @@ el 0,0 880x600
         el 8,8 16x16
           el 9,9 14x14
             text "\u{F6A8}" 11,11 10x10
-      text "Settings" 32,8 50x16
+      text "Settings" 32,8 51x16
     el 718,16 24x0
     el role=button label="Minimize" window=minimize 742,0 46x32
       text label="subtract" "\u{EBCE}" 759,10 12x12
@@ -123,14 +123,14 @@ el 0,0 880x600
               el 257,533 590x1
               el 259,536 586x92
                 text "Line endings" 269,542 566x16
-                el role=radiogroup label="Line endings" 265,564 110x60
-                  el role=radio label="LF" 269,566 102x16 checked
+                el role=radiogroup label="Line endings" 265,564 107x60
+                  el role=radio label="LF" 269,566 99x16 checked
                     el 269,566 16x16
                       el 274,571 6x6
                     text "LF" 293,566 15x16
-                  el role=radio label="CRLF" 269,586 102x16 checked=false
+                  el role=radio label="CRLF" 269,586 99x16 checked=false
                     el 269,586 16x16
-                    text "CRLF" 293,586 32x16
-                  el role=radio label="As in the file" 269,606 102x16 checked=false
+                    text "CRLF" 293,586 33x16
+                  el role=radio label="As in the file" 269,606 99x16 checked=false
                     el 269,606 16x16
-                    text "As in the file" 293,606 78x16
+                    text "As in the file" 293,606 75x16

@@ -5,7 +5,7 @@ el 0,0 960x640
         el 8,8 16x16
           el 9,9 14x14
             text "\u{E4D7}" 11,11 10x10
-      text "Manual" 32,8 46x16
+      text "Manual" 32,8 45x16
     el 758,16 24x0
     el 782,0 40x32
       el 782,4 24x24
@@ -89,60 +89,60 @@ el 0,0 960x640
         el 281,-147 646x61 pos=31/39
           el 281,-123 646x29
             text #heading-tables role=heading "Tables" 281,-123 646x28 readonly level=2 lines 1-1/1
-              el #anchor role=link label="Tables" 344.88,-123 17x24 value="#tables"
-                text "#" 348.88,-123 13x24
+              el #anchor role=link label="Tables" 342.63,-123 17x24 value="#tables"
+                text "#" 346.63,-123 13x24
             el role=separator 281,-95 646x1
         el 281,-86 646x143 pos=32/39
           el 281,-86 646x131
-            el role=table 281,-86 293x131
-              el role=row 282,-85 291x25
-                el role=columnheader 282,-85 86x25
-                  text role=textbox "Form" 290,-81 70x17 readonly lines 1-1/1
-                el role=columnheader 368,-85 123x25
-                  text role=textbox "Written as" 376,-81 107x17 readonly lines 1-1/1
-                el role=columnheader 491,-85 82x25
-                  text role=textbox "Shown as" 499,-81 66x17 readonly lines 1-1/1
-              el role=separator 282,-60 291x1
-              el role=row 282,-59 291x25
-                el role=cell 282,-59 86x25
-                  text role=textbox "Emphasis" 290,-55 70x17 readonly lines 1-1/1
-                el role=cell 368,-59 123x25
-                  text role=textbox "*a*" 376,-55 107x17 readonly lines 1-1/1
-                el role=cell 491,-59 82x25
-                  text role=textbox "a" 499,-55 66x17 readonly lines 1-1/1
-              el role=separator 282,-34 291x1
-              el role=row 282,-33 291x25
-                el role=cell 282,-33 86x25
-                  text role=textbox "Strong" 290,-29 70x17 readonly lines 1-1/1
-                el role=cell 368,-33 123x25
-                  text role=textbox "**a**" 376,-29 107x17 readonly lines 1-1/1
-                el role=cell 491,-33 82x25
-                  text role=textbox "a" 499,-29 66x17 readonly lines 1-1/1
-              el role=separator 282,-8 291x1
-              el role=row 282,-7 291x25
-                el role=cell 282,-7 86x25
-                  text role=textbox "Struck out" 290,-3 70x17 readonly lines 1-1/1
-                el role=cell 368,-7 123x25
-                  text role=textbox "~~a~~" 376,-3 107x17 readonly lines 1-1/1
-                el role=cell 491,-7 82x25
-                  text role=textbox "a" 499,-3 66x17 readonly lines 1-1/1
-              el role=separator 282,18 291x1
-              el role=row 282,19 291x25
-                el role=cell 282,19 86x25
-                  text role=textbox "Link" 290,23 70x17 readonly lines 1-1/1
-                el role=cell 368,19 123x25
-                  text role=textbox "[a](#tables)" 376,23 107x17 readonly lines 1-1/1
-                el role=cell 491,19 82x25
-                  text role=textbox "a" 499,23 66x17 readonly lines 1-1/1
-                    el #link-0 role=link label="a" 556.63,23 7.88x17 value="#tables"
+            el role=table 281,-86 292x131
+              el role=row 282,-85 290x25
+                el role=columnheader 282,-85 85x25
+                  text role=textbox "Form" 290,-81 69x17 readonly lines 1-1/1
+                el role=columnheader 367,-85 123x25
+                  text role=textbox "Written as" 375,-81 107x17 readonly lines 1-1/1
+                el role=columnheader 490,-85 82x25
+                  text role=textbox "Shown as" 498,-81 66x17 readonly lines 1-1/1
+              el role=separator 282,-60 290x1
+              el role=row 282,-59 290x25
+                el role=cell 282,-59 85x25
+                  text role=textbox "Emphasis" 290,-55 69x17 readonly lines 1-1/1
+                el role=cell 367,-59 123x25
+                  text role=textbox "*a*" 375,-55 107x17 readonly lines 1-1/1
+                el role=cell 490,-59 82x25
+                  text role=textbox "a" 498,-55 66x17 readonly lines 1-1/1
+              el role=separator 282,-34 290x1
+              el role=row 282,-33 290x25
+                el role=cell 282,-33 85x25
+                  text role=textbox "Strong" 290,-29 69x17 readonly lines 1-1/1
+                el role=cell 367,-33 123x25
+                  text role=textbox "**a**" 375,-29 107x17 readonly lines 1-1/1
+                el role=cell 490,-33 82x25
+                  text role=textbox "a" 498,-29 66x17 readonly lines 1-1/1
+              el role=separator 282,-8 290x1
+              el role=row 282,-7 290x25
+                el role=cell 282,-7 85x25
+                  text role=textbox "Struck out" 290,-3 69x17 readonly lines 1-1/1
+                el role=cell 367,-7 123x25
+                  text role=textbox "~~a~~" 375,-3 107x17 readonly lines 1-1/1
+                el role=cell 490,-7 82x25
+                  text role=textbox "a" 498,-3 66x17 readonly lines 1-1/1
+              el role=separator 282,18 290x1
+              el role=row 282,19 290x25
+                el role=cell 282,19 85x25
+                  text role=textbox "Link" 290,23 69x17 readonly lines 1-1/1
+                el role=cell 367,19 123x25
+                  text role=textbox "[a](#tables)" 375,23 107x17 readonly lines 1-1/1
+                el role=cell 490,19 82x25
+                  text role=textbox "a" 498,23 66x17 readonly lines 1-1/1
+                    el #link-0 role=link label="a" 555.25,23 7.75x17 value="#tables"
             el 281,45 646x0
-              el 281,45 242x0
-              el 523,45 1x0
+              el 281,45 241x0
+              el 522,45 1x0
         el 281,57 646x61 pos=33/39
           el 281,81 646x29
             text #heading-images role=heading "Images" 281,81 646x28 readonly level=2 lines 1-1/1
-              el #anchor role=link label="Images" 351.38,81 17x24 value="#images"
-                text "#" 355.38,81 13x24
+              el #anchor role=link label="Images" 349.25,81 17x24 value="#images"
+                text "#" 353.25,81 13x24
             el role=separator 281,109 646x1
         el 281,118 646x63 pos=34/39
           text role=paragraph "An image alone in its paragraph stands as a block, as large as its pixels and at most as wide as the" … "the description until an image is there." length 265 281,118 646x51 readonly lines 1-1/1

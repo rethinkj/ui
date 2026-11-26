@@ -5,7 +5,7 @@ el 0,0 1040x720
         el 8,8 16x16
           el 9,9 14x14
             text "\u{EBF4}" 11,11 10x10
-      text "Schema" 32,8 51x16
+      text "Schema" 32,8 50x16
     el 878,16 24x0
     el role=button label="Minimize" window=minimize 902,0 46x32
       text label="subtract" "\u{EBCE}" 919,10 12x12
@@ -19,33 +19,33 @@ el 0,0 1040x720
         el 17,37 200x24
           text role=textbox label="Filter tables" "" 17,37 200x24
           text label="search" "\u{EA7C}" 21,41 16x16
-        el role=radiogroup 221,37 273x24
-          el #thumb 224,40 95x18
-          el #choice-0 role=radio label="All columns" 224,40 95x18 checked
-            text "All columns" 236,41 71x16
-          el #choice-1 role=radio label="Keys only" 321,40 83x18 checked=false
-            text "Keys only" 333,41 59x16
-          el #choice-2 role=radio label="Collapsed" 406,40 85x18 checked=false
-            text "Collapsed" 418,41 61x16
-        el 498,49 304x0
-        el role=button label="Fit" 806,37 41x24
-          text "Fit" 819,41 15x16
-        el role=button label="Arrange" 851,37 76x24
-          text "Arrange" 864,41 50x16
-        el role=button label="Arrange all" 931,37 92x24
-          text "Arrange all" 944,41 66x16
+        el role=radiogroup 221,37 272x24
+          el #thumb 224,40 94x18
+          el #choice-0 role=radio label="All columns" 224,40 94x18 checked
+            text "All columns" 236,41 70x16
+          el #choice-1 role=radio label="Keys only" 320,40 83x18 checked=false
+            text "Keys only" 332,41 59x16
+          el #choice-2 role=radio label="Collapsed" 405,40 85x18 checked=false
+            text "Collapsed" 417,41 61x16
+        el 497,49 304x0
+        el role=button label="Fit" 805,37 41x24
+          text "Fit" 818,41 15x16
+        el role=button label="Arrange" 850,37 76x24
+          text "Arrange" 863,41 50x16
+        el role=button label="Arrange all" 930,37 93x24
+          text "Arrange all" 943,41 67x16
       el 9,65 1022x1
       el role=graphics-document label="Entity relationship diagram" 9,66 1022x645 value="Zoom 50%" focused
         el #public/ role=group label="public, 8 tables" 208,190 624x274
           el 208,190 624x274
             el 209,191 622x14
               text label="database" "\u{F0D7}" 213,194 9x9
-              text "public · 8 tables" 223,193 70x11
+              text "public · 8 tables" 223,193 71x11
         el #billing/ role=group label="billing, 1 table" 208,474 144x114
           el 208,474 144x114
             el 209,475 142x14
               text label="database" "\u{F0D7}" 213,478 9x9
-              text "billing · 1 table" 223,477 62x11
+              text "billing · 1 table" 223,477 63x11
         el 357,272 3x3
         el 371,247 9x6
         el 340,272 8x6

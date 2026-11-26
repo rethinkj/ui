@@ -113,6 +113,36 @@ class ScrollStateTest {
   }
 
   @Test
+  void aViewThatAsksForTheStartRebuildsWhenScrollingOrLayoutChangesTheAnswer() {
+    App<ScrollState> app = new App<>(
+        new ScrollState(),
+        state -> col()
+            .wFull()
+            .hFull()
+            .child(col().grow(1).minSize(0, 0).scroll().scrollState(state).child(el().h(150)))
+            .child(
+                state.atStart() ? null : el().key("more-above").absolute(0, 0).size(2, 2)));
+    app.resize(100, 60, 1);
+    app.frame();
+    assertEquals(1, app.tree().children().size());
+
+    app.wheel(50, 30, 0, 30);
+    app.frame();
+    assertEquals("more-above", app.tree().children().getLast().key(), app.tree().dump());
+
+    app.wheel(50, 30, 0, -30);
+    app.frame();
+    assertEquals(1, app.tree().children().size());
+
+    app.wheel(50, 30, 0, 30);
+    app.frame();
+    app.resize(100, 160, 1);
+    app.frame();
+    assertEquals(0, app.state().y(), "layout clamps the offset when the content fits");
+    assertEquals(1, app.tree().children().size());
+  }
+
+  @Test
   void twoAreasCannotShareOne() {
     Model model = new Model();
     model.shared = true;

@@ -8,11 +8,11 @@ import java.util.List;
  * that was shaped or from one of its fallbacks ({@link #font(int)}). Made by {@link Font#shape};
  * immutable.
  *
- * <p>Everything is in physical pixels, on the grid {@link Font#shape} rounds to: whole pixels
- * below scale 1.5, quarter pixels from 1.5 on, whole pixels at every scale for a font with {@link
- * Font#wholePixels}. x grows to the right from the pen's start, y grows downwards from the
- * baseline. Measuring with {@link #width} and drawing at {@link #x} and {@link #y} use the same
- * rounded numbers, so text takes exactly the room it was measured for.
+ * <p>Everything is in physical pixels, on the grid {@link Font#shape} rounds to: quarter pixels at
+ * every scale, or whole pixels at every scale for a font with {@link Font#wholePixels}. x grows to
+ * the right from the pen's start, y grows downwards from the baseline. Measuring with {@link #width}
+ * and drawing at {@link #x} and {@link #y} use the same rounded numbers, so text takes exactly the
+ * room it was measured for.
  */
 public final class GlyphRun {
 

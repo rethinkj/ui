@@ -14,7 +14,7 @@ el 0,0 360x240
       el #table-0 role=listitem label="accounts" 17,49 208x24
         text "accounts" 25,53 56x16
       el #table-1 role=listitem label="customers" 17,73 208x24
-        text "customers" 25,77 65x16
+        text "customers" 25,77 64x16
       el #table-2 role=listitem label="invoices" 17,97 208x24
         text "invoices" 25,101 50x16
       el #table-3 role=listitem label="orders" 17,121 208x24
@@ -40,17 +40,17 @@ el 0,0 360x240
         text "More…" 271,180 44x15
   text #status "Ready · orders · UTF-8 · wrap" 12,213 336x15
 overlay bottom start gap 2 on #more role=button label="More…" 243,176 100x24
-  el #menu role=menu 218,87 125x87 focused
-    el #item-0 role=menuitem label="Properties" 223,92 115x24
-      el 223,92 115x24
-        el 231,104 16x0
-        text "Properties" 255,96 75x16
-    el #item-1 role=menuitem label="Permissions" 223,116 115x24
-      el 223,116 115x24
-        el 231,128 16x0
-        text "Permissions" 255,120 75x16
-    el 223,142 115x1
-    el #item-3 role=menuitem label="Truncate" 223,145 115x24 disabled
-      el 223,145 115x24
-        el 231,157 16x0
-        text "Truncate" 255,149 75x16
+  el #menu role=menu 219,87 124x87 focused
+    el #item-0 role=menuitem label="Properties" 224,92 114x24
+      el 224,92 114x24
+        el 232,104 16x0
+        text "Properties" 256,96 74x16
+    el #item-1 role=menuitem label="Permissions" 224,116 114x24
+      el 224,116 114x24
+        el 232,128 16x0
+        text "Permissions" 256,120 74x16
+    el 224,142 114x1
+    el #item-3 role=menuitem label="Truncate" 224,145 114x24 disabled
+      el 224,145 114x24
+        el 232,157 16x0
+        text "Truncate" 256,149 74x16

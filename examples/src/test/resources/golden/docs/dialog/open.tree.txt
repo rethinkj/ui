@@ -1,16 +1,16 @@
 el 0,0 420x260
-  text "orders" 12,12 41x16
-  el role=button label="Rename…" 12,36 89x24
-    text "Rename…" 25,40 63x16
+  text "orders" 12,12 40x16
+  el role=button label="Rename…" 12,36 88x24
+    text "Rename…" 25,40 62x16
 overlay center modal scrim on 0,0 420x260
   el #dialog role=dialog label="Rename table" 93,68 234x125
     el 110,116 200x60
       el #dialog-content 106,112 214x38
         text role=textbox label="Name" "orders" 110,116 200x24 focused caret 6
       el 110,152 200x24
-        el role=button label="Cancel" 155,152 70x24
-          text "Cancel" 168,156 44x16
-        el role=button label="Rename" 233,152 77x24
-          text "Rename" 246,156 51x16
+        el role=button label="Cancel" 158,152 68x24
+          text "Cancel" 171,156 42x16
+        el role=button label="Rename" 234,152 76x24
+          text "Rename" 247,156 50x16
     el 110,85 200x19
       text role=heading label="Rename table" "Rename table" 110,85 103x19 level=2

@@ -56,17 +56,17 @@ el 0,0 880x600
           text role=heading "Colors" 240,96 608x20 level=2
         el 240,124 608x101
           el 243,127 602x45
-            el 253,133 375x33
-              text "Theme" 253,133 375x15
-              text "System follows the dark theme in this example" 253,150 375x16
-            el role=radiogroup label="Theme" 640,133 195x32
-              el #thumb 704,138 52x22
-              el #choice-0 role=radio label="Light" 645,138 55x22 checked=false
-                text "Light" 657,141 31x16
-              el #choice-1 role=radio label="Dark" 704,138 52x22 checked
-                text "Dark" 716,141 28x16
-              el #choice-2 role=radio label="System" 760,138 70x22 checked=false
-                text "System" 772,141 46x16
+            el 253,133 376x33
+              text "Theme" 253,133 376x15
+              text "System follows the dark theme in this example" 253,150 376x16
+            el role=radiogroup label="Theme" 641,133 194x32
+              el #thumb 704,138 53x22
+              el #choice-0 role=radio label="Light" 646,138 54x22 checked=false
+                text "Light" 658,141 30x16
+              el #choice-1 role=radio label="Dark" 704,138 53x22 checked
+                text "Dark" 716,141 29x16
+              el #choice-2 role=radio label="System" 761,138 69x22 checked=false
+                text "System" 773,141 45x16
           el 241,174 606x1
           el 243,177 602x45
             el 253,183 410x33
@@ -89,13 +89,13 @@ el 0,0 880x600
                 el 819,294 16x16
           el 241,326 606x1
           el 243,329 602x45
-            el 253,335 376x33
-              text "Density" 253,335 376x16
-              text "Space between the rows of lists, trees and grids" 253,353 376x15
-            el role=radiogroup label="Density" 641,336 194x32
-              el #thumb 646,341 80x22
-              el #choice-0 role=radio label="Compact" 646,341 80x22 checked
-                text "Compact" 658,344 56x15
+            el 253,335 377x33
+              text "Density" 253,335 377x16
+              text "Space between the rows of lists, trees and grids" 253,353 377x15
+            el role=radiogroup label="Density" 642,336 193x32
+              el #thumb 647,341 79x22
+              el #choice-0 role=radio label="Compact" 647,341 79x22 checked
+                text "Compact" 659,344 55x15
               el #choice-1 role=radio label="Comfortable" 730,341 100x22 checked=false
                 text "Comfortable" 742,344 76x15
         el role=note label="Restart to apply" 240,385 608x49

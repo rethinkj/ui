@@ -5,7 +5,7 @@ el 0,0 1280x800
         el 8,8 16x16
           el 9,9 14x14
             text "\u{F339}" 11,11 10x10
-      text "Agent Chat" 32,8 70x16
+      text "Agent Chat" 32,8 69x16
     el 1052,16 24x0
     el 1076,0 66x32
       el 1076,4 50x24
@@ -85,18 +85,18 @@ el 0,0 1280x800
           el #first 260,32 652x760
             el label="Chat" 260,32 652x760
               el 261,33 650x40
-                text role=heading "Slow orders query" 277,45 124x17 level=3
-                text "perf/orders-index" 409,45 108x16
-                el 525,53 338x0
+                text role=heading "Slow orders query" 277,45 122x17 level=3
+                text "perf/orders-index" 407,45 108x16
+                el 523,53 340x0
                 el role=button label="Toggle changes" 871,41 24x24 checked
                   text label="panel_right" "\u{E8BC}" 875,45 16x16
               el role=separator 261,73 650x1
               el #transcript-orders 261,74 650x634
-                el #list role=log label="Transcript" 261,74 650x634 rows 0-3/4 scroll 0,128 thumb-y 903,181.83 6x524.17
-                  el 277,-46 618x94 pos=1/4
-                    el role=article label="User message" 277,-38 618x78
-                      el 401,-38 494x52
-                        text role=paragraph "Can you check why the open orders query is scanning the whole table?" 414,-29 468x34 readonly lines 1-1/1
+                el #list role=log label="Transcript" 261,74 650x634 rows 0-3/4 scroll 0,111 thumb-y 903,169.87 6x536.13
+                  el 277,-29 618x77 pos=1/4
+                    el role=article label="User message" 277,-21 618x61
+                      el 401,-21 494x35
+                        text role=paragraph "Can you check why the open orders query is scanning the whole table?" 414,-12 468x17 readonly lines 1-1/1
                       el 833,16 62x24
                         el #copy role=button label="Copy message" 833,16 24x24
                           text label="copy" "\u{F32A}" 837,20 16x16
@@ -118,8 +118,8 @@ el 0,0 1280x800
                         text "14:31" 305,141 34x14
                   el 277,168 618x77 pos=3/4
                     el role=article label="User message" 277,176 618x61
-                      el 464,176 431x35
-                        text role=paragraph "Draft a concurrent index migration for the open orders query." 477,185 405x17 readonly lines 1-1/1
+                      el 470,176 425x35
+                        text role=paragraph "Draft a concurrent index migration for the open orders query." 483,185 399x17 readonly lines 1-1/1
                       el 833,213 62x24
                         el #copy role=button label="Copy message" 833,213 24x24
                           text label="copy" "\u{F32A}" 837,217 16x16
@@ -305,15 +305,20 @@ overlay top end gap 2 on #model-picker role=button label="Atlas 3 High" 737,746 
     el 412,399 446x345
       el 412,399 446x304
         el role=toolbar label="Providers" 412,399 41x304
-          el #item-0 role=button label="All providers" 416,403 32x32 checked
-            text label="shapes" "\u{F6AC}" 424,411 16x16
-          el role=separator 420,441 24x1
-          el #item-1 role=button label="Northstar" 416,448 32x32 checked=false
-            text label="star" "\u{F70E}" 424,456 16x16
-          el #item-2 role=button label="Solstice" 416,484 32x32 checked=false
-            text label="lightbulb" "\u{F4D5}" 424,492 16x16
-          el #item-3 role=button label="Timber" 416,520 32x32 checked=false
-            text label="cube" "\u{F334}" 424,528 16x16
+          el #rail-items 412,399 40x304
+            el #entry-item-0 416,403 32x32
+              el #item-0 role=button label="All providers" 416,403 32x32 checked
+                text label="shapes" "\u{F6AC}" 424,411 16x16
+            el role=separator 420,441 24x1
+            el #entry-item-1 416,448 32x32
+              el #item-1 role=button label="Northstar" 416,448 32x32 checked=false
+                text label="star" "\u{F70E}" 424,456 16x16
+            el #entry-item-2 416,484 32x32
+              el #item-2 role=button label="Solstice" 416,484 32x32 checked=false
+                text label="lightbulb" "\u{F4D5}" 424,492 16x16
+            el #entry-item-3 416,520 32x32
+              el #item-3 role=button label="Timber" 416,520 32x32 checked=false
+                text label="cube" "\u{F334}" 424,528 16x16
         el 453,399 276x304
           el 461,407 260x288
             el 461,407 260x32
@@ -326,26 +331,26 @@ overlay top end gap 2 on #model-picker role=button label="Atlas 3 High" 737,746 
                 el 461,471 260x28
                   el 469,477 16x16
                     text label="star" "\u{F70E}" 469,477 16x16
-                  text "Atlas 3" 493,477 114x16
-                  text "200k" 615,477 32x16
+                  text "Atlas 3" 493,477 115x16
+                  text "200k" 616,477 31x16
                   text "Alt+1" 659,477 30x16
                   text label="checkmark" "\u{E305}" 697,477 16x16
               el #option-2 role=option label="Atlas 3 Mini" 461,499 260x28 pos=3/9
                 el 461,499 260x28
                   el 469,505 16x16
                     text label="star" "\u{F70E}" 469,505 16x16
-                  text "Atlas 3 Mini" 493,505 136x16
-                  text "200k" 637,505 32x16
+                  text "Atlas 3 Mini" 493,505 137x16
+                  text "200k" 638,505 31x16
                   text "Alt+2" 681,505 32x16
               el #group-3 role=group label="Solstice" 461,527 260x28 pos=4/9
-                text "Solstice" 469,535 49x16
+                text "Solstice" 469,535 48x16
               el #option-4 role=option label="Comet Pro" 461,555 260x28 pos=5/9
                 el 461,555 260x28
                   el 469,561 16x16
                     text label="lightbulb" "\u{F4D5}" 469,561 16x16
-                  text "Comet Pro" 493,561 150x16
-                  text "1M" 651,561 17x16
-                  text "Alt+3" 680,561 33x16
+                  text "Comet Pro" 493,561 151x16
+                  text "1M" 652,561 17x16
+                  text "Alt+3" 681,561 32x16
               el #option-5 role=option label="Comet Flash" 461,583 260x28 pos=6/9
                 el 461,583 260x28
                   el 469,589 16x16
@@ -358,8 +363,8 @@ overlay top end gap 2 on #model-picker role=button label="Atlas 3 High" 737,746 
                 el 461,639 260x28
                   el 469,645 16x16
                     text label="cube" "\u{F334}" 469,645 16x16
-                  text "Pine 32B" 493,645 143x16
-                  text "64k" 644,645 24x16
+                  text "Pine 32B" 493,645 144x16
+                  text "64k" 645,645 23x16
                   text "Alt+4" 680,645 33x16
               el #option-8 role=option label="Pine 8B" 461,667 260x28 pos=9/9
                 el 461,667 260x28

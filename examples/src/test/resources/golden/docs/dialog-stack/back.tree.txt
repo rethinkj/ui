@@ -1,18 +1,18 @@
 el 0,0 440x340
-  el role=button label="New connection…" 12,12 140x24
-    text "New connection…" 25,16 114x16
+  el role=button label="New connection…" 12,12 138x24
+    text "New connection…" 25,16 112x16
 overlay center modal scrim on 0,0 440x340
   el #dialog role=dialog label="New connection" 43,92 354x157
     el 60,140 320x92
       el #dialog-content 56,136 334x70
         el 60,140 320x56
           text role=textbox label="Name" "staging" 60,140 200x24 focused caret 7
-          el #add-property role=button label="Add property…" 60,172 120x24
-            text "Add property…" 73,176 94x16
+          el #add-property role=button label="Add property…" 60,172 119x24
+            text "Add property…" 73,176 93x16
       el 60,208 320x24
-        el role=button label="Cancel" 222,208 70x24
-          text "Cancel" 235,212 44x16
-        el role=button label="Connect" 300,208 80x24
-          text "Connect" 313,212 54x16
+        el role=button label="Cancel" 225,208 69x24
+          text "Cancel" 238,212 43x16
+        el role=button label="Connect" 302,208 78x24
+          text "Connect" 315,212 52x16
     el 60,109 320x19
-      text role=heading label="New connection" "New connection" 60,109 125x19 level=2
+      text role=heading label="New connection" "New connection" 60,109 123x19 level=2

@@ -10,7 +10,7 @@ el 0,0 240x152
     el 104,46 80x38
       el 104,46 80x38
       el 100,42 30x20
-      text "Ecken über Text, abgeschnitten" 108,58 194x16
+      text "Ecken über Text, abgeschnitten" 108,58 192x16
     el 196,50 36x30
   el 0,92 240x60
     el 12,104 56x28

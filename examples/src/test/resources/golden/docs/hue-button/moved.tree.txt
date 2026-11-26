@@ -4,7 +4,7 @@ el 0,0 460x140
       el 12,12 320x42
         el 12,12 279x42
           el 12,12 279x16
-            text "Host" 12,12 29x16
+            text "Host" 12,12 28x16
           el 12,30 279x24
             text role=textbox label="Host" placeholder="localhost" "localhost" 12,30 279x24
         el 299,12 33x42

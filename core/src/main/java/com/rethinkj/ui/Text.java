@@ -1212,7 +1212,7 @@ public final class Text implements Measure {
       return 0;
     }
     float room = field ? caretRoom() : placedWidth;
-    double grid = scale >= 1.5 && !font().wholePixels() ? 4 : 1;
+    double grid = font().wholePixels() ? 1 : 4;
     return (float) (Math.floor(Math.max(room - width, 0) * share * grid) / grid);
   }
 
@@ -1467,7 +1467,7 @@ public final class Text implements Measure {
     if (len == 0 || run.count() == 0) {
       return null;
     }
-    double grid = scale >= 1.5 && !font().wholePixels() ? 4 : 1;
+    double grid = font().wholePixels() ? 1 : 4;
     // For each position, the room before it and the room after it.
     TreeMap<Integer, float[]> gaps = new TreeMap<>();
     for (int i = 0; i < spans.count; i++) {
@@ -1806,7 +1806,7 @@ public final class Text implements Measure {
       float[] kept = shownLines.chunkWidths(lineIndex, spans);
       if (kept == null || kept.length != n) {
         kept = new float[n];
-        double grid = scale >= 1.5 && !font().wholePixels() ? 4 : 1;
+        double grid = font().wholePixels() ? 1 : 4;
         for (int i = 0; i < n; i++) {
           kept[i] = (float) (Math.round((bounds[i + 1] - bounds[i]) * advance * grid) / grid);
         }
@@ -2888,7 +2888,7 @@ public final class Text implements Measure {
 
   /** Physical width reserved for one measured hint element, matching {@link #segmentHints}. */
   private float hintWidth(El built) {
-    double grid = scale >= 1.5 && !font().wholePixels() ? 4 : 1;
+    double grid = font().wholePixels() ? 1 : 4;
     float logical = built.margin(Side.LEFT) + built.width() + built.margin(Side.RIGHT);
     return (float) Math.max(0, Math.ceil(logical * scale * grid - 1e-4) / grid);
   }
@@ -3201,7 +3201,7 @@ public final class Text implements Measure {
    * rows: vertically on whole physical pixels, horizontally on the grid of glyph positions.
    */
   void scrolled(double x, double y) {
-    double grid = scale >= 1.5 && !font().wholePixels() ? 4 : 1;
+    double grid = font().wholePixels() ? 1 : 4;
     float newX = (float) (Math.round(x * scale * grid) / grid);
     float newY = (float) Math.round(y * scale);
     if (newX != viewX || newY != viewY) {

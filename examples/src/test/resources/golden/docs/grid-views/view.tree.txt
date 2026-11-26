@@ -7,7 +7,7 @@ el 0,0 500x180
             text "service" 17,17 46x16
           el 172,13 1x24
           el #column-1 role=columnheader label="status" 173,13 103x24 pos=2/4
-            text "status" 177,17 37x16
+            text "status" 177,17 38x16
           el 276,13 1x24
           el #column-2 role=columnheader label="load" 277,13 127x24 pos=3/4
             text "load" 374,17 26x16
@@ -70,8 +70,8 @@ el 0,0 500x180
                   text label="copy" "\u{F32A}" 152,90 16x16
             el 172,86 1x23
             el #cell-2-1 role=gridcell label="DEGRADED" 173,86 103x23 pos=2/4
-              el label="DEGRADED" 177,89 79x18
-                text "DEGRADED" 183,90 67x15
+              el label="DEGRADED" 177,89 78x18
+                text "DEGRADED" 183,90 66x15
             el 276,86 1x23
             el #cell-2-2 role=gridcell label="68 %" 277,86 127x23 pos=3/4
               el 308,90 92x16
@@ -86,7 +86,7 @@ el 0,0 500x180
             el 476,86 1x23
           el #row-3 role=row 13,110 474x24 pos=4/5
             el #cell-3-0 role=gridcell 13,110 159x23 pos=1/4
-              text "reports" 17,114 45x16
+              text "reports" 17,114 44x16
               el #actions 146,110 26x23
                 el role=button label="Copy reports" 150,112 20x20
                   text label="copy" "\u{F32A}" 152,114 16x16

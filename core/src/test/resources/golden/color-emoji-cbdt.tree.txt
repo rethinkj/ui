@@ -2,5 +2,5 @@ el 0,0 280x92
   text "Release ready 🎉 great work 👍 😀" 10,10 260x17
   text "Larger 😀 🎉 👍" 10,33 260x27
   el 10,66 260x17
-    text "Colored 😀 🎉" 10,66 95x17
-    text "Faded 👍 😀" 117,66 84x17
+    text "Colored 😀 🎉" 10,66 94x17
+    text "Faded 👍 😀" 116,66 83x17

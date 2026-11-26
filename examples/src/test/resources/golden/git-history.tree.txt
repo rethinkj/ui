@@ -5,7 +5,7 @@ el 0,0 1040x940
         el 8,8 16x16
           el 9,9 14x14
             text "\u{F0A6}" 11,11 10x10
-      text "Git History" 32,8 66x16
+      text "Git History" 32,8 65x16
     el 878,16 24x0
     el role=button label="Minimize" window=minimize 902,0 46x32
       text label="subtract" "\u{EBCE}" 919,10 12x12
@@ -18,15 +18,15 @@ el 0,0 1040x940
       el label="History" 8,32 1024x326
         el 9,33 1022x40
           text role=heading "History" 25,45 49x17 level=3
-          el label="18 commits" 82,42 81x22
-            text "18 commits" 90,46 65x14
-          el 171,53 0x0
-          el 179,41 200x24
-            el 179,41 200x24
-              text role=textbox label="Filter commits" "" 179,41 200x24
-              text label="search" "\u{EA7C}" 183,45 16x16
-          el role=toolbar label="Branch scope" 387,41 526x24
-            el 387,53 331x0
+          el label="18 commits" 82,42 80x22
+            text "18 commits" 90,46 64x14
+          el 170,53 0x0
+          el 178,41 200x24
+            el 178,41 200x24
+              text role=textbox label="Filter commits" "" 178,41 200x24
+              text label="search" "\u{EA7C}" 182,45 16x16
+          el role=toolbar label="Branch scope" 386,41 527x24
+            el 386,53 332x0
             el role=group 724,41 147x24
               el role=button label="All branches" 726,43 143x20 expanded=false
                 text label="branch" "\u{F0A6}" 739,45 16x16
@@ -65,7 +65,7 @@ el 0,0 1040x940
               text "Cache parsed templates by checksum" 179,109 480x16
             el 667,101 176x32
               el role=img label="Ada Example" 675,107 20x20
-                text "AE" 680,112 10x10
+                text "AE" 680,112 11x10
               text "Ada Example" 703,109 132x16
             el 843,101 100x32
               text "38 min ago" 851,110 63x14
@@ -77,12 +77,12 @@ el 0,0 1040x940
               el label="│ ●" 9,133 96x32
                 el 35,143 12x12
             el 105,133 562x32
-              el 113,140 122x18
-                el label="Branch feature/export, in sync with origin/feature/export" 113,140 122x18
+              el 113,140 123x18
+                el label="Branch feature/export, in sync with origin/feature/export" 113,140 123x18
                   text label="branch" "\u{F0A6}" 119,143 12x12
-                  text "feature/export" 133,142 82x14
-                  text label="cloud" "\u{E382}" 217,143 12x12
-              text "Export the report as CSV" 239,141 420x16
+                  text "feature/export" 133,142 83x14
+                  text label="cloud" "\u{E382}" 218,143 12x12
+              text "Export the report as CSV" 240,141 419x16
             el 667,133 176x32
               el role=img label="Bram Sample" 675,139 20x20
                 text "BS" 680,144 10x10
@@ -115,14 +115,14 @@ el 0,0 1040x940
               el label="│ │ │ ●" 9,197 96x32
                 el 67,207 12x12
             el 105,197 562x32
-              el 113,204 110x18
-                el label="Branch feature/search" 113,204 110x18
+              el 113,204 111x18
+                el label="Branch feature/search" 113,204 111x18
                   text label="branch" "\u{F0A6}" 119,207 12x12
-                  text "feature/search" 133,206 84x14
-              text "Highlight matching tokens in results" 227,205 432x16
+                  text "feature/search" 133,206 85x14
+              text "Highlight matching tokens in results" 228,205 431x16
             el 667,197 176x32
               el role=img label="Devon Test" 675,203 20x20
-                text "DT" 680,208 10x10
+                text "DT" 679,208 12x10
               text "Devon Test" 703,205 132x16
             el 843,197 100x32
               text "5 h ago" 851,206 42x14
@@ -165,7 +165,7 @@ el 0,0 1040x940
               text "Merge branch 'main' into feature/search" 113,301 546x16
             el 667,293 176x32
               el role=img label="Devon Test" 675,299 20x20
-                text "DT" 680,304 10x10
+                text "DT" 679,304 12x10
               text "Devon Test" 703,301 132x16
             el 843,293 100x32
               text "2 days ago" 851,302 63x14
@@ -180,7 +180,7 @@ el 0,0 1040x940
               text "Merge branch 'release/1.0'" 113,333 546x16
             el 667,325 176x32
               el role=img label="Ada Example" 675,331 20x20
-                text "AE" 680,336 10x10
+                text "AE" 680,336 11x10
               text "Ada Example" 703,333 132x16
             el 843,325 100x32
               text "2 days ago" 851,334 63x14
@@ -206,17 +206,17 @@ el 0,0 1040x940
                 el 83,399 12x12
             el 105,389 562x32
               el 113,396 163x18
-                el label="Branch release/1.0, in sync with origin/release/1.0" 113,396 102x18
+                el label="Branch release/1.0, in sync with origin/release/1.0" 113,396 103x18
                   text label="branch" "\u{F0A6}" 119,399 12x12
-                  text "release/1.0" 133,398 62x14
-                  text label="cloud" "\u{E382}" 197,399 12x12
-                el label="Tag v1.0.1" 219,396 57x18
-                  text label="tag" "\u{EC70}" 225,399 12x12
-                  text "v1.0.1" 239,398 31x14
+                  text "release/1.0" 133,398 63x14
+                  text label="cloud" "\u{E382}" 198,399 12x12
+                el label="Tag v1.0.1" 220,396 56x18
+                  text label="tag" "\u{EC70}" 226,399 12x12
+                  text "v1.0.1" 240,398 30x14
               text "Close the reader when an input stream fails" 280,397 379x16
             el 667,389 176x32
               el role=img label="Ada Example" 675,395 20x20
-                text "AE" 680,400 10x10
+                text "AE" 680,400 11x10
               text "Ada Example" 703,397 132x16
             el 843,389 100x32
               text "3 days ago" 851,398 63x14
@@ -230,7 +230,7 @@ el 0,0 1040x940
               text "Index document headings on load" 113,429 546x16
             el 667,421 176x32
               el role=img label="Devon Test" 675,427 20x20
-                text "DT" 680,432 10x10
+                text "DT" 679,432 12x10
               text "Devon Test" 703,429 132x16
             el 843,421 100x32
               text "4 days ago" 851,430 63x14
@@ -244,10 +244,10 @@ el 0,0 1040x940
       el #second 8,366 1024x566
         el #details label="Commit" 8,366 1024x566
           el 9,367 1022x40
-            text role=heading "Commit" 25,379 53x17 level=3
-            el #hash 86,376 69x22
-              text "a41f9c2" 95,379 51x16
-            el 163,387 852x0
+            text role=heading "Commit" 25,379 52x17 level=3
+            el #hash 85,376 69x22
+              text "a41f9c2" 94,379 51x16
+            el 162,387 853x0
           el role=separator 9,407 1022x1
           el #body-a41f9c208b7e3d1a5c6f0b9e2d4a8c1f7e3b9d01 9,408 1022x523 thumb-y 1023,410 6x482.13
             el 25,424 990x39
@@ -256,37 +256,37 @@ el 0,0 1040x940
             el #properties 25,475 990x106
               el role=list 34,480 972x96
                 el role=listitem label="Author" 34,480 972x24 value="Ada Example"
-                  el 38,480 43x24
-                    text "Author" 38,484 43x16
-                  el 87,478 917x28
-                    el 89,482 108x20
-                      el role=img label="Ada Example" 89,482 20x20
-                        text "AE" 94,487 10x10
-                      text "Ada Example" 117,484 80x16
+                  el 38,480 42x24
+                    text "Author" 38,484 42x16
+                  el 86,478 918x28
+                    el 88,482 108x20
+                      el role=img label="Ada Example" 88,482 20x20
+                        text "AE" 93,487 11x10
+                      text "Ada Example" 116,484 80x16
                 el role=listitem label="Date" 34,504 972x24 value="Nov 24, 2026, 11:22"
-                  el 38,504 43x24
-                    text "Date" 38,508 43x16
-                  el 87,502 917x28
-                    el 89,508 200x16
-                      text "Nov 24, 2026, 11:22" 89,508 120x16
-                      text "· 38 min ago" 213,508 76x16
+                  el 38,504 42x24
+                    text "Date" 38,508 42x16
+                  el 86,502 918x28
+                    el 88,508 200x16
+                      text "Nov 24, 2026, 11:22" 88,508 120x16
+                      text "· 38 min ago" 212,508 76x16
                 el role=listitem label="Parent" 34,528 972x24 value="7be3d10"
-                  el 38,528 43x24
-                    text "Parent" 38,532 43x16
-                  el 87,526 917x28
-                    el 89,530 81x20
-                      el #parent-7be3d10 role=button label="commit 7be3d10" 89,530 81x20
-                        el 98,537 6x6
-                        text "7be3d10" 110,532 51x16
+                  el 38,528 42x24
+                    text "Parent" 38,532 42x16
+                  el 86,526 918x28
+                    el 88,530 81x20
+                      el #parent-7be3d10 role=button label="commit 7be3d10" 88,530 81x20
+                        el 97,537 6x6
+                        text "7be3d10" 109,532 51x16
                 el role=listitem label="Refs" 34,552 972x24 value="HEAD → main, in sync with origin/main"
-                  el 38,552 43x24
-                    text "Refs" 38,556 43x16
-                  el 87,550 917x28
-                    el 89,555 62x18
-                      el label="HEAD → main, in sync with origin/main" 89,555 62x18
-                        el 95,562 4x4
-                        text "main" 103,557 28x14
-                        text label="cloud" "\u{E382}" 133,558 12x12
+                  el 38,552 42x24
+                    text "Refs" 38,556 42x16
+                  el 86,550 918x28
+                    el 88,555 62x18
+                      el label="HEAD → main, in sync with origin/main" 88,555 62x18
+                        el 94,562 4x4
+                        text "main" 102,557 28x14
+                        text label="cloud" "\u{E382}" 132,558 12x12
             el 25,593 990x110
               el 25,593 990x18
                 text role=heading "Changes" 25,594 55x16 level=4
@@ -313,8 +313,8 @@ el 0,0 1040x940
                 el #file-1 role=button label="added src/test/java/com/example/app/TemplateCacheTest.java, +8 −0" 25,645 990x28
                   el label="A" 33,650 18x18
                     text "A" 38,652 8x14
-                  text "TemplateCacheTest.java" 59,651 152x16
-                  text "src/…/example/app" 219,652 715x14
+                  text "TemplateCacheTest.java" 59,651 151x16
+                  text "src/…/example/app" 218,652 716x14
                   el 942,651 65x16
                     text "+8" 942,651 15x16
                     text "−0" 961,651 14x16
@@ -327,8 +327,8 @@ el 0,0 1040x940
                 el #file-2 role=button label="renamed src/main/java/com/example/app/TemplateLoader.java, +1 −1" 25,675 990x28
                   el label="R" 33,680 18x18
                     text "R" 38,682 8x14
-                  text "TemplateLoader.java" 59,681 129x16
-                  text "src/…/example/app" 196,682 738x14
+                  text "TemplateLoader.java" 59,681 128x16
+                  text "src/…/example/app" 195,682 739x14
                   el 942,681 65x16
                     text "+1" 942,681 15x16
                     text "−1" 961,681 14x16

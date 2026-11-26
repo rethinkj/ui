@@ -65,7 +65,7 @@ overlay bottom start gap 2 on #due 12,30 200x24
             text "14" 198,142 14x15
         el 25,164 192x24
           el role=gridcell label="2026-11-15" 25,164 24x24
-            text "15" 31,168 13x15
+            text "15" 31,168 12x15
           el role=gridcell label="2026-11-16" 53,164 24x24
             text "16" 58,168 14x15
           el role=gridcell label="2026-11-17" 81,164 24x24
@@ -127,8 +127,8 @@ overlay bottom start gap 2 on #due 12,30 200x24
             text "12" 198,246 14x15
       el role=separator 25,270 192x1
       el 25,275 192x20
-        el 108,275 109x20
-          el #today role=button label="Today" 108,275 56x20
-            text "Today" 117,277 38x15
+        el 109,275 108x20
+          el #today role=button label="Today" 109,275 55x20
+            text "Today" 118,277 37x15
           el #clear role=button label="Clear" 166,275 51x20
             text "Clear" 175,277 33x15

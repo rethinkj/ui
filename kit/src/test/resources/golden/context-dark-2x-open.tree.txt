@@ -14,7 +14,7 @@ el 0,0 360x240
       el #table-0 role=listitem label="accounts" 17,49 208x24
         text "accounts" 25,53 56x16
       el #table-1 role=listitem label="customers" 17,73 208x24
-        text "customers" 25,77 65x16
+        text "customers" 25,77 64x16
       el #table-2 role=listitem label="invoices" 17,97 208x24
         text "invoices" 25,101 50x16
       el #table-3 role=listitem label="orders" 17,121 208x24
@@ -40,27 +40,27 @@ el 0,0 360x240
         text "More…" 271,234 44x15
   text #status "Ready · orders · UTF-8 · wrap" 12,213 336x15
 overlay at 121,109 bottom start on #tables role=list label="Tables" 12,44 218x161
-  el #menu role=menu 121,105 180x135 focused
-    el #item-0 role=menuitem label="Open" 126,110 170x24
-      el 126,110 170x24
+  el #menu role=menu 121,105 179x135 focused
+    el #item-0 role=menuitem label="Open" 126,110 169x24
+      el 126,110 169x24
         el 134,122 16x0
-        text "Open" 158,114 130x16
-    el #item-1 role=menuitem label="Rename…" 126,134 170x24
-      el 126,134 170x24
+        text "Open" 158,114 129x16
+    el #item-1 role=menuitem label="Rename…" 126,134 169x24
+      el 126,134 169x24
         el 134,146 16x0
         text "Rename…" 158,138 94x16
-        text "F2" 272,138 16x16
-    el #item-2 role=menuitem label="Copy name" 126,158 170x24
-      el 126,158 170x24
+        text "F2" 272,138 15x16
+    el #item-2 role=menuitem label="Copy name" 126,158 169x24
+      el 126,158 169x24
         el 134,170 16x0
         text "Copy name" 158,162 70x16
-        text "Ctrl+C" 248,162 40x16
-    el 126,184 170x1
-    el #item-4 role=menuitem label="Duplicate" 126,187 170x24
-      el 126,187 170x24
+        text "Ctrl+C" 248,162 39x16
+    el 126,184 169x1
+    el #item-4 role=menuitem label="Duplicate" 126,187 169x24
+      el 126,187 169x24
         el 134,199 16x0
-        text "Duplicate" 158,191 130x16
-    el #item-5 role=menuitem label="Drop table" 126,211 170x24
-      el 126,211 170x24
+        text "Duplicate" 158,191 129x16
+    el #item-5 role=menuitem label="Drop table" 126,211 169x24
+      el 126,211 169x24
         el 134,223 16x0
-        text "Drop table" 158,215 130x16
+        text "Drop table" 158,215 129x16

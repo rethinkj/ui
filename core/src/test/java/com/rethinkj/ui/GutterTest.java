@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
  * The gutter of a multi-line field ({@link El#gutter}): its width, its cells for the lines laid out
  * only, at each line's first row, scrolling with the text up and down and not sideways, the caret's
  * line, presses on cells, and 100 000 lines. {@link Areas} makes the field: 200 by 98 at 10,10,
- * its content from 14,14, five lines of 18 pixels of JetBrains Mono, whose characters advance 8.
+ * its content from 14,14, five lines of 18 pixels of JetBrains Mono, whose characters advance 8.5.
  */
 class GutterTest {
 
@@ -74,13 +74,13 @@ class GutterTest {
   void theGutterIsAsWideAsTheLastLinesCellAndTheTextStartsAfterIt() {
     App<Model> app = area(text(12), f -> f);
     El column = column(app);
-    // "12" in two characters of 8 and the padding of 4; the gutter after the field's padding.
-    assertEquals(20, column.width());
+    // "12" in two characters of 8.5 and the padding of 4; the gutter after the field's padding.
+    assertEquals(21, column.width());
     assertEquals(4, column.x(), "inside the padding of the field");
-    assertEquals(4 + 20, field(app).style().paddingLeft.value(), "the text starts after it");
+    assertEquals(4 + 21, field(app).style().paddingLeft.value(), "the text starts after it");
     assertEquals("gutter", column.key());
-    app.pointerDown(10 + 4 + 20 + 8 * 3, 14 + 18 + 9);
-    app.pointerUp(10 + 4 + 20 + 8 * 3, 14 + 18 + 9);
+    app.pointerDown(10 + 4 + 21 + 8.5f * 3, 14 + 18 + 9);
+    app.pointerUp(10 + 4 + 21 + 8.5f * 3, 14 + 18 + 9);
     app.frame();
     assertTrue(
         show(app).startsWith("line 0\nlin|e 1"), "presses in the text after it: " + show(app));
@@ -142,7 +142,7 @@ class GutterTest {
   void a100000LineTextBuildsCellsForTheLinesInViewOnly() {
     App<Model> app = area(text(100_000), f -> f);
     Lines lines = field(app).editor().lineIndex();
-    assertEquals(6 * 8 + 4, column(app).width(), "\"100000\" and the padding");
+    assertEquals(6 * 8.5f + 4, column(app).width(), "\"100000\" and the padding");
     int first = lines.gutterCells;
     assertTrue(first <= 2 * 8, "the lines laid out, built at most twice: " + first);
     key(app, "End", Key.CONTROL);
@@ -167,9 +167,9 @@ class GutterTest {
     El rail = field(app).children().getFirst();
     assertEquals("rail", rail.key());
     assertEquals(
-        List.of(0f, 0f, 26f, 98f), List.of(rail.x(), rail.y(), rail.width(), rail.height()));
+        List.of(0f, 0f, 27f, 98f), List.of(rail.x(), rail.y(), rail.width(), rail.height()));
     assertEquals(
-        4 + 20 + 2 + 6, field(app).style().paddingLeft.value(), "the text after its margin");
+        4 + 21 + 2 + 6, field(app).style().paddingLeft.value(), "the text after its margin");
     assertTrue(told.contains("1:7-13"), "line 1, \"line 1\": " + told);
     app.wheel(100, 40, 0, 36);
     app.frame();

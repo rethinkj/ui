@@ -14,17 +14,17 @@ el 0,0 760x460
             text "Notes" 41,47 134x16
   el 196,8 556x444
     el 197,9 554x40
-      text role=heading "Customers" 213,21 76x17 level=3
-      el 297,29 120x0
-      el role=button label="Reload" 425,17 88x24
-        text label="arrow_clockwise" "\u{E0AA}" 438,21 16x16
-        text "Reload" 458,21 42x16
-      el role=button label="Edit" 521,17 69x24 disabled
-        text label="edit" "\u{F3DC}" 534,21 16x16
-        text "Edit" 554,21 23x16
-      el role=button label="New customer" 598,17 137x24 disabled
-        text label="add" "\u{F108}" 611,21 16x16
-        text "New customer" 631,21 91x16
+      text role=heading "Customers" 213,21 73x17 level=3
+      el 294,29 124x0
+      el role=button label="Reload" 426,17 88x24
+        text label="arrow_clockwise" "\u{E0AA}" 439,21 16x16
+        text "Reload" 459,21 42x16
+      el role=button label="Edit" 522,17 69x24 disabled
+        text label="edit" "\u{F3DC}" 535,21 16x16
+        text "Edit" 555,21 23x16
+      el role=button label="New customer" 599,17 136x24 disabled
+        text label="add" "\u{F108}" 612,21 16x16
+        text "New customer" 632,21 90x16
     el role=progressbar label="Loading customers" 197,49 554x2
       el #fill 197,49 0x2
     el role=status label="Loading the customers…" 197,51 554x400

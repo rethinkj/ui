@@ -5,7 +5,7 @@ el 0,0 640x240
         el 8,8 16x16
           el 9,9 14x14
             text "\u{F0D7}" 11,11 10x10
-      text "shop — staging" 32,8 95x16
+      text "shop — staging" 32,8 96x16
     el 478,16 24x0
     el role=button label="Minimize" window=minimize 502,0 46x32
       text label="subtract" "\u{EBCE}" 519,10 12x12

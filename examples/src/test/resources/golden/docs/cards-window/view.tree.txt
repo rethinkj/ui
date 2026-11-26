@@ -5,7 +5,7 @@ el 0,0 520x280
         el 8,8 16x16
           el 9,9 14x14
             text "\u{F0D7}" 11,11 10x10
-      text "Workbench" 32,8 72x16
+      text "Workbench" 32,8 71x16
     el 358,16 24x0
     el role=button label="Minimize" window=minimize 382,0 46x32
       text label="subtract" "\u{EBCE}" 399,10 12x12
@@ -25,13 +25,13 @@ el 0,0 520x280
         el 168,32 8x211
           el 172,32 1x211
   el role=status label="Status bar" 0,251 520x29
-    el 8,254 79x24
-      el label="localhost" 8,254 79x24 value="ok"
+    el 8,254 80x24
+      el label="localhost" 8,254 80x24 value="ok"
         el 12,258 16x16
           el 14,260 12x12
             el 16,262 8x8
-        text "localhost" 32,259 51x15
-    el 89,266 354x0
-    el 445,254 67x24
-      el label="Ln 3, Col 9" 445,254 67x24
-        text "Ln 3, Col 9" 449,259 59x15
+        text "localhost" 32,259 52x15
+    el 90,266 351x0
+    el 443,254 69x24
+      el label="Ln 3, Col 9" 443,254 69x24
+        text "Ln 3, Col 9" 447,259 61x15

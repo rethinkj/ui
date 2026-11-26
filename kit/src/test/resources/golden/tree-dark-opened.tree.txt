@@ -5,13 +5,13 @@ el 0,0 280x300
       el #mark-2 24,-64 16x24
         text label="chevron_right" "\u{F2AF}" 24,-60 16x16
       text label="database" "\u{F0D7}" 44,-60 16x16
-      text "postgres" 64,-60 55x16
+      text "postgres" 64,-60 54x16
     el #row-3 role=treeitem label="shop" 8,-40 264x24 expanded level=2 pos=3/3
       el 20,-40 1x24
       el #mark-3 24,-40 16x24
         text label="chevron_down" "\u{F2A2}" 24,-36 16x16
       text label="database" "\u{F0D7}" 44,-36 16x16
-      text "shop" 64,-36 31x16
+      text "shop" 64,-36 30x16
     el #row-4 role=treeitem label="audit" 8,-16 264x24 expanded=false level=3 pos=1/2 value="3 tables"
       el 20,-16 1x24
       el #mark-4 36,-16 16x24
@@ -66,58 +66,58 @@ el 0,0 280x300
       el #mark-10 48,128 16x24
         text label="chevron_right" "\u{F2AF}" 48,132 16x16
       text label="table" "\u{EBF4}" 68,132 16x16
-      text "accounts_001" 88,132 82x16
+      text "accounts_001" 88,132 83x16
     el #row-11 role=treeitem label="accounts_002" 8,152 264x24 expanded=false level=4 pos=3/300
       el 20,152 1x24
       el #mark-11 48,152 16x24
         text label="chevron_right" "\u{F2AF}" 48,156 16x16
       text label="table" "\u{EBF4}" 68,156 16x16
-      text "accounts_002" 88,156 85x16
+      text "accounts_002" 88,156 86x16
     el #row-12 role=treeitem label="accounts_003" 8,176 264x24 expanded=false level=4 pos=4/300
       el 20,176 1x24
       el #mark-12 48,176 16x24
         text label="chevron_right" "\u{F2AF}" 48,180 16x16
       text label="table" "\u{EBF4}" 68,180 16x16
-      text "accounts_003" 88,180 85x16
+      text "accounts_003" 88,180 86x16
     el #row-13 role=treeitem label="accounts_004" 8,200 264x24 expanded=false level=4 pos=5/300
       el 20,200 1x24
       el #mark-13 48,200 16x24
         text label="chevron_right" "\u{F2AF}" 48,204 16x16
       text label="table" "\u{EBF4}" 68,204 16x16
-      text "accounts_004" 88,204 85x16
+      text "accounts_004" 88,204 86x16
     el #row-14 role=treeitem label="accounts_005" 8,224 264x24 expanded=false level=4 pos=6/300
       el 20,224 1x24
       el #mark-14 48,224 16x24
         text label="chevron_right" "\u{F2AF}" 48,228 16x16
       text label="table" "\u{EBF4}" 68,228 16x16
-      text "accounts_005" 88,228 85x16
+      text "accounts_005" 88,228 86x16
     el #row-15 role=treeitem label="accounts_006" 8,248 264x24 expanded=false level=4 pos=7/300
       el 20,248 1x24
       el #mark-15 48,248 16x24
         text label="chevron_right" "\u{F2AF}" 48,252 16x16
       text label="table" "\u{EBF4}" 68,252 16x16
-      text "accounts_006" 88,252 85x16
+      text "accounts_006" 88,252 86x16
     el #row-16 role=treeitem label="accounts_007" 8,272 264x24 expanded=false level=4 pos=8/300
       el 20,272 1x24
       el #mark-16 48,272 16x24
         text label="chevron_right" "\u{F2AF}" 48,276 16x16
       text label="table" "\u{EBF4}" 68,276 16x16
-      text "accounts_007" 88,276 84x16
+      text "accounts_007" 88,276 85x16
     el #row-17 role=treeitem label="accounts_008" 8,296 264x24 expanded=false level=4 pos=9/300
       el 20,296 1x24
       el #mark-17 48,296 16x24
         text label="chevron_right" "\u{F2AF}" 48,300 16x16
       text label="table" "\u{EBF4}" 68,300 16x16
-      text "accounts_008" 88,300 85x16
+      text "accounts_008" 88,300 86x16
     el #row-18 role=treeitem label="accounts_009" 8,320 264x24 expanded=false level=4 pos=10/300
       el 20,320 1x24
       el #mark-18 48,320 16x24
         text label="chevron_right" "\u{F2AF}" 48,324 16x16
       text label="table" "\u{EBF4}" 68,324 16x16
-      text "accounts_009" 88,324 85x16
+      text "accounts_009" 88,324 86x16
     el #row-19 role=treeitem label="addresses" 8,344 264x24 expanded=false level=4 pos=11/300
       el 20,344 1x24
       el #mark-19 48,344 16x24
         text label="chevron_right" "\u{F2AF}" 48,348 16x16
       text label="table" "\u{EBF4}" 68,348 16x16
-      text "addresses" 88,348 65x16
+      text "addresses" 88,348 63x16

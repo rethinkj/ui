@@ -1,7 +1,7 @@
 el 0,0 640x244
   el role=group label="Conditions" 12,12 616x220
     el 12,12 616x24
-      el 12,12 301x24
+      el 12,12 300x24
         el #join role=radiogroup label="Join" 12,12 102x24
           el #thumb 15,15 52x18
           el #choice-0 role=radio label="AND" 15,15 52x18 checked
@@ -11,9 +11,9 @@ el 0,0 640x244
         el #add-condition role=button label="Add condition" 118,12 106x24
           text label="add" "\u{F108}" 131,16 16x16
           text "Condition" 151,16 60x16
-        el #add-group role=button label="Add group" 228,12 85x24
+        el #add-group role=button label="Add group" 228,12 84x24
           text label="add" "\u{F108}" 241,16 16x16
-          text "Group" 261,16 39x16
+          text "Group" 261,16 38x16
     el 12,40 616x192
       el 20,40 2x192
       el 30,40 598x192
@@ -21,7 +21,7 @@ el 0,0 640x244
           el 30,40 16x24
             el #enabled-0 role=checkbox label="Enable condition" 26,42 24x20 checked
               el 30,44 16x16
-                text "✓" 33,44 11x16
+                text "✓" 32,44 12x16
           el 50,40 550x24
             el #field-0 role=combobox label="Status" 50,40 140x24 expanded=false
               el #lead 59,44 16x16
@@ -41,8 +41,8 @@ el 0,0 640x244
             el 30,68 16x24
               el #enabled-1 role=checkbox label="Enable group" 26,70 24x20 checked
                 el 30,72 16x16
-                  text "✓" 33,72 11x16
-            el 50,68 301x24
+                  text "✓" 32,72 12x16
+            el 50,68 300x24
               el #join-1 role=radiogroup label="Join" 50,68 102x24
                 el #thumb 107,71 42x18
                 el #choice-0 role=radio label="AND" 53,71 52x18 checked=false
@@ -52,10 +52,10 @@ el 0,0 640x244
               el #add-condition-1 role=button label="Add condition" 156,68 106x24
                 text label="add" "\u{F108}" 169,72 16x16
                 text "Condition" 189,72 60x16
-              el #add-group-1 role=button label="Add group" 266,68 85x24
+              el #add-group-1 role=button label="Add group" 266,68 84x24
                 text label="add" "\u{F108}" 279,72 16x16
-                text "Group" 299,72 39x16
-            el 355,80 245x0
+                text "Group" 299,72 38x16
+            el 354,80 246x0
             el #remove-1 role=button label="Remove group" 604,68 24x24
               text label="dismiss" "\u{F368}" 608,72 16x16
           el 30,96 598x80
@@ -65,7 +65,7 @@ el 0,0 640x244
                 el 48,96 16x24
                   el #enabled-1-0 role=checkbox label="Enable condition" 44,98 24x20 checked
                     el 48,100 16x16
-                      text "✓" 51,100 11x16
+                      text "✓" 50,100 12x16
                 el 68,96 532x24
                   el #field-1-0 role=combobox label="Age" 68,96 140x24 expanded=false
                     el #lead 77,100 16x16
@@ -82,7 +82,7 @@ el 0,0 640x244
                 el 48,124 16x24
                   el #enabled-1-1 role=checkbox label="Enable condition" 44,126 24x20 checked
                     el 48,128 16x16
-                      text "✓" 51,128 11x16
+                      text "✓" 50,128 12x16
                 el 68,124 532x24
                   el #field-1-1 role=combobox label="Country" 68,124 140x24 expanded=false
                     el #lead 77,128 16x16
@@ -124,7 +124,7 @@ el 0,0 640x244
           el 30,180 16x24
             el #enabled-2 role=checkbox label="Enable condition" 26,182 24x20 checked
               el 30,184 16x16
-                text "✓" 33,184 11x16
+                text "✓" 32,184 12x16
           el 50,180 550x24
             el #field-2 role=combobox label="Created on" 50,180 140x24 expanded=false
               el #lead 59,184 16x16
@@ -140,9 +140,9 @@ el 0,0 640x244
                   text #from-2 role=textbox label="From" "2026-01-01" 318,180 136x24
                   el role=button label="Choose date" 432,182 20x20 expanded=false
                     text label="calendar_ltr" "\u{E24D}" 434,184 16x16
-                text "–" 456,184 7x16
-                el 465,180 135x24
-                  text #to-2 role=textbox label="To" "2026-12-31" 465,180 135x24
+                text "–" 456,184 6x16
+                el 464,180 136x24
+                  text #to-2 role=textbox label="To" "2026-12-31" 464,180 136x24
                   el role=button label="Choose date" 578,182 20x20 expanded=false
                     text label="calendar_ltr" "\u{E24D}" 580,184 16x16
           el #remove-2 role=button label="Remove condition" 604,180 24x24
@@ -151,7 +151,7 @@ el 0,0 640x244
           el 30,208 16x24
             el #enabled-3 role=checkbox label="Enable condition" 26,210 24x20 checked
               el 30,212 16x16
-                text "✓" 33,212 11x16
+                text "✓" 32,212 12x16
           el 50,208 550x24
             el #field-3 role=combobox label="Deleted at" 50,208 140x24 expanded=false
               el #lead 59,212 16x16

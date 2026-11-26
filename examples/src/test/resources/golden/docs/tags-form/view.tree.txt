@@ -7,7 +7,7 @@ el 0,0 400x160
         text #name role=textbox label="Name" "orders_2026" 56,12 200x24
     el 12,44 244x42
       el 12,44 36x24
-        text "Tags" 12,48 29x16
+        text "Tags" 12,48 30x16
       el 56,44 200x42
         el #tags role=group label="Tags" 56,44 200x24 invalid value="" error="Give it at least one tag"
           text #draft role=textbox label="Add tag" "" 59,47 194x18

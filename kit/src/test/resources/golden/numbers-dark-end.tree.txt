@@ -4,9 +4,9 @@ el 0,0 400x180
       el #header -750,8 1142x25
         el #column-2 role=columnheader label="customer" -498,8 139x24 pos=3/8
           text label="text_case_title" "\u{ECEC}" -494,12 16x16
-          el -474,12 86x16
-            text "customer" -474,12 59x16
-            text "text" -411,12 23x16
+          el -474,12 85x16
+            text "customer" -474,12 58x16
+            text "text" -412,12 23x16
         el -359,8 1x24
         el #column-3 role=columnheader label="paid" -358,8 79x24 pos=4/8
           text label="checkbox_checked" "\u{F27C}" -354,12 16x16
@@ -28,15 +28,15 @@ el 0,0 400x180
         el -49,8 1x24
         el #column-6 role=columnheader label="created_at" -48,8 189x24 pos=7/8
           text label="calendar_clock" "\u{E243}" -44,12 16x16
-          el -24,12 145x16
+          el -24,12 144x16
             text "created_at" -24,12 65x16
-            text "timestamptz" 45,12 76x16
+            text "timestamptz" 45,12 75x16
         el 141,8 1x24
         el #column-7 role=columnheader label="note" 142,8 239x24 pos=8/8
           text label="text_case_title" "\u{ECEC}" 146,12 16x16
-          el 166,12 55x16
-            text "note" 166,12 28x16
-            text "text" 198,12 23x16
+          el 166,12 54x16
+            text "note" 166,12 27x16
+            text "text" 197,12 23x16
         el 381,8 1x24
         el #resize-2 role=separator label="Resize customer" -361,8 6x24
         el #resize-3 role=separator label="Resize paid" -281,8 6x24
@@ -88,7 +88,7 @@ el 0,0 400x180
         el #row-999992 role=row -750,-30 1142x24 pos=999993/1000000
           el #cell-999992-4 role=gridcell -278,-30 129x23 pos=5/8
             text label="record" "\u{F660}" -274,-26 16x16
-            text "paid" -254,-26 27x15
+            text "paid" -254,-26 26x15
           el -149,-30 1x23
           el #cell-999992-5 role=gridcell -148,-30 99x23 pos=6/8
             text "-2479.96" -111,-26 58x16
@@ -112,7 +112,7 @@ el 0,0 400x180
         el #row-999993 role=row -750,-6 1142x24 pos=999994/1000000
           el #cell-999993-4 role=gridcell -278,-6 129x23 pos=5/8
             text label="record" "\u{F660}" -274,-2 16x16
-            text "refunded" -254,-2 56x15
+            text "refunded" -254,-2 55x15
           el -149,-6 1x23
           el #cell-999993-5 role=gridcell -148,-6 99x23 pos=6/8
             text "NULL" -82,-2 29x16
@@ -184,7 +184,7 @@ el 0,0 400x180
         el #row-999996 role=row -750,66 1142x24 pos=999997/1000000
           el #cell-999996-4 role=gridcell -278,66 129x23 pos=5/8
             text label="record" "\u{F660}" -274,70 16x16
-            text "paid" -254,70 27x15
+            text "paid" -254,70 26x15
           el -149,66 1x23
           el #cell-999996-5 role=gridcell -148,66 99x23 pos=6/8
             text "-2162.48" -111,70 58x16
@@ -208,7 +208,7 @@ el 0,0 400x180
         el #row-999997 role=row -750,90 1142x24 pos=999998/1000000
           el #cell-999997-4 role=gridcell -278,90 129x23 pos=5/8
             text label="record" "\u{F660}" -274,94 16x16
-            text "refunded" -254,94 56x15
+            text "refunded" -254,94 55x15
           el -149,90 1x23
           el #cell-999997-5 role=gridcell -148,90 99x23 pos=6/8
             text "-2083.61" -111,94 58x16

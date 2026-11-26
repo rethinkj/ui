@@ -19,12 +19,12 @@ el 0,0 520x200
         el 46,57 2x0
         el 52,57 12x0
 overlay bottom start gap 2 on #fixes role=textbox label="Query" 12,12 496x130
-  el #menu role=menu 142,51 212x58 focused
-    el #item-0 role=menuitem label="Replace with 'orders'" 147,56 202x24 current
-      el 147,56 202x24
+  el #menu role=menu 142,51 211x58 focused
+    el #item-0 role=menuitem label="Replace with 'orders'" 147,56 201x24 current
+      el 147,56 201x24
         el 155,68 16x0
-        text "Replace with 'orders'" 179,60 162x16
-    el #item-1 role=menuitem label="Replace with 'order_items'" 147,80 202x24
-      el 147,80 202x24
+        text "Replace with 'orders'" 179,60 161x16
+    el #item-1 role=menuitem label="Replace with 'order_items'" 147,80 201x24
+      el 147,80 201x24
         el 155,92 16x0
-        text "Replace with 'order_items'" 179,84 162x16
+        text "Replace with 'order_items'" 179,84 161x16

@@ -7,4 +7,4 @@ overlay bottom stretch gap 4 on #table role=combobox label="pinned_table" 12,12 
   el #choices 12,40 220x34
     el #options role=listbox label="pinned_table" 17,45 210x24
       el #empty 17,45 210x24
-        text #note "Loading…" 25,49 61x16
+        text #note "Loading…" 25,49 60x16

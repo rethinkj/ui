@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Elements over a range of a field's text ({@link El#range}), a field as high as its rows ({@link
  * El#fitLines}) and Tab passing a field by ({@link El#skipTab}): a read-only paragraph in
- * JetBrains Mono at 14, whose characters advance 8, 80 wide, so ten characters a row.
+ * JetBrains Mono at 14, whose characters advance 8.5, 80 wide, so nine characters a row.
  */
 class RangeTest {
 
@@ -81,9 +81,9 @@ class RangeTest {
     El link = find(app.tree(), "link");
     // "see the " / "link here " / "and more": three rows of 18 pixels.
     assertEquals(3 * 18, p.height(), app.tree().dump());
-    // "link here" wraps: "see the " ends the first row, so it lies on the second, from 0 to 72.
+    // "link here" wraps: "see the " ends the first row, so it lies on the second, from 0 to 76.5.
     assertEquals(
-        List.of(new Text.Box(0, 0, 72, 18)), link.rangeBoxes(), app.tree().dump());
+        List.of(new Text.Box(0, 0, 76.5f, 18)), link.rangeBoxes(), app.tree().dump());
     assertEquals(0, link.x());
     assertEquals(18, link.y());
   }
@@ -109,9 +109,9 @@ class RangeTest {
     app.resize(200, 200, 1);
     app.frame();
     El link = find(app.tree(), "link");
-    // "efgh " on the first row from 32 to its end at 72, "ijkl" on the second from 0.
+    // "efgh " on the first row from 34 to its end at 76.5, "ijkl" on the second from 0.
     assertEquals(
-        List.of(new Text.Box(32, 0, 40, 18), new Text.Box(0, 18, 32, 18)),
+        List.of(new Text.Box(34, 0, 42.5f, 18), new Text.Box(0, 18, 34, 18)),
         link.rangeBoxes(),
         app.tree().dump());
     app.pointerDown(10 + 4, 10 + 9); // "a": the field's
@@ -155,6 +155,6 @@ class RangeTest {
     app.frame();
     assertEquals(Cursor.POINTER, app.cursor());
     String dump = app.tree().dump();
-    assertTrue(dump.contains("el #link role=link label=\"link here\" 10,38 72x18 hovered"), dump);
+    assertTrue(dump.contains("el #link role=link label=\"link here\" 10,38 76.5x18 hovered"), dump);
   }
 }

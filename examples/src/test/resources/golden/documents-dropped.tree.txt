@@ -5,10 +5,10 @@ el 0,0 640x360
         el 8,8 16x16
           el 9,9 14x14
             text "\u{E4D7}" 11,11 10x10
-      text "Documents" 32,8 72x16
-      el #menubar role=menubar 112,4 38x24
-        el #title-0 role=menuitem label="File" 112,4 38x24 expanded=false
-          text "File" 120,8 22x16
+      text "Documents" 32,8 70x16
+      el #menubar role=menubar 110,4 38x24
+        el #title-0 role=menuitem label="File" 110,4 38x24 expanded=false
+          text "File" 118,8 22x16
     el 438,16 24x0
     el 462,0 40x32
       el 462,4 24x24
@@ -24,41 +24,41 @@ el 0,0 640x360
   el #tabs 0,32 640x328
     el 8,32 624x320
       el #bar 9,33 622x33
-        el #tablist role=tablist 11,33 592x32 scroll 168,0
-          el #tab-0 role=tab label="Query" -157,33 94x32
-            text label="document" "\u{E4D7}" -149,41 16x16
-            text "Query" -129,41 38x16
-            el #close-0 role=button label="Close Query" -87,41 16x16
-              text label="dismiss" "\u{F368}" -87,41 16x16
-          el #tab-1 role=tab label="Todo" -61,33 87x32
-            text label="document" "\u{E4D7}" -53,41 16x16
-            text "Todo" -33,41 31x16
-            el #close-1 role=button label="Close Todo" 2,41 16x16
-              text label="dismiss" "\u{F368}" 2,41 16x16
-          el #tab-2 role=tab label="Readme" 28,33 106x32
-            text label="document" "\u{E4D7}" 36,41 16x16
-            text "Readme" 56,41 50x16
-            el #close-2 role=button label="Close Readme" 110,41 16x16
-              text label="dismiss" "\u{F368}" 110,41 16x16
-          el #tab-3 role=tab label="Ideas" 136,33 89x32
-            text label="document" "\u{E4D7}" 144,41 16x16
-            text "Ideas" 164,41 33x16
-            el #close-3 role=button label="Close Ideas" 201,41 16x16
-              text label="dismiss" "\u{F368}" 201,41 16x16
-          el #tab-4 role=tab label="Notes" 227,33 93x32
-            text label="document" "\u{E4D7}" 235,41 16x16
-            text "Notes" 255,41 37x16
-            el #close-4 role=button label="Close Notes" 296,41 16x16
-              text label="dismiss" "\u{F368}" 296,41 16x16
-          el #tab-5 role=tab label="orders copy.sql" 322,33 153x32
-            text label="document" "\u{E4D7}" 330,41 16x16
-            text "orders copy.sql" 350,41 97x16
-            el #close-5 role=button label="Close orders copy.sql" 451,41 16x16
-              text label="dismiss" "\u{F368}" 451,41 16x16
-          el #tab-6 role=tab label="notes ü.md" 477,33 126x32 selected
-            el 477,63 126x2
-            text label="document" "\u{E4D7}" 485,41 16x16
-            text "notes ü.md" 505,41 70x16
+        el #tablist role=tablist 11,33 592x32 scroll 162,0
+          el #tab-0 role=tab label="Query" -151,33 94x32
+            text label="document" "\u{E4D7}" -143,41 16x16
+            text "Query" -123,41 38x16
+            el #close-0 role=button label="Close Query" -81,41 16x16
+              text label="dismiss" "\u{F368}" -81,41 16x16
+          el #tab-1 role=tab label="Todo" -55,33 86x32
+            text label="document" "\u{E4D7}" -47,41 16x16
+            text "Todo" -27,41 30x16
+            el #close-1 role=button label="Close Todo" 7,41 16x16
+              text label="dismiss" "\u{F368}" 7,41 16x16
+          el #tab-2 role=tab label="Readme" 33,33 106x32
+            text label="document" "\u{E4D7}" 41,41 16x16
+            text "Readme" 61,41 50x16
+            el #close-2 role=button label="Close Readme" 115,41 16x16
+              text label="dismiss" "\u{F368}" 115,41 16x16
+          el #tab-3 role=tab label="Ideas" 141,33 90x32
+            text label="document" "\u{E4D7}" 149,41 16x16
+            text "Ideas" 169,41 34x16
+            el #close-3 role=button label="Close Ideas" 207,41 16x16
+              text label="dismiss" "\u{F368}" 207,41 16x16
+          el #tab-4 role=tab label="Notes" 233,33 91x32
+            text label="document" "\u{E4D7}" 241,41 16x16
+            text "Notes" 261,41 35x16
+            el #close-4 role=button label="Close Notes" 300,41 16x16
+              text label="dismiss" "\u{F368}" 300,41 16x16
+          el #tab-5 role=tab label="orders copy.sql" 326,33 151x32
+            text label="document" "\u{E4D7}" 334,41 16x16
+            text "orders copy.sql" 354,41 95x16
+            el #close-5 role=button label="Close orders copy.sql" 453,41 16x16
+              text label="dismiss" "\u{F368}" 453,41 16x16
+          el #tab-6 role=tab label="notes ü.md" 479,33 124x32 selected
+            el 479,63 124x2
+            text label="document" "\u{E4D7}" 487,41 16x16
+            text "notes ü.md" 507,41 68x16
             el #close-6 role=button label="Close notes ü.md" 579,41 16x16
               text label="dismiss" "\u{F368}" 579,41 16x16
         el 605,37 24x24
@@ -69,11 +69,11 @@ el 0,0 640x360
           el 9,66 622x285
             text #text role=textbox label="notes ü.md" placeholder="Empty" "# Größen\n\nNotes from a file manager, with Umlauts: Ärger, Öl, Übermut.\n" 21,78 598x261 lines 1-4/4 hovered
 overlay edge bottom center gap 16 on 0,0 640x360
-  el #toasts 222,314 196x30
-    el #toast-3 role=status label="Opened notes ü.md" 222,314 196x30
-      el 235,321 148x16
-        text label="checkmark_circle" "\u{F297}" 235,321 16x16
-        text "Opened notes ü.md" 259,321 124x16
-      el #buttons 391,317 24x24
-        el #close-3 role=button label="Close" 391,317 24x24
-          text label="dismiss" "\u{F368}" 395,321 16x16
+  el #toasts 224,314 192x30
+    el #toast-3 role=status label="Opened notes ü.md" 224,314 192x30
+      el 237,321 144x16
+        text label="checkmark_circle" "\u{F297}" 237,321 16x16
+        text "Opened notes ü.md" 261,321 120x16
+      el #buttons 389,317 24x24
+        el #close-3 role=button label="Close" 389,317 24x24
+          text label="dismiss" "\u{F368}" 393,321 16x16

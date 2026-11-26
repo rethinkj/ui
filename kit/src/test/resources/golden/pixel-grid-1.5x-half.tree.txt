@@ -8,7 +8,7 @@ el 0,0 520x420
         text "Cancel" 84,53 43x16
       el #wrap role=checkbox label="Wrap" 144,47 65x28 checked
         el 148,53 16x16
-          text "✓" 151,53 11x16
+          text "✓" 150,53 12x16
         text "Wrap" 172,53 33x16
     el #tabs 13,85 220x64
       el #bar 14,86 218x33

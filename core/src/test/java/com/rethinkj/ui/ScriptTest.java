@@ -219,18 +219,18 @@ class ScriptTest {
     String menu = Files.readString(out.resolve("overlay-menu.tree.txt"));
     assertTrue(
         menu.contains("\noverlay at 120,85 bottom start on #list role=list"
-            + " label=\"Tables\" 16,16 208x146\n  el #menu role=menu 120,85 81x86\n"),
+            + " label=\"Tables\" 16,16 208x146\n  el #menu role=menu 120,85 80x86\n"),
         menu);
-    assertTrue(menu.contains(" #open role=menuitem label=\"Open\" 125,90 71x24 focused\n"), menu);
+    assertTrue(menu.contains(" #open role=menuitem label=\"Open\" 125,90 70x24 focused\n"), menu);
     String submenu = Files.readString(out.resolve("overlay-submenu.tree.txt"));
     assertTrue(
         submenu.contains("\noverlay right start gap 6 on #export role=menuitem"
-            + " label=\"Export\" 125,116 71x24\n  el #formats role=menu 53,116 66x60\n"),
+            + " label=\"Export\" 125,116 70x24\n  el #formats role=menu 54,116 65x60\n"),
         submenu);
     String dialog = Files.readString(out.resolve("overlay-dialog.tree.txt"));
     assertTrue(dialog.contains("\noverlay center modal scrim on 0,0 240x200\n"), dialog);
     assertTrue(
-        dialog.contains(" #cancel role=button label=\"Cancel\" 51,101 67x28 focused\n"), dialog);
+        dialog.contains(" #cancel role=button label=\"Cancel\" 51,101 66x28 focused\n"), dialog);
     assertTrue(Files.readString(out.resolve("overlay-closed.tree.txt"))
         .contains(" #list role=list label=\"Tables\" 16,16 208x146 scroll 0,40 focused\n"));
   }

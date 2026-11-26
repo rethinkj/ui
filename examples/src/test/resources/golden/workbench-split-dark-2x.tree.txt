@@ -5,24 +5,24 @@ el 0,0 1000x600
         el 8,12 16x16
           el 9,13 14x14
             text "\u{F0D7}" 11,15 10x10
-      text "Workbench" 32,12 72x16
-      el #menubar role=menubar 112,8 176x24
-        el #title-0 role=menuitem label="File" 112,8 37x24 expanded=false
-          text "File" 120,12 21x16
+      text "Workbench" 32,12 71x16
+      el #menubar role=menubar 111,8 176x24
+        el #title-0 role=menuitem label="File" 111,8 38x24 expanded=false
+          text "File" 119,12 22x16
         el #title-1 role=menuitem label="Edit" 149,8 39x24 expanded=false
           text "Edit" 157,12 23x16
-        el #title-2 role=menuitem label="View" 188,8 47x24 expanded=false
-          text "View" 196,12 31x16
-        el #title-3 role=menuitem label="Query" 235,8 53x24 expanded=false
-          text "Query" 243,12 37x16
-      el 288,20 126x0
-      el role=button label="Search commands" 414,8 258x24
+        el #title-2 role=menuitem label="View" 188,8 46x24 expanded=false
+          text "View" 196,12 30x16
+        el #title-3 role=menuitem label="Query" 234,8 53x24 expanded=false
+          text "Query" 242,12 37x16
+      el 287,20 127x0
+      el role=button label="Search commands" 414,8 257x24
         text label="search" "\u{EA7C}" 423,12 16x16
-        text "Search commands" 447,12 115x16
-        el 570,8 93x24
-          el 570,8 0x24
-          text "Ctrl+Shift+P" 594,13 69x14
-      el 672,20 126x0
+        text "Search commands" 447,12 114x16
+        el 569,8 93x24
+          el 569,8 0x24
+          text "Ctrl+Shift+P" 593,13 69x14
+      el 671,20 127x0
     el 798,20 24x0
     el 822,0 40x40
       el 822,8 24x24
@@ -37,14 +37,16 @@ el 0,0 1000x600
       text label="dismiss" "\u{F367}" 971,14 12x12
   el 0,40 1000x531
     el role=toolbar label="Tool windows" 0,40 41x531
-      el #item-0 role=button label="Connections" 4,44 32x32 checked
-        text label="database" "\u{F0D7}" 12,52 16x16
+      el #rail-items 0,40 40x531
+        el #entry-item-0 4,44 32x32
+          el #item-0 role=button label="Connections" 4,44 32x32 checked
+            text label="database" "\u{F0D7}" 12,52 16x16
     el 49,40 943x523
       el #first 49,40 260x523
         el 49,40 260x523
           el 50,41 258x40
-            text role=heading "Connections" 66,53 86x17 level=3
-            el 160,61 100x0
+            text role=heading "Connections" 66,53 85x17 level=3
+            el 159,61 101x0
             el role=button label="Add connection" 268,49 24x24
               text label="add" "\u{F108}" 272,53 16x16
           el 50,81 258x481
@@ -75,7 +77,7 @@ el 0,0 1000x600
                 el #mark-4 58,181 16x24
                   text label="chevron_right" "\u{F2AF}" 58,185 16x16
                 text label="server" "\u{F1DC}" 78,185 16x16
-                text "prod-eu" 98,185 50x16
+                text "prod-eu" 98,185 49x16
                 el 56,185 2x16
       el #rest 309,40 683x523
         el #second 317,40 675x523
@@ -102,11 +104,11 @@ el 0,0 1000x600
                       el 318,74 332x459
                         el 318,74 332x40
                           text role=heading "orders" 334,86 44x17 level=3
-                          text "5 rows" 386,86 41x16
-                          el 435,94 120x0
+                          text "5 rows" 386,86 40x16
+                          el 434,94 122x0
                           el #run role=button label="Run" 564,82 70x24
                             text label="play" "\u{E990}" 577,86 16x16
-                            text "Run" 597,86 25x16
+                            text "Run" 597,86 24x16
                         el role=separator 318,114 332x1
                         el 318,115 332x98
                           text #query-localhost/shop/public/orders role=textbox label="Query" "SELECT * FROM orders LIMIT 5;" 330,123 308x82 lines 1-1/1
@@ -144,9 +146,9 @@ el 0,0 1000x600
                                   text label="filter" "\u{E60A}" 709,218 16x16
                               el 727,214 1x24
                               el #column-3 role=columnheader label="amount" 728,214 169x24 pos=4/9
-                                text label="calculator" "\u{F06B}" 738,218 16x16
-                                el 758,218 135x16
-                                  text "amount" 758,218 47x16
+                                text label="calculator" "\u{F06B}" 739,218 16x16
+                                el 759,218 134x16
+                                  text "amount" 759,218 46x16
                                   text "numeric(10,2)" 809,218 84x16
                                 el #filter-3 role=button label="Filter amount" 730,218 16x16
                                   text label="filter" "\u{E60A}" 730,218 16x16
@@ -169,23 +171,23 @@ el 0,0 1000x600
                               el 1227,214 1x24
                               el #column-6 role=columnheader label="note" 1228,214 159x24 pos=7/9
                                 text label="text_case_title" "\u{ECEC}" 1232,218 16x16
-                                el 1252,218 55x16
-                                  text "note" 1252,218 28x16
-                                  text "text" 1284,218 23x16
+                                el 1252,218 54x16
+                                  text "note" 1252,218 27x16
+                                  text "text" 1283,218 23x16
                                 el #filter-6 role=button label="Filter note" 1369,218 16x16
                                   text label="filter" "\u{E60A}" 1369,218 16x16
                               el 1387,214 1x24
                               el #column-7 role=columnheader label="created_at" 1388,214 189x24 pos=8/9
                                 text label="calendar_clock" "\u{E243}" 1392,218 16x16
-                                el 1412,218 145x16
+                                el 1412,218 144x16
                                   text "created_at" 1412,218 65x16
-                                  text "timestamptz" 1481,218 76x16
+                                  text "timestamptz" 1481,218 75x16
                               el 1577,214 1x24
                               el #column-8 role=columnheader label="updated_at" 1578,214 189x24 pos=9/9
                                 text label="calendar_clock" "\u{E243}" 1582,218 16x16
-                                el 1602,218 149x16
+                                el 1602,218 148x16
                                   text "updated_at" 1602,218 69x16
-                                  text "timestamptz" 1675,218 76x16
+                                  text "timestamptz" 1675,218 75x16
                               el 1767,214 1x24
                               el #resize-0 role=separator label="Resize id" 415,214 6x24
                               el #resize-1 role=separator label="Resize customer_id" 575,214 6x24
@@ -207,7 +209,7 @@ el 0,0 1000x600
                                 el 577,239 1x23
                                 el #cell-0-2 role=gridcell 578,239 149x23 pos=3/9
                                   text label="record" "\u{F660}" 582,243 16x16
-                                  text "paid" 602,243 27x15
+                                  text "paid" 602,243 26x15
                                 el 727,239 1x23
                                 el #cell-0-3 role=gridcell 728,239 169x23 pos=4/9
                                   text "0.00" 864,243 29x16
@@ -222,7 +224,7 @@ el 0,0 1000x600
                                 el 577,263 1x23
                                 el #cell-1-2 role=gridcell 578,263 149x23 pos=3/9
                                   text label="record" "\u{F660}" 582,267 16x16
-                                  text "refunded" 602,267 56x15
+                                  text "refunded" 602,267 55x15
                                 el 727,263 1x23
                                 el #cell-1-3 role=gridcell 728,263 169x23 pos=4/9
                                   text "389.13" 850,267 43x16
@@ -267,7 +269,7 @@ el 0,0 1000x600
                                 el 577,335 1x23
                                 el #cell-4-2 role=gridcell 578,335 149x23 pos=3/9
                                   text label="record" "\u{F660}" 582,339 16x16
-                                  text "paid" 602,339 27x15
+                                  text "paid" 602,339 26x15
                                 el 727,335 1x23
                                 el #cell-4-3 role=gridcell 728,335 169x23 pos=4/9
                                   text "1556.52" 842,339 51x16
@@ -297,8 +299,8 @@ el 0,0 1000x600
                         el 660,74 331x459
                           el 660,74 331x40
                             text role=heading "customers" 676,86 71x17 level=3
-                            text "35,895 rows" 755,86 76x16
-                            el 839,94 58x0
+                            text "35,895 rows" 755,86 75x16
+                            el 838,94 59x0
                             el #run role=button label="Run" 905,82 70x24
                               text label="play" "\u{E990}" 918,86 16x16
                               text "Run" 938,86 24x16
@@ -327,20 +329,20 @@ el 0,0 1000x600
                                 el #column-0 role=columnheader label="id" 660,214 99x24 pos=1/7
                                   text label="key" "\u{E740}" 685,218 16x16
                                   el 705,218 50x16
-                                    text "id" 705,218 11x16
-                                    text "bigint" 720,218 35x16
+                                    text "id" 705,218 12x16
+                                    text "bigint" 721,218 34x16
                                 el 759,214 1x24
                                 el #column-1 role=columnheader label="customer_id" 760,214 159x24 pos=2/7
-                                  text label="link" "\u{F4E3}" 771,218 16x16
-                                  el 791,218 124x16
-                                    text "customer_id" 791,218 77x16
+                                  text label="link" "\u{F4E3}" 772,218 16x16
+                                  el 792,218 123x16
+                                    text "customer_id" 792,218 76x16
                                     text "integer" 872,218 43x16
                                 el 919,214 1x24
                                 el #column-2 role=columnheader label="status" 920,214 149x24 pos=3/7
                                   text label="tag" "\u{EC70}" 924,218 16x16
-                                  el 944,218 118x16
+                                  el 944,218 117x16
                                     text "status" 944,218 38x16
-                                    text "order_status" 986,218 76x16
+                                    text "order_status" 986,218 75x16
                                   el #filter-2 role=button label="Filter status" 1051,218 16x16
                                     text label="filter" "\u{E60A}" 1051,218 16x16
                                 el 1069,214 1x24
@@ -354,17 +356,17 @@ el 0,0 1000x600
                                 el 1239,214 1x24
                                 el #column-4 role=columnheader label="paid" 1240,214 109x24 pos=5/7
                                   text label="checkbox_checked" "\u{F27C}" 1244,218 16x16
-                                  el 1264,218 80x16
+                                  el 1264,218 79x16
                                     text "paid" 1264,218 26x16
-                                    text "boolean" 1294,218 50x16
+                                    text "boolean" 1294,218 49x16
                                   el #filter-4 role=button label="Filter paid" 1331,218 16x16
                                     text label="filter" "\u{E60A}" 1331,218 16x16
                                 el 1349,214 1x24
                                 el #column-5 role=columnheader label="email" 1350,214 219x24 pos=6/7
                                   text label="text_case_title" "\u{ECEC}" 1354,218 16x16
-                                  el 1374,218 116x16
+                                  el 1374,218 115x16
                                     text "email" 1374,218 33x16
-                                    text "varchar(255)" 1411,218 79x16
+                                    text "varchar(255)" 1411,218 78x16
                                   el #filter-5 role=button label="Filter email" 1551,218 16x16
                                     text label="filter" "\u{E60A}" 1551,218 16x16
                                 el 1569,214 1x24
@@ -394,7 +396,7 @@ el 0,0 1000x600
                                   el 919,239 1x23
                                   el #cell-0-2 role=gridcell 920,239 149x23 pos=3/7
                                     text label="record" "\u{F660}" 924,243 16x16
-                                    text "paid" 944,243 27x15
+                                    text "paid" 944,243 26x15
                                   el 1069,239 1x23
                                   el #cell-0-3 role=gridcell 1070,239 169x23 pos=4/7
                                     text "0.00" 1206,243 29x16
@@ -409,7 +411,7 @@ el 0,0 1000x600
                                   el 919,263 1x23
                                   el #cell-1-2 role=gridcell 920,263 149x23 pos=3/7
                                     text label="record" "\u{F660}" 924,267 16x16
-                                    text "refunded" 944,267 56x15
+                                    text "refunded" 944,267 55x15
                                   el 1069,263 1x23
                                   el #cell-1-3 role=gridcell 1070,263 169x23 pos=4/7
                                     text "389.13" 1192,267 43x16
@@ -454,7 +456,7 @@ el 0,0 1000x600
                                   el 919,335 1x23
                                   el #cell-4-2 role=gridcell 920,335 149x23 pos=3/7
                                     text label="record" "\u{F660}" 924,339 16x16
-                                    text "paid" 944,339 27x15
+                                    text "paid" 944,339 26x15
                                   el 1069,335 1x23
                                   el #cell-4-3 role=gridcell 1070,335 169x23 pos=4/7
                                     text "1556.52" 1184,339 51x16
@@ -469,7 +471,7 @@ el 0,0 1000x600
                                   el 919,359 1x23
                                   el #cell-5-2 role=gridcell 920,359 149x23 pos=3/7
                                     text label="record" "\u{F660}" 924,363 16x16
-                                    text "refunded" 944,363 56x15
+                                    text "refunded" 944,363 55x15
                                   el 1069,359 1x23
                                   el #cell-5-3 role=gridcell 1070,359 169x23 pos=4/7
                                     text "1945.65" 1184,363 51x16
@@ -514,7 +516,7 @@ el 0,0 1000x600
                                   el 919,431 1x23
                                   el #cell-8-2 role=gridcell 920,431 149x23 pos=3/7
                                     text label="record" "\u{F660}" 924,435 16x16
-                                    text "paid" 944,435 27x15
+                                    text "paid" 944,435 26x15
                                   el 1069,431 1x23
                                   el #cell-8-3 role=gridcell 1070,431 169x23 pos=4/7
                                     text "1112.04" 1184,435 51x16
@@ -529,7 +531,7 @@ el 0,0 1000x600
                                   el 919,455 1x23
                                   el #cell-9-2 role=gridcell 920,455 149x23 pos=3/7
                                     text label="record" "\u{F660}" 924,459 16x16
-                                    text "refunded" 944,459 56x15
+                                    text "refunded" 944,459 55x15
                                   el 1069,455 1x23
                                   el #cell-9-3 role=gridcell 1070,455 169x23 pos=4/7
                                     text "1501.17" 1184,459 51x16
@@ -574,7 +576,7 @@ el 0,0 1000x600
                                   el 919,527 1x23
                                   el #cell-12-2 role=gridcell 920,527 149x23 pos=3/7
                                     text label="record" "\u{F660}" 924,531 16x16
-                                    text "paid" 944,531 27x15
+                                    text "paid" 944,531 26x15
                                   el 1069,527 1x23
                                   el #cell-12-3 role=gridcell 1070,527 169x23 pos=4/7
                                     text "668.56" 1192,531 43x16
@@ -589,7 +591,7 @@ el 0,0 1000x600
                                   el 919,551 1x23
                                   el #cell-13-2 role=gridcell 920,551 149x23 pos=3/7
                                     text label="record" "\u{F660}" 924,555 16x16
-                                    text "refunded" 944,555 56x15
+                                    text "refunded" 944,555 55x15
                                   el 1069,551 1x23
                                   el #cell-13-3 role=gridcell 1070,551 169x23 pos=4/7
                                     text "1057.69" 1184,555 51x16
@@ -637,19 +639,19 @@ el 0,0 1000x600
   el role=status label="Status bar" 0,571 1000x29
     el 8,574 227x24
       el role=group label="Servers" 8,574 227x24
-        el #server-localhost role=button label="localhost" 8,574 79x24 value="ok"
+        el #server-localhost role=button label="localhost" 8,574 80x24 value="ok"
           el 12,578 16x16
             el 14,580 12x12
               el 16,582 8x8
           text "localhost" 32,579 51x14
-        el #server-staging role=button label="staging" 89,574 69x24 value="ok"
-          el 93,578 16x16
-            el 95,580 12x12
-              el 97,582 8x8
-          text "staging" 113,579 42x14
-        el #server-prod-eu role=button label="prod-eu" 160,574 73x24 value="error"
-          text label="error_circle" "\u{F3F0}" 164,578 16x16
-          text "prod-eu" 184,579 46x14
+        el #server-staging role=button label="staging" 90,574 69x24 value="ok"
+          el 94,578 16x16
+            el 96,580 12x12
+              el 98,582 8x8
+          text "staging" 114,579 42x14
+        el #server-prod-eu role=button label="prod-eu" 161,574 74x24 value="error"
+          text label="error_circle" "\u{F3F0}" 165,578 16x16
+          text "prod-eu" 185,579 46x14
     el 237,586 725x0
     el 964,574 28x24
       el #running label="Idle" 964,574 28x24

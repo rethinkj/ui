@@ -131,7 +131,15 @@ public final class FreeType {
       ADDRESS.withName("size"),
       ADDRESS.withName("charmap"));
 
-  /** {@code FT_GlyphSlotRec} up to {@code bitmap_top}, the fields a rasterizer reads. */
+  public static final StructLayout OUTLINE = struct(
+      JAVA_SHORT.withName("n_contours"),
+      JAVA_SHORT.withName("n_points"),
+      ADDRESS.withName("points"),
+      ADDRESS.withName("tags"),
+      ADDRESS.withName("contours"),
+      JAVA_INT.withName("flags"));
+
+  /** {@code FT_GlyphSlotRec} up to {@code outline}, the fields a rasterizer reads. */
   public static final StructLayout GLYPH_SLOT = struct(
       ADDRESS.withName("library"),
       ADDRESS.withName("face"),
@@ -145,7 +153,8 @@ public final class FreeType {
       JAVA_INT.withName("format"),
       BITMAP.withName("bitmap"),
       JAVA_INT.withName("bitmap_left"),
-      JAVA_INT.withName("bitmap_top"));
+      JAVA_INT.withName("bitmap_top"),
+      OUTLINE.withName("outline"));
 
   public static final long FACE_NUM_FACES = offset(FACE, "num_faces");
   public static final long FACE_FACE_FLAGS = offset(FACE, "face_flags");
@@ -162,6 +171,7 @@ public final class FreeType {
   public static final long SLOT_BITMAP = offset(GLYPH_SLOT, "bitmap");
   public static final long SLOT_BITMAP_LEFT = offset(GLYPH_SLOT, "bitmap_left");
   public static final long SLOT_BITMAP_TOP = offset(GLYPH_SLOT, "bitmap_top");
+  public static final long SLOT_OUTLINE = offset(GLYPH_SLOT, "outline");
   public static final long BITMAP_ROWS = offset(BITMAP, "rows");
   public static final long BITMAP_WIDTH = offset(BITMAP, "width");
   public static final long BITMAP_PITCH = offset(BITMAP, "pitch");
@@ -206,6 +216,10 @@ public final class FreeType {
   public static final FunctionDescriptor RENDER_GLYPH =
       FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_INT);
 
+  /** {@code FT_Error FT_Outline_EmboldenXY(FT_Outline*, FT_Pos xstrength, FT_Pos ystrength)}. */
+  public static final FunctionDescriptor OUTLINE_EMBOLDEN_XY =
+      FunctionDescriptor.of(JAVA_INT, ADDRESS, C_LONG, C_LONG);
+
   /** {@code FT_UInt FT_Get_Char_Index(FT_Face, FT_ULong charcode)}: 0 where the face lacks it. */
   public static final FunctionDescriptor GET_CHAR_INDEX =
       FunctionDescriptor.of(JAVA_INT, ADDRESS, C_LONG);
@@ -231,6 +245,8 @@ public final class FreeType {
     static final MethodHandle SET_TRANSFORM = bind("FT_Set_Transform", FreeType.SET_TRANSFORM);
     static final MethodHandle LOAD_GLYPH = bind("FT_Load_Glyph", FreeType.LOAD_GLYPH);
     static final MethodHandle RENDER_GLYPH = bind("FT_Render_Glyph", FreeType.RENDER_GLYPH);
+    static final MethodHandle OUTLINE_EMBOLDEN_XY =
+        bind("FT_Outline_EmboldenXY", FreeType.OUTLINE_EMBOLDEN_XY);
     static final MethodHandle GET_CHAR_INDEX = bind("FT_Get_Char_Index", FreeType.GET_CHAR_INDEX);
     static final MethodHandle GET_FIRST_CHAR = bind("FT_Get_First_Char", FreeType.GET_FIRST_CHAR);
     static final MethodHandle GET_NEXT_CHAR = bind("FT_Get_Next_Char", FreeType.GET_NEXT_CHAR);
@@ -323,6 +339,14 @@ public final class FreeType {
   public static int renderGlyph(MemorySegment slot, int renderMode) {
     try {
       return (int) Fn.RENDER_GLYPH.invokeExact(slot, renderMode);
+    } catch (Throwable t) {
+      throw rethrow(t);
+    }
+  }
+
+  public static int outlineEmboldenXY(MemorySegment outline, long xStrength, long yStrength) {
+    try {
+      return (int) Fn.OUTLINE_EMBOLDEN_XY.invokeExact(outline, xStrength, yStrength);
     } catch (Throwable t) {
       throw rethrow(t);
     }

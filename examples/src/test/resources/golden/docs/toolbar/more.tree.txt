@@ -20,20 +20,20 @@ el 0,0 230x150
     el 13,54 204x32
       text "select * from orders where total > 100" 21,62 188x16
 overlay bottom start gap 2 on #more role=button label="More" 180,21 24x24
-  el #menu role=menu 105,47 99x87 focused
-    el #item-0 role=menuitem label="Refresh" 110,52 89x24
-      el 110,52 89x24
-        el 118,56 16x16
-          text label="arrow_clockwise" "\u{E0AA}" 118,56 16x16
-        text "Refresh" 142,56 49x16
-    el 110,78 89x1
-    el #item-2 role=menuitem label="Export" 110,81 89x24
-      el 110,81 89x24
-        el 118,85 16x16
-          text label="arrow_export_ltr" "\u{E0C6}" 118,85 16x16
-        text "Export" 142,85 49x16
-    el #item-3 role=menuitem label="Save" 110,105 89x24
-      el 110,105 89x24
-        el 118,109 16x16
-          text label="save" "\u{EA43}" 118,109 16x16
-        text "Save" 142,109 49x16
+  el #menu role=menu 107,47 97x87 focused
+    el #item-0 role=menuitem label="Refresh" 112,52 87x24
+      el 112,52 87x24
+        el 120,56 16x16
+          text label="arrow_clockwise" "\u{E0AA}" 120,56 16x16
+        text "Refresh" 144,56 47x16
+    el 112,78 87x1
+    el #item-2 role=menuitem label="Export" 112,81 87x24
+      el 112,81 87x24
+        el 120,85 16x16
+          text label="arrow_export_ltr" "\u{E0C6}" 120,85 16x16
+        text "Export" 144,85 47x16
+    el #item-3 role=menuitem label="Save" 112,105 87x24
+      el 112,105 87x24
+        el 120,109 16x16
+          text label="save" "\u{EA43}" 120,109 16x16
+        text "Save" 144,109 47x16

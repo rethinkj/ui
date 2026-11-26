@@ -49,9 +49,11 @@ After layout, `el.text()` returns a [`Text`](/api/com/rethinkj/ui/Text.html) obj
 
 Note: Right-to-left text is shaped right-to-left, but full bidirectional reordering for mixed-direction lines is not supported yet. Color emoji are drawn in color from COLR version 0 fonts (such as Segoe UI Emoji on Windows) and CBDT bitmap fonts (such as Noto Color Emoji on Linux); COLR version 1 fonts are not supported yet and still render as single-color outlines or are left out.
 
-## Platform text rendering
+## Text rendering
 
-`app.textRendering(TextRendering.LINUX)` or `TextRendering.WINDOWS` selects glyph hinting and blending style (defaults to the current OS). Pin one in [stored image tests](/docs/testing/stored-images) so screenshots match on both platforms.
+By default, text is rendered unhinted (`TextRendering.Hinting.NONE`) with subtle stem darkening, quarter-pixel glyph positioning at every scale (icons stay on whole pixels), and coverage correction (2.0 for dark text, 1.5 for light text). The bundled Inter faces also apply Inter's size-dependent tracking so headings tighten while body text stays balanced.
+
+`TextRendering.LINUX` and `TextRendering.WINDOWS` use this same unhinted rendering, so text looks identical across Linux and Windows. Apps that prefer platform hinting can pass a custom `TextRendering` with `Hinting.LIGHT` or `Hinting.NATIVE` to `app.textRendering(...)`.
 
 ## In a tree dump
 

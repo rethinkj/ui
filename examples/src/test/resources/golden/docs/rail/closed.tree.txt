@@ -1,23 +1,28 @@
 el 0,0 560x260
   el role=toolbar label="Tool windows" 0,0 41x260
-    el #item-0 role=button label="Explorer" 4,4 32x32 checked=false
-      text label="folder" "\u{E643}" 12,12 16x16
-    el #item-1 role=button label="Search" 4,40 32x32 checked=false
-      text label="search" "\u{EA7C}" 12,48 16x16
-    el role=separator 8,78 24x1
-    el #item-2 role=button label="Problems" 4,85 32x32 checked=false value="3 errors"
-      text label="warning" "\u{F868}" 12,93 16x16
-      el 25,92 4x4
-    el #action-0 role=button label="Settings" 4,224 32x32
-      text label="settings" "\u{F6A8}" 12,232 16x16
+    el #rail-items 0,0 40x260
+      el #entry-item-0 4,4 32x32
+        el #item-0 role=button label="Explorer" 4,4 32x32 checked=false
+          text label="folder" "\u{E643}" 12,12 16x16
+      el #entry-item-1 4,40 32x32
+        el #item-1 role=button label="Search" 4,40 32x32 checked=false
+          text label="search" "\u{EA7C}" 12,48 16x16
+      el role=separator 8,78 24x1
+      el #entry-item-2 4,85 32x32
+        el #item-2 role=button label="Problems" 4,85 32x32 checked=false value="3 errors"
+          text label="warning" "\u{F868}" 12,93 16x16
+          el 25,92 4x4
+      el #entry-action-0 4,224 32x32
+        el #action-0 role=button label="Settings" 4,224 32x32
+          text label="settings" "\u{F6A8}" 12,232 16x16
   el 41,0 519x260
     el #first 49,8 0x244
     el #rest 49,8 503x244
       el #second 49,8 503x244
         el 49,8 503x244
           el 50,9 501x40
-            text role=heading "orders.sql" 66,21 70x17 level=3
-            el 144,29 391x0
+            text role=heading "orders.sql" 66,21 68x17 level=3
+            el 142,29 393x0
           el 50,49 501x202
             text "select * from orders where total > 100" 62,61 477x16
       el #divider role=separator label="Resize" 49,8 7x244 value="first 180 collapsed first"

@@ -219,15 +219,15 @@ class TextAreaTest {
 
   @Test
   void wrappedLinesMoveByRows() {
-    // 24 characters a row: "the quick brown fox and ", "jumps over the dog and ", "the lazy
-    // cat today".
+    // 22 characters a row: "the quick brown fox ", "and jumps over the dog ", "and the lazy cat
+    // today".
     String text = "the quick brown fox and jumps over the dog and the lazy cat today\nend";
     App<Model> app = focused(text, f -> f.wrapText());
     key(app, "ArrowRight");
     key(app, "ArrowRight");
     key(app, "ArrowDown");
     Editor editor = field(app).editor();
-    assertEquals(text.indexOf("jumps") + 2, editor.caret(), "the second row of the line");
+    assertEquals(text.indexOf("and jumps") + 2, editor.caret(), "the second row of the line");
     key(app, "ArrowDown");
     key(app, "ArrowDown");
     assertEquals(text.indexOf("end") + 2, editor.caret(), "the next line after its last row");
@@ -237,20 +237,20 @@ class TextAreaTest {
     key(app, "ArrowUp");
     key(app, "End");
     assertEquals(
-        text.indexOf(" the lazy"),
+        text.indexOf(" and the lazy"),
         editor.caret(),
         "a wrapped row ends before the space it wraps at");
     key(app, "Home");
-    assertEquals(text.indexOf("jumps"), editor.caret(), "the start of the row");
+    assertEquals(text.indexOf("and jumps"), editor.caret(), "the start of the row");
     key(app, "Home");
-    assertEquals(text.indexOf("jumps"), editor.caret(), "a row inside a line has no indent");
+    assertEquals(text.indexOf("and jumps"), editor.caret(), "a row inside a line has no indent");
     assertTrue(Areas.line(app).contains(" lines 1-2/2 "), Areas.line(app));
     assertEquals(0, field(app).horizontalBar() == null ? 0 : 1, "no scrolling sideways");
   }
 
   @Test
   void aWrappedWordLongerThanTheRowBreaksAndCaretsKeysPressesAndSelectionFollowItsRows() {
-    // 24 characters a row: "word ", then the 500 letters 24 a row, the last 20 with " end".
+    // 22 characters a row: "word ", then the 500 letters 22 a row (22 full rows + 16 with " end").
     StringBuilder letters = new StringBuilder();
     for (int i = 0; i < 500; i++) {
       letters.append((char) ('a' + i % 26));
@@ -262,9 +262,9 @@ class TextAreaTest {
     El f = field(app);
     Editor editor = f.editor();
     Text t = f.text();
-    assertEquals(22, t.shownIndex().totalRows(), "the word's row, 21 of letters");
-    for (int row = 1; row <= 21; row++) {
-      int start = 5 + 24 * (row - 1);
+    assertEquals(24, t.shownIndex().totalRows(), "the word's row, 23 of letters");
+    for (int row = 1; row <= 23; row++) {
+      int start = 5 + 22 * (row - 1);
       assertEquals(row * 18.0, t.caretTop(start), "row " + row + " starts at " + start);
       assertEquals((row - 1) * 18.0, t.caretTop(start - 1), "the letter before on the row above");
       assertEquals(start, t.rowStart(start + 3));
@@ -274,9 +274,9 @@ class TextAreaTest {
     key(app, "ArrowRight");
     key(app, "ArrowDown");
     assertEquals(7, editor.caret(), "the second row, two letters in");
-    for (int row = 2; row <= 21; row++) {
+    for (int row = 2; row <= 23; row++) {
       key(app, "ArrowDown");
-      assertEquals(5 + 24 * (row - 1) + 2, editor.caret(), "down to row " + row);
+      assertEquals(5 + 22 * (row - 1) + 2, editor.caret(), "down to row " + row);
     }
     key(app, "ArrowDown");
     assertEquals(text.length(), editor.caret(), "below the last row: the end");
@@ -284,37 +284,37 @@ class TextAreaTest {
     key(app, "Home", CONTROL);
     key(app, "ArrowDown");
     key(app, "End");
-    assertEquals(5 + 23, editor.caret(), "a row broken inside the word ends before its last");
+    assertEquals(5 + 21, editor.caret(), "a row broken inside the word ends before its last");
     key(app, "ArrowRight");
-    assertEquals(29, editor.caret());
-    assertEquals(36.0, t.caretTop(29), "after the last letter: the start of the next row");
-    for (int row = 21; row >= 2; row--) {
+    assertEquals(27, editor.caret());
+    assertEquals(36.0, t.caretTop(27), "after the last letter: the start of the next row");
+    for (int row = 23; row >= 2; row--) {
       key(app, "ArrowUp");
     }
     key(app, "ArrowUp");
     assertEquals(0, editor.caret(), "above the first row: the start");
 
     // A press on each row, three letters in.
-    for (int row = 1; row <= 21; row++) {
-      float x = 14 + 8 * 3 + 2;
+    for (int row = 1; row <= 23; row++) {
+      float x = 14 + 8.5f * 3 + 2;
       float y = 14 + 18 * row + 9;
       app.pointerDown(x, y, 1, 0);
       app.pointerUp(x, y);
       app.frame();
-      assertEquals(5 + 24 * (row - 1) + 3, editor.caret(), "a press on row " + row);
+      assertEquals(5 + 22 * (row - 1) + 3, editor.caret(), "a press on row " + row);
     }
     // From the second letter of row 1 to the fourth of row 4: a rectangle per row.
-    app.pointerDown(14 + 8 + 2, 14 + 18 + 9, 1, 0);
-    app.pointerMove(14 + 8 * 4 + 2, 14 + 18 * 4 + 9);
-    app.pointerUp(14 + 8 * 4 + 2, 14 + 18 * 4 + 9);
+    app.pointerDown(14 + 8.5f + 2, 14 + 18 + 9, 1, 0);
+    app.pointerMove(14 + 8.5f * 4 + 2, 14 + 18 * 4 + 9);
+    app.pointerUp(14 + 8.5f * 4 + 2, 14 + 18 * 4 + 9);
     app.frame();
     assertEquals(6, editor.anchor());
-    assertEquals(5 + 24 * 3 + 4, editor.caret());
+    assertEquals(5 + 22 * 3 + 4, editor.caret());
     List<Text.Box> boxes = field(app).text().selection();
     assertEquals(4, boxes.size(), boxes.toString());
-    assertEquals(8, boxes.getFirst().x(), "from the second letter");
+    assertEquals(8.5f, boxes.getFirst().x(), "from the second letter");
     assertEquals(192, boxes.getFirst().x() + boxes.getFirst().width(), "to the box's end");
-    assertEquals(32, boxes.getLast().x() + boxes.getLast().width(), "to the fourth letter");
+    assertEquals(34, boxes.getLast().x() + boxes.getLast().width(), "to the fourth letter");
   }
 
   @Test
@@ -513,9 +513,10 @@ class TextAreaTest {
   }
 
   /**
-   * The rows of {@link Areas}'s field for a text of letters, spaces and line feeds, 24 characters
-   * a row: words while they fit, spaces at a row's end taking no room, a word longer than a row on
-   * rows of its own, 24 letters each, and what follows its last part on that row while it fits.
+   * The rows of {@link Areas}'s field for a text of letters, spaces and line feeds, 22 characters
+   * a row (192 / 8.5): words while they fit, spaces at a row's end taking no room, a word longer
+   * than a row on rows of its own, 22 letters each, and what follows its last part on that row
+   * while it fits.
    */
   private static long monoRows(String text) {
     long rows = 0;
@@ -526,13 +527,13 @@ class TextAreaTest {
       for (String word : line.split("(?<= )(?=[^ ])")) {
         int letters = word.stripTrailing().length();
         int spaces = word.length() - letters;
-        if (!empty && used + letters > 24) {
+        if (!empty && used + letters > 22) {
           rows++;
           used = 0;
         }
-        while (used + letters > 24) {
+        while (used + letters > 22) {
           rows++;
-          letters -= 24 - used;
+          letters -= 22 - used;
           used = 0;
         }
         used += letters + spaces;
@@ -555,7 +556,7 @@ class TextAreaTest {
     key(app, "ArrowDown");
     assertEquals(text.length(), f.editor().caret());
     assertEquals(
-        40 - Editor.MARGIN, field(app).scrollX(), "the end of a short line, just far enough");
+        5 * 8.5f - Editor.MARGIN, field(app).scrollX(), "the end of a short line, just far enough");
     key(app, "ArrowUp");
     assertTrue(
         field(app).scrollX() > 2000, "the column of the end kept: " + field(app).scrollX());
@@ -581,9 +582,9 @@ class TextAreaTest {
     key(app, "Tab");
     assertEquals("a\t|b", show(app));
     Text text = field(app).text();
-    assertEquals(32, text.caret().x(), "the tab reaches the stop of four spaces");
+    assertEquals(34, text.caret().x(), "the tab reaches the stop of four spaces");
     key(app, "Tab");
-    assertEquals(64, field(app).text().caret().x(), "and the next");
+    assertEquals(68, field(app).text().caret().x(), "and the next");
     app = focused("ab", f -> f.tabIndents(true).tabSize(3));
     key(app, "ArrowRight");
     key(app, "Tab");
@@ -782,7 +783,7 @@ class TextAreaTest {
     App.InputArea area = app.inputArea();
     assertEquals(10 + 4 + 18, area.y(), "the caret's row in the window");
     assertEquals(18, area.height());
-    assertEquals(4 + 5 * 8, area.cursor(), "after the composition");
+    assertEquals(4 + 5 * 8.5f, area.cursor(), "after the composition");
     app.textInput("你");
     app.frame();
     assertEquals("one\ntwo你|\nthree", show(app));
@@ -1283,8 +1284,8 @@ class TextAreaTest {
     List<String> pressed = new ArrayList<>();
     for (Style.Align align : new Style.Align[] {Style.Align.CENTER, Style.Align.END}) {
       pressed.clear();
-      float expectedRow0 = align == Style.Align.CENTER ? 59 : 119;
-      float expectedRow1 = align == Style.Align.CENTER ? 39 : 79;
+      float expectedRow0 = align == Style.Align.CENTER ? 58.25f : 116.5f;
+      float expectedRow1 = align == Style.Align.CENTER ? 37 : 74;
       App<Object> app = new App<>(
           new Object(),
           s -> El.col()
@@ -1315,35 +1316,35 @@ class TextAreaTest {
       assertEquals(expectedRow0, t.lines().get(0).x(), "row 0 x for " + align);
       assertEquals(expectedRow1, t.lines().get(1).x(), "row 1 x for " + align);
 
-      // Click on 'l' (index 2, 16 px into row 0) places the caret on the drawn glyph.
-      float char2X = 10 + expectedRow0 + 2 * 8;
+      // Click on 'l' (index 2, 17 px into row 0) places the caret on the drawn glyph.
+      float char2X = 10 + expectedRow0 + 2 * 8.5f;
       app.pointerDown(char2X + 1, 10 + 9, 1, 0);
       app.pointerUp(char2X + 1, 10 + 9);
       app.frame();
       f = app.tree().children().getFirst();
       t = f.text();
       assertEquals(2, f.editor().caret(), "click landed on character 2 for " + align);
-      assertEquals(expectedRow0 + 16, t.x(2), "caret x matches drawn glyph for " + align);
+      assertEquals(expectedRow0 + 17, t.x(2), "caret x matches drawn glyph for " + align);
 
       // Select "ell" (1..4): caret and selection box align with the drawn glyphs.
       app.select(f, 4, 1);
       app.frame();
       f = app.tree().children().getFirst();
       t = f.text();
-      assertEquals(expectedRow0 + 32, t.caret().x(), "drawn caret x for " + align);
+      assertEquals(expectedRow0 + 34, t.caret().x(), "drawn caret x for " + align);
       assertEquals(1, t.selection().size());
-      assertEquals(expectedRow0 + 8, t.selection().getFirst().x(), "selection x for " + align);
-      assertEquals(24, t.selection().getFirst().width(), "selection width for " + align);
+      assertEquals(expectedRow0 + 8.5f, t.selection().getFirst().x(), "selection x for " + align);
+      assertEquals(25.5f, t.selection().getFirst().width(), "selection width for " + align);
 
       // textPositionAt returns -1 in the empty margin left of the aligned row, and the char inside.
       assertEquals(-1, f.textPositionAt(expectedRow0 - 4, 9), "left margin is outside text");
-      assertEquals(2, f.textPositionAt(expectedRow0 + 2 * 8 + 2, 9), "char 2 inside text");
+      assertEquals(2, f.textPositionAt(expectedRow0 + 2 * 8.5f + 2, 9), "char 2 inside text");
 
       // Range element ("link", chars 6..10 on row 1) sits at expectedRow1 and receives presses.
       El link = f.children().getFirst();
       assertEquals(expectedRow1, link.x(), "range x for " + align);
       assertEquals(18, link.y(), "range y for " + align);
-      assertEquals(32, link.width(), "range width for " + align);
+      assertEquals(34, link.width(), "range width for " + align);
       app.pointerDown(10 + expectedRow1 - 8, 10 + 18 + 9, 1, 0); // left of aligned link
       app.pointerUp(10 + expectedRow1 - 8, 10 + 18 + 9);
       app.frame();
@@ -1356,7 +1357,7 @@ class TextAreaTest {
       // The caret after the last row's trailing space stays inside the content box.
       Text shown = app.tree().children().getFirst().text();
       float end = shown.x(text.indexOf('\n', 6));
-      assertEquals(expectedRow1 + 80, end, "end caret for " + align);
+      assertEquals(expectedRow1 + 85, end, "end caret for " + align);
       assertTrue(end + 1 <= 160, "end caret inside for " + align);
       // In the spaces that hang past a soft wrap, the caret stays at the edge.
       assertEquals(159, shown.x(text.indexOf("   ") + 2), "hanging caret for " + align);

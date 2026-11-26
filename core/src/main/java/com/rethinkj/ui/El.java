@@ -5748,6 +5748,7 @@ public final class El {
     if (scrollState != null && scrollState.el == this) {
       scrollState.x = newX;
       scrollState.y = newY;
+      scrollState.atStart = newY <= minScrollY() + SLACK;
       scrollState.atEnd = newY >= maxScrollY - SLACK;
       // Scrolled away, either way, before its rows were measured.
       scrollState.toEnd = scrollState.toEnd && Math.abs(newY - endY()) <= SLACK;

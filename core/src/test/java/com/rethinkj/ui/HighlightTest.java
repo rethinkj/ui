@@ -131,7 +131,7 @@ class HighlightTest {
 
   @Test
   void rangesFollowWrapsAndTabs() {
-    // 29 characters of 8 pixels in a content box of 192: wraps before "ffff".
+    // 29 characters of 8.5 pixels in a content box of 192 (22 chars): wraps before "eeee".
     App<Model> app = area(
         "aaaa bbbb cccc dddd eeee ffff",
         f -> f.wrapText().highlight(1, (line, state, out) -> {
@@ -143,10 +143,11 @@ class HighlightTest {
     int[] first = colors(app).get(0);
     assertEquals(RED, first[15]);
     assertEquals(TEXT, first[14]);
-    assertArrayEquals(new int[] {RED, RED, RED, RED}, colors(app).get(1));
+    assertArrayEquals(
+        new int[] {RED, RED, RED, RED, RED, RED, RED, RED, RED}, colors(app).get(1));
     App<Model> tabbed = area("a\tb1", f -> f.highlight(1, COMMENTS));
     assertArrayEquals(new int[] {TEXT, TEXT, TEXT, RED}, colors(tabbed).get(0));
-    assertEquals(4 * 8 + 8, field(tabbed).text().x(3), "the tab still reaches the next stop");
+    assertEquals(4 * 8.5f + 8.5f, field(tabbed).text().x(3), "the tab still reaches the next stop");
   }
 
   @Test
@@ -436,8 +437,8 @@ class HighlightTest {
         List.of(
             new Text.Mark(new Text.Box(0, 18, 192, 18), YELLOW),
             new Text.Mark(new Text.Box(0, 18, 192, 18), 0x400000FF),
-            new Text.Mark(new Text.Box(16, 0, 24, 18), BLUE),
-            new Text.Mark(new Text.Box(0, 36 + under(t), 24, 1), RED)),
+            new Text.Mark(new Text.Box(17, 0, 25.5f, 18), BLUE),
+            new Text.Mark(new Text.Box(0, 36 + under(t), 25.5f, 1), RED)),
         marks,
         "the lines first, from the bottom up, then the range, then the underline");
     assertNull(t.lines().get(2).colors(), "a decorator's colors are ignored");
@@ -475,7 +476,7 @@ class HighlightTest {
     for (Text.Mark mark : marks) {
       assertTrue(mark.squiggle(), "every mark is a squiggle: " + mark);
     }
-    assertEquals(15 * 8, marks.get(0).box().x());
+    assertEquals(15 * 8.5f, marks.get(0).box().x());
     assertEquals(0, marks.get(1).box().x(), "continues at the start of the wrapped row");
     assertTrue(app.tree().dump().contains(" squiggle 15-35"), app.tree().dump());
   }
@@ -491,11 +492,11 @@ class HighlightTest {
             .decorate((line, start, text, out) -> out.squiggle(2, 4, TEXT)));
     List<Text.Mark> marks = field(app).text().marks();
     assertEquals(3, marks.size(), marks.toString());
-    float[] xs = {0, 4 * 8, 2 * 8};
+    float[] xs = {0, 4 * 8.5f, 2 * 8.5f};
     int[] colors = {RED, RED, TEXT};
     for (int i = 0; i < 3; i++) {
       assertEquals(xs[i], marks.get(i).box().x());
-      assertEquals(16, marks.get(i).box().width());
+      assertEquals(17, marks.get(i).box().width());
       assertEquals(colors[i], marks.get(i).color());
     }
   }
@@ -543,10 +544,10 @@ class HighlightTest {
     assertEquals(4, marks.size(), "a line background and a range per row: " + marks);
     assertEquals(new Text.Box(0, 18, 192, 18), marks.get(1).box());
     assertEquals(
-        new Text.Box(15 * 8, 0, 10 * 8, 18),
+        new Text.Box(15 * 8.5f, 0, 5 * 8.5f, 18),
         marks.get(2).box(),
         "to the end of row 0, with the space it wraps at");
-    assertEquals(new Text.Box(0, 18, 4 * 8, 18), marks.get(3).box(), "ffff on row 1");
+    assertEquals(new Text.Box(0, 18, 9 * 8.5f, 18), marks.get(3).box(), "eeee ffff on row 1");
     app.wheel(50, 30, 0, 18);
     app.frame();
     assertEquals(
@@ -590,21 +591,21 @@ class HighlightTest {
             })
             .child(El.el().key("link").range(3, 7)));
     Text t = field(app).text();
-    assertEquals(24, t.x(3), "outer left edge of the room");
-    assertEquals(36, t.x(4), "first character sits after the left room");
-    assertEquals(64, t.x(7), "outer right edge moves by 2 * room");
-    assertEquals(88, t.x(10), "following text moves by 2 * room");
+    assertEquals(25.5f, t.x(3), "outer left edge of the room");
+    assertEquals(38, t.x(4), "first character sits after the left room");
+    assertEquals(67.5f, t.x(7), "outer right edge moves by 2 * room");
+    assertEquals(93, t.x(10), "following text moves by 2 * room");
     for (int i = 0; i <= 10; i++) {
       assertEquals(i, t.nearest(t.x(i), 4), "caret hit testing at " + i);
     }
     assertEquals(3, t.nearest(31, 4), "a press on the left half of c lands before it");
-    assertEquals(3, t.nearest(26, 4), "a press in the room lands at the range's edge");
-    assertEquals(List.of(new Text.Mark(new Text.Box(24, 0, 40, 18), BLUE, false, 3)), t.marks());
+    assertEquals(3, t.nearest(27, 4), "a press in the room lands at the range's edge");
+    assertEquals(List.of(new Text.Mark(new Text.Box(25.5f, 0, 42, 18), BLUE, false, 3)), t.marks());
     Scene scene = app.scene();
     boolean roundedMark = false;
     for (int i = 0; i < scene.count(); i++) {
       if (scene.getInt(i, Scene.KIND) == Scene.RECT
-          && scene.get(i, Scene.WIDTH) == 40
+          && scene.get(i, Scene.WIDTH) == 42
           && scene.get(i, Scene.HEIGHT) == 18
           && scene.get(i, Scene.RADIUS) == 3) {
         roundedMark = true;
@@ -612,11 +613,11 @@ class HighlightTest {
     }
     assertTrue(roundedMark, "the mark's rectangle carries the corner radius to the scene");
     El link = field(app).children().getFirst();
-    assertEquals(List.of(new Text.Box(0, 0, 40, 18)), link.rangeBoxes(), "range box covers room");
+    assertEquals(List.of(new Text.Box(0, 0, 42, 18)), link.rangeBoxes(), "range box covers room");
     app.select(field(app), 3, 7);
     app.frame();
     assertEquals(
-        List.of(new Text.Box(24, 0, 40, 18)),
+        List.of(new Text.Box(25.5f, 0, 42, 18)),
         field(app).text().selection(),
         "selection covers room");
 
@@ -630,11 +631,11 @@ class HighlightTest {
     List<Text.Mark> wrappedMarks = field(wrapped).text().marks();
     assertEquals(2, wrappedMarks.size(), wrappedMarks.toString());
     assertEquals(
-        new Text.Mark(new Text.Box(15 * 8, 0, 5 * 8 + 4, 18), BLUE, false, 3),
+        new Text.Mark(new Text.Box(15 * 8.5f, 0, 5 * 8.5f + 4, 18), BLUE, false, 3),
         wrappedMarks.get(0),
         "first row gets only the start room, and wraps before eeee");
     assertEquals(
-        new Text.Mark(new Text.Box(0, 18, 9 * 8 + 4, 18), BLUE, false, 3),
+        new Text.Mark(new Text.Box(0, 18, 9 * 8.5f + 4, 18), BLUE, false, 3),
         wrappedMarks.get(1),
         "second row gets only the end room");
 
@@ -647,9 +648,9 @@ class HighlightTest {
           return null;
         });
     Headless.render(El.row().child(label), 200, 50, 1);
-    assertEquals(8 * 8 + 8, label.width(), "width includes 2 * room");
+    assertEquals(8 * 8.5f + 8, label.width(), "width includes 2 * room");
     assertEquals(
-        List.of(new Text.Mark(new Text.Box(24, 0, 24, 18), BLUE, false, 3)),
+        List.of(new Text.Mark(new Text.Box(25.5f, 0, 25, 18), BLUE, false, 3)),
         label.text().marks());
   }
 }

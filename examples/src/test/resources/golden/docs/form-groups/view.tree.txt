@@ -8,8 +8,8 @@ el 0,0 480x300
         el 29,71 406x24
           el 29,71 406x24
             el 29,71 60x24
-              text "Host" 29,75 29x16
-              text "*" 60,75 7x16
+              text "Host" 29,75 28x16
+              text "*" 59,75 7x16
             el 97,71 338x24
               el 97,71 338x24
                 el 97,71 225x24
@@ -26,7 +26,7 @@ el 0,0 480x300
         el 29,152 406x56
           el 29,152 406x24
             el 29,152 60x24
-              text "User" 29,156 30x16
+              text "User" 29,156 29x16
             el 97,152 338x24
               text role=textbox label="User" placeholder="Role" "" 97,152 200x24
           el 29,184 406x24

@@ -1,17 +1,17 @@
 el 0,0 640x240
   el #target 0,0 640x240
 overlay at 300,20 bottom start on #target 0,0 640x240
-  el #menu role=menu 300,20 125x58
-    el #item-0 role=menuitem label="Rename…" 305,25 115x24
-      el 305,25 115x24
+  el #menu role=menu 300,20 123x58
+    el #item-0 role=menuitem label="Rename…" 305,25 113x24
+      el 305,25 113x24
         el 313,37 16x0
-        text "Rename…" 337,29 75x16
-    el #item-1 role=menuitem label="Move to" 305,49 115x24 current expanded
-      el 305,49 115x24
+        text "Rename…" 337,29 73x16
+    el #item-1 role=menuitem label="Move to" 305,49 113x24 current expanded
+      el 305,49 113x24
         el 313,61 16x0
-        text "Move to" 337,53 51x16
-        text label="chevron_right" "\u{F2AF}" 396,53 16x16
-overlay right start gap 5 on #item-1 role=menuitem label="Move to" 305,49 115x24
+        text "Move to" 337,53 49x16
+        text label="chevron_right" "\u{F2AF}" 394,53 16x16
+overlay right start gap 5 on #item-1 role=menuitem label="Move to" 305,49 113x24
   el #submenu role=menu 0,49 640x58 focused
     el #subitem-0 role=menuitem label="Production / Europe / Reporting / Quarterly / Finance / Controlling / Archive / Northwest / Primary" 5,54 630x24 current
       el 5,54 630x24

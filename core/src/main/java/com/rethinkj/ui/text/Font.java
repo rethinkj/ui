@@ -59,6 +59,11 @@ public final class Font implements AutoCloseable {
     "fonts/Inter-Italic.ttf",
     "fonts/Inter-BoldItalic.ttf"
   };
+  /** Bundled Inter faces, which get Inter's size-dependent tracking in {@link #run}. */
+  private static final boolean[] DEFAULT_TRACKED = {
+    true, true, false, false, false, true, true, true, true
+  };
+
   private static final Font[] DEFAULT_FONTS = new Font[DEFAULT_FILES.length];
 
   /**
@@ -94,6 +99,7 @@ public final class Font implements AutoCloseable {
   private final String name;
   private final boolean shared;
   private final boolean icons;
+  private final boolean tracked;
   private final boolean colorGlyphs; // FT_FACE_FLAG_COLOR: rasterized with FT_LOAD_COLOR
   private final boolean bitmapColor; // color bitmaps without outlines (CBDT, sbix): FT_Select_Size
   private final float[] strikes; // bitmapColor strike sizes in ppem; empty for scalable faces
@@ -132,7 +138,7 @@ public final class Font implements AutoCloseable {
    */
   record Bitmap(int left, int top, int width, int height, byte[] pixels, boolean color) {}
 
-  private record Key(String text, float pixelSize, boolean quarter, List<String> features) {}
+  private record Key(String text, float size, float pixelSize, List<String> features) {}
 
   /** A cached run and the frame it was last used in. */
   private static final class Shaped {
@@ -145,8 +151,8 @@ public final class Font implements AutoCloseable {
     }
   }
 
-  private Font(byte[] bytes, boolean shared, boolean icons) {
-    this(copy(bytes), 0, shared, icons);
+  private Font(byte[] bytes, boolean shared, boolean icons, boolean tracked) {
+    this(copy(bytes), 0, shared, icons, tracked);
   }
 
   private static Map.Entry<Arena, MemorySegment> copy(byte[] bytes) {
@@ -161,9 +167,15 @@ public final class Font implements AutoCloseable {
   }
 
   /** A font of the data, which {@code data}'s arena holds; the font closes the arena. */
-  private Font(Map.Entry<Arena, MemorySegment> data, int index, boolean shared, boolean icons) {
+  private Font(
+      Map.Entry<Arena, MemorySegment> data,
+      int index,
+      boolean shared,
+      boolean icons,
+      boolean tracked) {
     this.shared = shared;
     this.icons = icons;
+    this.tracked = tracked;
     base = this;
     fallback = List.of();
     system = false;
@@ -219,6 +231,7 @@ public final class Font implements AutoCloseable {
     this.system = system;
     styleFlags = base.styleFlags;
     icons = base.icons;
+    tracked = base.tracked;
     colorGlyphs = base.colorGlyphs;
     bitmapColor = base.bitmapColor;
     strikes = base.strikes;
@@ -242,7 +255,7 @@ public final class Font implements AutoCloseable {
    * @throws UnsatisfiedLinkError if FreeType or HarfBuzz cannot be loaded
    */
   public static Font of(byte[] data) {
-    return new Font(data, false, false);
+    return new Font(data, false, false, false);
   }
 
   /**
@@ -278,7 +291,7 @@ public final class Font implements AutoCloseable {
       arena.close();
       throw new IllegalArgumentException("Cannot map the font " + path + ": " + e, e);
     }
-    return new Font(Map.entry(arena, data), index, true, false);
+    return new Font(Map.entry(arena, data), index, true, false, false);
   }
 
   /**
@@ -391,7 +404,8 @@ public final class Font implements AutoCloseable {
 
   private static synchronized Font builtIn(int index) {
     if (DEFAULT_FONTS[index] == null) {
-      DEFAULT_FONTS[index] = builtIn(DEFAULT_FILES[index], Font.class.getClassLoader());
+      DEFAULT_FONTS[index] =
+          builtIn(DEFAULT_FILES[index], Font.class.getClassLoader(), DEFAULT_TRACKED[index]);
     }
     return DEFAULT_FONTS[index];
   }
@@ -401,6 +415,10 @@ public final class Font implements AutoCloseable {
    * that leave the fonts and icons modules out.
    */
   static Font builtIn(String file, ClassLoader loader) {
+    return builtIn(file, loader, false);
+  }
+
+  private static Font builtIn(String file, ClassLoader loader, boolean tracked) {
     String path = DEFAULTS + file;
     boolean icons = file.startsWith(ICONS);
     try (InputStream in = loader.getResourceAsStream(path)) {
@@ -415,7 +433,7 @@ public final class Font implements AutoCloseable {
                     + " dependency (on the module path, also --add-modules com.rethinkj.ui.fonts), or"
                     + " load a font of your own with Font.of or Font.resource.");
       }
-      return new Font(in.readAllBytes(), true, icons);
+      return new Font(in.readAllBytes(), true, icons, tracked);
     } catch (IOException e) {
       throw new UncheckedIOException("Cannot read the default font " + path, e);
     }
@@ -425,10 +443,10 @@ public final class Font implements AutoCloseable {
    * Shapes {@code text} with HarfBuzz into glyphs with positions, in physical pixels, the same
    * glyphs for the same arguments: the font keeps recent results.
    *
-   * <p>Text is shaped at the physical size, {@code size * scale}. Advances and offsets are then
-   * rounded: to whole physical pixels below scale 1.5, where glyphs sit on whole pixels, and to
-   * quarter pixels from scale 1.5 on; those of a font with {@link #wholePixels} to whole pixels at
-   * every scale.
+   * <p>Text is shaped at the physical size, {@code size * scale}. The bundled Inter faces add
+   * Inter's size-dependent tracking ({@code -0.0223 + 0.185 * exp(-0.1745 * size)} em) to every
+   * non-zero glyph advance. Advances and offsets are then rounded to quarter physical pixels at
+   * every scale, or to whole pixels at every scale for a font with {@link #wholePixels}.
    *
    * <p>Kerning is on. Contextual alternates ({@code calt}) are off, because in JetBrains Mono and
    * similar fonts they draw {@code !=} or {@code ->} as one sign; {@code "+calt"} turns them back
@@ -460,7 +478,7 @@ public final class Font implements AutoCloseable {
     if (!(scale > 0 && scale < Float.POSITIVE_INFINITY)) {
       throw new IllegalArgumentException("scale must be above 0, was " + scale);
     }
-    Key key = new Key(text, size * scale, scale >= 1.5f && !icons, List.of(features));
+    Key key = new Key(text, size, size * scale, List.of(features));
     synchronized (this) {
       checkOpen();
       long now = frame(); // in the monitor, so that the runs' frames grow in their LRU order
@@ -527,9 +545,12 @@ public final class Font implements AutoCloseable {
         }
       }
       MemorySegment utf16 = call.allocateFrom(JAVA_CHAR, text.toCharArray());
+      boolean quarter = !icons;
       List<GlyphRun> parts = new ArrayList<>();
       for (Runs.Run run : runs) {
-        parts.add(chain.get(run.font()).shapeRun(key, utf16, text.length(), run, features, count));
+        parts.add(chain
+            .get(run.font())
+            .shapeRun(key, quarter, utf16, text.length(), run, features, count));
       }
       return GlyphRun.join(this, key.pixelSize, parts);
     }
@@ -598,7 +619,13 @@ public final class Font implements AutoCloseable {
 
   /** Shapes one run of the text with this font, which has native objects. */
   private GlyphRun shapeRun(
-      Key key, MemorySegment utf16, int length, Runs.Run run, MemorySegment features, int count) {
+      Key key,
+      boolean quarter,
+      MemorySegment utf16,
+      int length,
+      Runs.Run run,
+      MemorySegment features,
+      int count) {
     synchronized (this) {
       checkOpen();
       try (Arena call = Arena.ofConfined()) {
@@ -619,7 +646,7 @@ public final class Font implements AutoCloseable {
           infos = infos.reinterpret(n * HarfBuzz.GLYPH_INFO.byteSize());
           MemorySegment positions = HarfBuzz.bufferGetGlyphPositions(buffer, out)
               .reinterpret(n * HarfBuzz.GLYPH_POSITION.byteSize());
-          return run(key, infos, positions, n, run.rtl() ? run.from() : -1);
+          return run(key, quarter, infos, positions, n, run.rtl() ? run.from() : -1);
         } finally {
           HarfBuzz.bufferDestroy(buffer);
         }
@@ -631,26 +658,43 @@ public final class Font implements AutoCloseable {
    * Scales HarfBuzz's font units to physical pixels and rounds them to the grid. A right-to-left
    * run's glyphs come in visual order, their clusters falling; they all get {@code cluster}.
    */
-  private GlyphRun run(Key key, MemorySegment infos, MemorySegment positions, int n, int cluster) {
+  private GlyphRun run(
+      Key key, boolean quarter, MemorySegment infos, MemorySegment positions, int n, int cluster) {
     // shortcut: HarfBuzz shapes in font units, which are then scaled here. The same as setting
     // the scale on the font, minus its rounding to 1/64 pixels, and the font stays unchanged.
     double perUnit = key.pixelSize / unitsPerEm;
-    double grid = key.quarter ? 4 : 1;
+    double grid = quarter ? 4 : 1;
+    double tracking =
+        tracked ? (-0.0223 + 0.185 * Math.exp(-0.1745 * key.size)) * key.pixelSize : 0;
     int[] glyphs = new int[n];
     int[] clusters = new int[n];
     float[] pen = new float[n + 1];
     float[] dx = new float[n];
     float[] dy = new float[n];
+    // The rounded tracking of the last glyph with an advance and its cluster: HarfBuzz places
+    // the marks of that cluster from the pen after it, so they move back by it to stay on it.
+    float shift = 0;
+    int shifted = -1;
     for (int i = 0; i < n; i++) {
       long info = i * HarfBuzz.GLYPH_INFO.byteSize();
       long position = i * HarfBuzz.GLYPH_POSITION.byteSize();
       glyphs[i] = infos.get(JAVA_INT, info + HarfBuzz.INFO_GLYPH);
-      clusters[i] = cluster >= 0 ? cluster : infos.get(JAVA_INT, info + HarfBuzz.INFO_CLUSTER);
-      pen[i + 1] = pen[i]
-          + round(positions.get(JAVA_INT, position + HarfBuzz.POSITION_X_ADVANCE), perUnit, grid);
-      dx[i] = round(positions.get(JAVA_INT, position + HarfBuzz.POSITION_X_OFFSET), perUnit, grid);
+      int own = infos.get(JAVA_INT, info + HarfBuzz.INFO_CLUSTER);
+      clusters[i] = cluster >= 0 ? cluster : own;
+      int advance = positions.get(JAVA_INT, position + HarfBuzz.POSITION_X_ADVANCE);
+      float step = round(advance * perUnit, grid);
+      if (advance != 0) {
+        float plus = round(advance * perUnit + tracking, grid);
+        shift = plus - step;
+        shifted = own;
+        step = plus;
+      }
+      pen[i + 1] = pen[i] + step;
+      dx[i] = round(positions.get(JAVA_INT, position + HarfBuzz.POSITION_X_OFFSET) * perUnit, grid)
+          - (advance == 0 && own == shifted ? shift : 0);
       // HarfBuzz's y grows upwards.
-      dy[i] = round(-positions.get(JAVA_INT, position + HarfBuzz.POSITION_Y_OFFSET), perUnit, grid);
+      dy[i] =
+          round(-positions.get(JAVA_INT, position + HarfBuzz.POSITION_Y_OFFSET) * perUnit, grid);
     }
     return new GlyphRun(this, key.pixelSize, glyphs, clusters, pen, dx, dy, null);
   }
@@ -685,10 +729,14 @@ public final class Font implements AutoCloseable {
         check(FreeType.setCharSize(face, 0, size, 72, 72), "set the size " + pixelSize + " on");
         rasterSize = size;
       }
+      // Core Text-like stem darkening, per side in pixels, grown from the center.
+      double side = icons || colorGlyphs ? 0 : Math.min(0.006 * pixelSize, 0.3);
+      long xStrength = Math.round(2 * side * 64);
+      long yStrength = Math.round(2 * side * 1.25 * 64);
       try (Arena call = Arena.ofConfined()) {
         MemorySegment delta = call.allocate(FreeType.VECTOR);
-        FreeType.setLong(delta, 0, quarter * 16L);
-        FreeType.setLong(delta, FreeType.C_LONG.byteSize(), 0);
+        FreeType.setLong(delta, 0, quarter * 16L - xStrength / 2);
+        FreeType.setLong(delta, FreeType.C_LONG.byteSize(), -yStrength / 2);
         FreeType.setTransform(face, MemorySegment.NULL, delta); // copies the vector
       }
       int flags = FreeType.LOAD_NO_BITMAP
@@ -698,10 +746,16 @@ public final class Font implements AutoCloseable {
               : switch (hinting) {
                 case LIGHT -> FreeType.LOAD_FORCE_AUTOHINT | FreeType.LOAD_TARGET_LIGHT;
                 case NATIVE -> FreeType.LOAD_DEFAULT;
+                case NONE -> FreeType.LOAD_NO_HINTING;
               });
       check(FreeType.loadGlyph(face, glyph, flags), "load glyph " + glyph + " of");
       MemorySegment slot =
           face.get(ADDRESS, FreeType.FACE_GLYPH).reinterpret(FreeType.GLYPH_SLOT.byteSize());
+      if (xStrength > 0 || yStrength > 0) {
+        // Fails, leaving the outline as it was, only for one whose orientation FreeType cannot
+        // tell; such a glyph is drawn as designed.
+        FreeType.outlineEmboldenXY(slot.asSlice(FreeType.SLOT_OUTLINE), xStrength, yStrength);
+      }
       check(
           FreeType.renderGlyph(slot, FreeType.RENDER_MODE_NORMAL), "render glyph " + glyph + " of");
       long bitmap = FreeType.SLOT_BITMAP;
@@ -991,14 +1045,14 @@ public final class Font implements AutoCloseable {
     }
   }
 
-  private static float round(int units, double perUnit, double grid) {
-    return (float) (Math.round(units * perUnit * grid) / grid);
+  private static float round(double pixels, double grid) {
+    return (float) (Math.round(pixels * grid) / grid);
   }
 
   /**
-   * Whether the glyphs of this font are placed on whole physical pixels at every scale, not on
-   * quarter pixels from scale 1.5 on: true for {@link #icons()}, whose drawings are made for the
-   * pixel grid, which a glyph between two pixels would blur.
+   * Whether the glyphs of this font are placed on whole physical pixels at every scale rather than
+   * on quarter pixels: true for {@link #icons()}, whose drawings are made for the pixel grid, which
+   * a glyph between two pixels would blur.
    */
   public boolean wholePixels() {
     return icons;

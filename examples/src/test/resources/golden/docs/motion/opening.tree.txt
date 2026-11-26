@@ -1,5 +1,5 @@
 el 0,0 320x160
   el #panel 12,12 162.93x40
-  el role=button label="Close" 12,60 61.78x24
-    text "Close" 25,64 36x16
+  el role=button label="Close" 12,60 60.78x24
+    text "Close" 25,64 35x16
   el #pulse 12,92 16x16

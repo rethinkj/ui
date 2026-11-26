@@ -5,4 +5,4 @@ el 0,0 320x140
       el #remove role=button label="Remove daily" 50,17 14x14
         text label="dismiss" "\u{F367}" 51,18 12x12
     text #draft role=textbox label="Add tag" "" 68,15 141x18 focused caret 0
-  text "daily" 12,44 28x16
+  text "daily" 12,44 29x16

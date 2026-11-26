@@ -193,7 +193,7 @@ class TabGroupsTest {
         frame
         snap docking
         up screen 200,117""");
-    assertTrue(line(tree("docking"), "#marker").startsWith("el #marker 91,"), tree("docking"));
+    assertTrue(line(tree("docking"), "#marker").startsWith("el #marker 92,"), tree("docking"));
     Docs d = app.state();
     assertEquals(List.of(List.of("a", "c", "b", "d")), order(d));
     assertEquals(2, d.groups.main().active().active(), "the docked tab is active");

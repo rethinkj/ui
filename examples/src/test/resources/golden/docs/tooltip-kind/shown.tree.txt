@@ -1,6 +1,6 @@
 el 0,0 360x120
   text #pattern role=textbox label="Pattern" "(order" 12,12 200x24 invalid hovered
 overlay bottom center gap 4 on #pattern role=textbox label="Pattern" 12,12 200x24
-  el #tooltip role=tooltip label="Unclosed group near index 6" 13,40 199x26
-    text label="error_circle" "\u{F3F0}" 22,45 16x16
-    text "Unclosed group near index 6" 42,45 161x15
+  el #tooltip role=tooltip label="Unclosed group near index 6" 11,40 202x26
+    text label="error_circle" "\u{F3F0}" 20,45 16x16
+    text "Unclosed group near index 6" 40,45 164x15

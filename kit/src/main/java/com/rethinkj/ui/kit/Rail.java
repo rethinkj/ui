@@ -3,9 +3,13 @@ package com.rethinkj.ui.kit;
 import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.el;
 
+import com.rethinkj.ui.Background;
+import com.rethinkj.ui.Colors;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
+import com.rethinkj.ui.Measure;
+import com.rethinkj.ui.ScrollState;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
 import java.util.ArrayList;
@@ -39,15 +43,17 @@ import java.util.function.IntConsumer;
  *     state::selectPanel)
  * }</pre>
  *
- * <p>The band sits on the window surface ({@link Theme.Surfaces#window}) with a hairline ({@link
- * Theme.Borders#divider}) along its inner edge only, as wide as a large control ({@link
- * Theme.Sizes#controlLarge}) plus padding and the hairline ({@link #width()}). Items are square
- * ghost icon buttons ({@link Button#toggleIcon}). The open item shows the tinted tile and
- * accent-edge icon of a pressed-in toggle button. An optional {@link Dot} draws a small circle
- * at a button's top right and places its nonempty text in the tooltip and as the button's
- * {@code value}. Tooltips open toward the window's inside (right of a {@link Side#LEFT} rail,
+ * <p>By default the rail sits on the window surface ({@link Theme.Surfaces#window}) and is as wide
+ * as a large control ({@link Theme.Sizes#controlLarge}) plus padding and an inner hairline ({@link
+ * #width()}). Items are square ghost icon buttons ({@link Button#toggleIcon}). The open item
+ * shows the tinted tile and
+ * accent-edge icon of a pressed-in toggle button. A nonempty {@link Count} draws a pill at the
+ * button's top right, taking the place of any {@link Dot}. The button's {@code value} in a tree
+ * dump and its tooltip use the dot's text if it is nonempty, otherwise the count's text if
+ * nonempty. Tooltips open toward the window's inside (right of a {@link Side#LEFT} rail,
  * left of a {@link Side#RIGHT} rail), with any shortcut on keycaps. When the height runs out, the
- * rail scrolls with the wheel and as the keys move, without a scrollbar.
+ * rail scrolls with the wheel and as the keys move, with an indicator at each edge with more
+ * entries. The secondary button, Menu key, and Shift+F10 open the entry's context menu, if any.
  *
  * <p>The keys follow WAI-ARIA's vertical toolbar: the rail is one Tab stop, at the button the
  * keyboard last reached (initially the first); Arrow Up and Arrow Down wrap across the enabled
@@ -68,6 +74,24 @@ public final class Rail {
   /** A horizontal hairline between groups of items; made by {@link #separator()}. */
   public record Separator() implements Entry {}
 
+  /** The size of the rail's square buttons. */
+  public enum Size {
+    /** {@link Theme.Sizes#controlLarge} high, by default. */
+    LARGE,
+    /** {@link Theme.Sizes#control} high, for a rail inside another component. */
+    REGULAR
+  }
+
+  /** The fill behind the rail's buttons. */
+  public enum Surface {
+    /** The window's own fill, by default. */
+    WINDOW,
+    /** The theme's band fill, for a rail beside content inside a component. */
+    BAND,
+    /** Lets the background behind the rail show through. */
+    TRANSPARENT
+  }
+
   /**
    * A small colored mark at the top right of an item or action, dimmed when it is disabled.
    *
@@ -76,6 +100,19 @@ public final class Rail {
    */
   public record Dot(Badge.Kind kind, String text) {
     public Dot {
+      Objects.requireNonNull(kind, "kind");
+      Objects.requireNonNull(text, "text");
+    }
+  }
+
+  /**
+   * A compact pill at the top right of an item or action, dimmed when it is disabled.
+   *
+   * @param kind picks the pill's colors from {@link Theme.Badges}
+   * @param text the count to show; empty hides the pill
+   */
+  public record Count(Badge.Kind kind, String text) {
+    public Count {
       Objects.requireNonNull(kind, "kind");
       Objects.requireNonNull(text, "text");
     }
@@ -93,6 +130,8 @@ public final class Rail {
    * @param disabled whether the item is disabled even if the rail has a selection handler
    * @param busy whether to show a spinner or progress ring and ignore presses while enabled
    * @param progress the fraction done while busy, clamped to 0–1; NaN shows a spinner
+   * @param count a compact pill at the button's top right; null for none
+   * @param contextMenu items of the context menu, copied; null or empty for none
    */
   public record Item(
       Icon icon,
@@ -103,12 +142,29 @@ public final class Rail {
       String key,
       boolean disabled,
       boolean busy,
-      double progress)
+      double progress,
+      Count count,
+      List<Menu.Item> contextMenu)
       implements Entry {
 
     public Item {
       Objects.requireNonNull(icon, "icon");
       Objects.requireNonNull(label, "label");
+      contextMenu = contextMenu == null ? List.of() : List.copyOf(contextMenu);
+    }
+
+    /** An item without a count or context menu. */
+    public Item(
+        Icon icon,
+        String label,
+        Key shortcut,
+        Dot dot,
+        String description,
+        String key,
+        boolean disabled,
+        boolean busy,
+        double progress) {
+      this(icon, label, shortcut, dot, description, key, disabled, busy, progress, null, null);
     }
 
     /** An item with default description, key, and state. */
@@ -134,7 +190,9 @@ public final class Rail {
           this.key,
           disabled,
           busy,
-          progress);
+          progress,
+          count,
+          contextMenu);
     }
 
     /**
@@ -143,35 +201,108 @@ public final class Rail {
      */
     public Item dot(Badge.Kind kind, String text) {
       return new Item(
-          icon, label, shortcut, new Dot(kind, text), description, key, disabled, busy, progress);
+          icon,
+          label,
+          shortcut,
+          new Dot(kind, text),
+          description,
+          key,
+          disabled,
+          busy,
+          progress,
+          count,
+          contextMenu);
+    }
+
+    /** This item with a neutral count at its top right. */
+    public Item count(String text) {
+      return count(Badge.Kind.NEUTRAL, text);
+    }
+
+    /** This item with a count pill. A nonempty count takes the place of its dot visually. */
+    public Item count(Badge.Kind kind, String text) {
+      return new Item(
+          icon,
+          label,
+          shortcut,
+          dot,
+          description,
+          key,
+          disabled,
+          busy,
+          progress,
+          new Count(kind, text),
+          contextMenu);
+    }
+
+    /** This item with a secondary-press menu while enabled. Pass null or an empty list for none. */
+    public Item contextMenu(List<Menu.Item> items) {
+      return new Item(
+          icon, label, shortcut, dot, description, key, disabled, busy, progress, count, items);
     }
 
     /**
      * This item with secondary tooltip text. When both the description and the dot's text are
-     * nonempty, the tooltip shows the description followed by an em dash and the dot's text.
+     * nonempty, the tooltip shows the description followed by an em dash and the dot's text. If
+     * the dot has no text, the count's text is used instead.
      */
     public Item description(String text) {
-      return new Item(icon, label, shortcut, dot, text, key, disabled, busy, progress);
+      return new Item(
+          icon, label, shortcut, dot, text, key, disabled, busy, progress, count, contextMenu);
     }
 
-    /** This item with a custom key for scripts and for keeping its Tab stop across rebuilds. */
+    /** This item with a custom key for scripts and for keeping its Tab stop and context menu. */
     public Item key(String name) {
-      return new Item(icon, label, shortcut, dot, description, name, disabled, busy, progress);
+      return new Item(
+          icon,
+          label,
+          shortcut,
+          dot,
+          description,
+          name,
+          disabled,
+          busy,
+          progress,
+          count,
+          contextMenu);
     }
 
     /** This item disabled or enabled. The rail's selection handler is also required to enable it. */
     public Item disabled(boolean off) {
-      return new Item(icon, label, shortcut, dot, description, key, off, busy, progress);
+      return new Item(
+          icon, label, shortcut, dot, description, key, off, busy, progress, count, contextMenu);
     }
 
     /** This item busy or ready. While enabled and busy it takes focus and ignores presses. */
     public Item busy(boolean busy) {
-      return new Item(icon, label, shortcut, dot, description, key, disabled, busy, progress);
+      return new Item(
+          icon,
+          label,
+          shortcut,
+          dot,
+          description,
+          key,
+          disabled,
+          busy,
+          progress,
+          count,
+          contextMenu);
     }
 
     /** This item with a progress ring while busy. NaN shows the spinner. */
     public Item progress(double fraction) {
-      return new Item(icon, label, shortcut, dot, description, key, disabled, busy, fraction);
+      return new Item(
+          icon,
+          label,
+          shortcut,
+          dot,
+          description,
+          key,
+          disabled,
+          busy,
+          fraction,
+          count,
+          contextMenu);
     }
   }
 
@@ -188,6 +319,8 @@ public final class Rail {
    * @param disabled whether the action is disabled even if it has a press handler
    * @param busy whether to show a spinner or progress ring and ignore presses while enabled
    * @param progress the fraction done while busy, clamped to 0–1; NaN shows a spinner
+   * @param count a compact pill at the button's top right; null for none
+   * @param contextMenu items of the context menu, copied; null or empty for none
    */
   public record Action(
       Icon icon,
@@ -199,12 +332,42 @@ public final class Rail {
       String key,
       boolean disabled,
       boolean busy,
-      double progress)
+      double progress,
+      Count count,
+      List<Menu.Item> contextMenu)
       implements Entry {
 
     public Action {
       Objects.requireNonNull(icon, "icon");
       Objects.requireNonNull(label, "label");
+      contextMenu = contextMenu == null ? List.of() : List.copyOf(contextMenu);
+    }
+
+    /** An action without a count or context menu. */
+    public Action(
+        Icon icon,
+        String label,
+        Runnable onPress,
+        Key shortcut,
+        Dot dot,
+        String description,
+        String key,
+        boolean disabled,
+        boolean busy,
+        double progress) {
+      this(
+          icon,
+          label,
+          onPress,
+          shortcut,
+          dot,
+          description,
+          key,
+          disabled,
+          busy,
+          progress,
+          null,
+          null);
     }
 
     /** This action with a key combination shown on keycaps, as in {@link Item#shortcut(int, String)}. */
@@ -219,7 +382,9 @@ public final class Rail {
           this.key,
           disabled,
           busy,
-          progress);
+          progress,
+          count,
+          contextMenu);
     }
 
     /** This action with a status dot, as in {@link Item#dot(Badge.Kind, String)}. */
@@ -234,49 +399,161 @@ public final class Rail {
           key,
           disabled,
           busy,
-          progress);
+          progress,
+          count,
+          contextMenu);
+    }
+
+    /** This action with a neutral count at its top right. */
+    public Action count(String text) {
+      return count(Badge.Kind.NEUTRAL, text);
+    }
+
+    /** This action with a count pill. A nonempty count takes the place of its dot visually. */
+    public Action count(Badge.Kind kind, String text) {
+      return new Action(
+          icon,
+          label,
+          onPress,
+          shortcut,
+          dot,
+          description,
+          key,
+          disabled,
+          busy,
+          progress,
+          new Count(kind, text),
+          contextMenu);
+    }
+
+    /** This action with a secondary-press menu while enabled. Pass null or an empty list for none. */
+    public Action contextMenu(List<Menu.Item> items) {
+      return new Action(
+          icon,
+          label,
+          onPress,
+          shortcut,
+          dot,
+          description,
+          key,
+          disabled,
+          busy,
+          progress,
+          count,
+          items);
     }
 
     /** This action with secondary tooltip text, as in {@link Item#description(String)}. */
     public Action description(String text) {
-      return new Action(icon, label, onPress, shortcut, dot, text, key, disabled, busy, progress);
+      return new Action(
+          icon,
+          label,
+          onPress,
+          shortcut,
+          dot,
+          text,
+          key,
+          disabled,
+          busy,
+          progress,
+          count,
+          contextMenu);
     }
 
-    /** This action with a custom key for scripts and for keeping its Tab stop across rebuilds. */
+    /** This action with a custom key for scripts and for keeping its Tab stop and context menu. */
     public Action key(String name) {
       return new Action(
-          icon, label, onPress, shortcut, dot, description, name, disabled, busy, progress);
+          icon,
+          label,
+          onPress,
+          shortcut,
+          dot,
+          description,
+          name,
+          disabled,
+          busy,
+          progress,
+          count,
+          contextMenu);
     }
 
     /** This action disabled or enabled. A press handler is also required to enable it. */
     public Action disabled(boolean off) {
-      return new Action(icon, label, onPress, shortcut, dot, description, key, off, busy, progress);
+      return new Action(
+          icon,
+          label,
+          onPress,
+          shortcut,
+          dot,
+          description,
+          key,
+          off,
+          busy,
+          progress,
+          count,
+          contextMenu);
     }
 
     /** This action busy or ready. While enabled and busy it takes focus and ignores presses. */
     public Action busy(boolean busy) {
       return new Action(
-          icon, label, onPress, shortcut, dot, description, key, disabled, busy, progress);
+          icon,
+          label,
+          onPress,
+          shortcut,
+          dot,
+          description,
+          key,
+          disabled,
+          busy,
+          progress,
+          count,
+          contextMenu);
     }
 
     /** This action with a progress ring while busy. NaN shows the spinner. */
     public Action progress(double fraction) {
       return new Action(
-          icon, label, onPress, shortcut, dot, description, key, disabled, busy, fraction);
+          icon,
+          label,
+          onPress,
+          shortcut,
+          dot,
+          description,
+          key,
+          disabled,
+          busy,
+          fraction,
+          count,
+          contextMenu);
     }
   }
 
   /**
    * What a rail keeps between builds, which the app holds in its state, one per rail: the button
-   * that Tab reaches.
+   * that Tab reaches, the scroll offset, and the open context menu.
    */
   public static final class State {
     final Roving keys = new Roving(true);
+    final ScrollState scroll = new ScrollState();
+    private final Menu.State menu = new Menu.State();
+    private MenuAnchor menuAnchor;
+
+    /** The shared context menu state, which the app can inspect or close. */
+    public Menu.State contextMenu() {
+      return menu;
+    }
   }
+
+  // An index can be reused by another entry when the app doesn't give its entries keys.
+  private record MenuAnchor(String key, String labelAtIndex) {}
 
   /** Rail behavior beyond its entries and handler. */
   public static final class Options {
     private boolean closable = true;
+    private Size size = Size.LARGE;
+    private Surface surface = Surface.WINDOW;
+    private boolean indicator;
 
     private Options() {}
 
@@ -286,6 +563,24 @@ public final class Rail {
      */
     public Options closable(boolean closable) {
       this.closable = closable;
+      return this;
+    }
+
+    /** Sizes the buttons and the rail. The default is {@link Size#LARGE}. */
+    public Options size(Size size) {
+      this.size = Objects.requireNonNull(size, "size");
+      return this;
+    }
+
+    /** Sets the rail's surface. The default is {@link Surface#WINDOW}. */
+    public Options surface(Surface surface) {
+      this.surface = Objects.requireNonNull(surface, "surface");
+      return this;
+    }
+
+    /** Draws a mark along the rail's outer edge beside the open item when true. Off by default. */
+    public Options indicator(boolean indicator) {
+      this.indicator = indicator;
       return this;
     }
   }
@@ -312,10 +607,17 @@ public final class Rail {
     return new Options();
   }
 
-  /** The rail's width in the current theme, including its padding and inner hairline. */
+  /** The width of a large rail in the current theme. */
   public static float width() {
+    return width(Size.LARGE);
+  }
+
+  /** The rail's width at this size in the current theme, including padding and the inner hairline. */
+  public static float width(Size size) {
     Theme theme = Theme.CURRENT.get();
-    return theme.size().controlLarge() + 2 * theme.space().s() + theme.size().stroke();
+    return control(theme, Objects.requireNonNull(size, "size"))
+        + 2 * theme.space().s()
+        + theme.size().stroke();
   }
 
   /** A rail with a top group and no bottom group. */
@@ -366,7 +668,7 @@ public final class Rail {
    *     {@code bottom}), or {@code -1} when none is open
    * @param onSelect told the index of a closed item when pressed, or {@code -1} when the open item
    *     is pressed and closable; null disables the toggle items
-   * @param options whether pressing the open item closes it
+   * @param options the size, surface, closability, and optional active item indicator
    * @throws IllegalArgumentException if {@code side} is neither {@link Side#LEFT} nor {@link
    *     Side#RIGHT}
    */
@@ -386,24 +688,25 @@ public final class Rail {
     }
     Objects.requireNonNull(top, "top");
     Objects.requireNonNull(bottom, "bottom");
-    boolean closable = Objects.requireNonNull(options, "options").closable;
+    Objects.requireNonNull(options, "options");
 
     Theme theme = Theme.CURRENT.get();
     float pad = theme.space().s();
     float stroke = theme.size().stroke();
     Side tipSide = side == Side.LEFT ? Side.RIGHT : Side.LEFT;
+    int fill = switch (options.surface) {
+      case WINDOW -> theme.surface().window();
+      case BAND -> theme.surface().band();
+      case TRANSPARENT -> Colors.TRANSPARENT;
+    };
 
     El rail = col()
         .role("toolbar")
         .label(label)
-        .w(width())
+        .w(width(options.size))
         .shrink(0)
-        .align(Style.Align.CENTER)
-        .padding(pad)
-        .gap(pad)
         .alignSelf(Style.Align.STRETCH) // the window's height, also in a row that aligns at the top
-        .fill(theme.surface().window())
-        .scroll(); // no scrollbar: it would lie over the buttons; the wheel and the keys scroll
+        .fill(fill);
     rail.style().minHeight = Len.ZERO;
     if (side == Side.LEFT) {
       rail.border(0, stroke, 0, 0, theme.border().divider());
@@ -411,6 +714,22 @@ public final class Rail {
       rail.border(0, 0, 0, stroke, theme.border().divider());
     }
 
+    // Keep the fades outside the scroll area so they stay over its edges as the entries move.
+    El items = col()
+        .key("rail-items")
+        .grow(1)
+        .minSize(0, 0)
+        .align(Style.Align.CENTER)
+        .padding(pad)
+        .gap(pad)
+        .scroll()
+        .scrollState(state.scroll);
+    rail.child(items);
+
+    if (!state.menu.isOpen()) {
+      state.menuAnchor = null;
+    }
+    boolean menuFound = false;
     List<El> stops = new ArrayList<>();
     List<String> ids = new ArrayList<>();
     int itemIndex = 0;
@@ -420,24 +739,59 @@ public final class Rail {
       boolean pin = group == 1;
       for (Entry entry : entries) {
         El child = switch (Objects.requireNonNull(entry, "entry")) {
-          case Separator _ -> separator(theme);
-          case Item item -> toggle(theme, item, itemIndex++, open, tipSide, onSelect, closable);
-          case Action action -> command(theme, action, actionIndex++, tipSide);
+          case Separator _ -> separator(theme, options.size);
+          case Item item -> toggle(theme, item, itemIndex++, open, tipSide, onSelect, options);
+          case Action action -> command(theme, action, actionIndex++, tipSide, options.size);
         };
         // An auto margin takes the free height without adding a second gap when the rail scrolls.
         if (pin) {
           child.style().marginTop = Len.AUTO;
           pin = false;
         }
-        if (child.isFocusable()) {
-          stops.add(child);
-          ids.add(child.key());
+        if (!(entry instanceof Separator)) {
+          El button = child.children().getFirst();
+          if (button.isFocusable()) {
+            stops.add(button);
+            ids.add(button.key());
+            menuFound |= switch (entry) {
+              case Item item -> contextMenu(state, button, item.contextMenu(), item.key());
+              case Action action -> contextMenu(state, button, action.contextMenu(), action.key());
+              case Separator _ -> false;
+            };
+          }
         }
-        rail.child(child);
+        items.child(child);
       }
+    }
+    if (!menuFound && state.menu.isOpen()) {
+      state.menu.close();
+      state.menuAnchor = null;
+    }
+    if (!state.scroll.atStart()) {
+      rail.child(overflow(theme, rail, true));
+    }
+    if (!state.scroll.atEnd()) {
+      rail.child(overflow(theme, rail, false));
     }
     state.keys.apply(rail, stops, ids);
     return rail.disabled(stops.isEmpty());
+  }
+
+  private static boolean contextMenu(
+      State state, El button, List<Menu.Item> menu, String customKey) {
+    if (menu.isEmpty()) {
+      return false;
+    }
+    MenuAnchor anchor = new MenuAnchor(button.key(), customKey == null ? button.label() : null);
+    button.onSecondaryPress((x, y) -> {
+      state.menuAnchor = anchor;
+      state.menu.openAt(x, y);
+    });
+    if (!anchor.equals(state.menuAnchor)) {
+      return false;
+    }
+    Menu.contextMenu(button, state.menu, menu);
+    return true;
   }
 
   /** A top group of toggle items for typed values, with the default options. */
@@ -485,8 +839,9 @@ public final class Rail {
       int open,
       Side tipSide,
       IntConsumer onSelect,
-      boolean closable) {
+      Options railOptions) {
     boolean enabled = onSelect != null && !item.disabled();
+    boolean closable = railOptions.closable;
     Consumer<Boolean> onToggle = enabled
         ? show -> {
           if (show || closable) {
@@ -494,74 +849,209 @@ public final class Rail {
           }
         }
         : null;
+    String status = statusText(item.dot(), item.count());
     Button.Options options = buttonOptions(
+        railOptions.size,
         tipSide,
         item.shortcut(),
         item.description(),
-        item.dot(),
+        status,
         enabled && item.busy(),
         item.progress());
-    El button = Button.toggleIcon(item.icon(), item.label(), open == index, onToggle, options)
-        .key(item.key() != null ? item.key() : "item-" + index);
-    return withDot(theme, button, item.dot());
+    boolean active = open == index;
+    El button = Button.toggleIcon(item.icon(), item.label(), active, onToggle, options)
+        .key(item.key() != null ? item.key() : "item-" + index)
+        .value(status);
+    if (active && railOptions.indicator) {
+      addIndicator(theme, button, railOptions.size, tipSide == Side.RIGHT ? Side.LEFT : Side.RIGHT);
+    }
+    return entryFrame(theme, button, railOptions.size, item.dot(), item.count());
   }
 
-  private static El command(Theme theme, Action action, int index, Side tipSide) {
+  private static El command(Theme theme, Action action, int index, Side tipSide, Size size) {
     Runnable onPress = action.disabled() ? null : action.onPress();
+    String status = statusText(action.dot(), action.count());
     Button.Options options = buttonOptions(
+        size,
         tipSide,
         action.shortcut(),
         action.description(),
-        action.dot(),
+        status,
         onPress != null && action.busy(),
         action.progress());
     El button = Button.icon(Button.Variant.GHOST, action.icon(), action.label(), onPress, options)
-        .key(action.key() != null ? action.key() : "action-" + index);
-    return withDot(theme, button, action.dot());
+        .key(action.key() != null ? action.key() : "action-" + index)
+        .value(status);
+    return entryFrame(theme, button, size, action.dot(), action.count());
+  }
+
+  private static String statusText(Dot dot, Count count) {
+    if (dot != null && !dot.text().isEmpty()) {
+      return dot.text();
+    }
+    return count != null && !count.text().isEmpty() ? count.text() : null;
   }
 
   private static Button.Options buttonOptions(
-      Side tipSide, Key shortcut, String description, Dot dot, boolean busy, double progress) {
-    Button.Options options =
-        Button.options().size(Button.Size.LARGE).shortcut(shortcut).tipSide(tipSide);
+      Size size,
+      Side tipSide,
+      Key shortcut,
+      String description,
+      String status,
+      boolean busy,
+      double progress) {
+    Button.Options options = Button.options()
+        .size(size == Size.REGULAR ? Button.Size.REGULAR : Button.Size.LARGE)
+        .shortcut(shortcut)
+        .tipSide(tipSide);
     if (busy) {
       options.state(Button.State.BUSY).progress(progress);
     }
-    if (dot != null && !dot.text().isEmpty()) {
-      description = description == null || description.isEmpty()
-          ? dot.text()
-          : description + " — " + dot.text();
+    if (status != null) {
+      description =
+          description == null || description.isEmpty() ? status : description + " — " + status;
     }
     return options.tipDescription(
         description == null || description.isEmpty() ? null : description);
   }
 
-  private static El separator(Theme theme) {
+  private static float control(Theme theme, Size size) {
+    return size == Size.REGULAR ? theme.size().control() : theme.size().controlLarge();
+  }
+
+  private static El separator(Theme theme, Size size) {
     return Divider.divider()
-        .w(theme.size().controlLarge() - 2 * theme.space().s())
+        .w(control(theme, size) - 2 * theme.space().s())
         .margin(theme.space().xs(), 0, theme.space().xs(), 0);
   }
 
-  private static El withDot(Theme theme, El button, Dot dot) {
-    if (dot == null) {
-      return button;
+  private static El entryFrame(Theme theme, El button, Size buttonSize, Dot dot, Count count) {
+    // Lay the pill over the button's focus ring, within the scroll area's clip.
+    El frame =
+        el().key("entry-" + button.key()).motion(theme.motion().feedback()).child(button);
+    if (count != null && !count.text().isEmpty()) {
+      frame.child(count(theme, button.isFocusable(), buttonSize, count));
+    } else if (dot != null) {
+      button.child(dot(theme, button.isFocusable(), buttonSize, dot));
     }
-    if (!dot.text().isEmpty()) {
-      button.value(dot.text());
-    }
+    return frame;
+  }
+
+  private static El dot(Theme theme, boolean enabled, Size buttonSize, Dot dot) {
     float size = theme.size().dot();
-    Len inset = Len.px(theme.space().s() + theme.size().ringGap());
+    Len inset = Len.px(
+        buttonSize == Size.REGULAR
+            ? theme.space().xs()
+            : theme.space().s() + theme.size().ringGap());
     El mark = el().size(size, size)
         .radius(size / 2)
-        .fill(
-            button.isFocusable()
-                ? Badge.tone(theme, dot.kind()).strong()
-                : theme.text().disabled())
+        .fill(enabled ? Badge.tone(theme, dot.kind()).strong() : theme.text().disabled())
         .inert();
     Style at = mark.style();
     at.position = Style.Position.ABSOLUTE;
     at.top = inset;
     at.right = inset;
-    return button.child(mark);
+    return mark;
+  }
+
+  private static El count(Theme theme, boolean enabled, Size size, Count count) {
+    Theme.Tone tone = Badge.tone(theme, count.kind());
+    Theme.TextStyle text = theme.badge().text();
+    float padding = theme.space().xs();
+    float height = size == Size.REGULAR
+        ? theme.space().l()
+        : theme.space().l() + theme.space().xs();
+    float fontSize = Math.max(
+        text.size() / 2,
+        text.size() - (size == Size.REGULAR ? theme.space().s() : theme.space().xs()));
+    El mark = el().key("count")
+        .h(height)
+        .minSize(height, 0)
+        .center()
+        .padding(0, padding)
+        .radius(height / 2)
+        .fill(enabled ? tone.strong() : theme.badge().neutral().soft())
+        .clip()
+        .inert()
+        .child(El.text(count.text())
+            .font(text.font().get())
+            .fontSize(fontSize)
+            .fontFeatures("+tnum")
+            .color(enabled ? tone.strongText() : theme.text().disabled())
+            .ellipsis()
+            .minSize(0, 0));
+    Style at = mark.style();
+    at.position = Style.Position.ABSOLUTE;
+    Len offset = size == Size.REGULAR ? Len.px(-padding) : Len.ZERO;
+    at.top = offset;
+    at.right = offset;
+    at.maxWidth = Len.px(control(theme, size));
+    return mark;
+  }
+
+  private static void addIndicator(Theme theme, El button, Size size, Side side) {
+    float width = theme.size().indicator();
+    float height = size == Size.REGULAR
+        ? theme.size().icon() - theme.space().s()
+        : theme.size().icon();
+    float pad = theme.space().s();
+    float stroke = theme.size().stroke();
+    El mark = el().key("indicator")
+        .size(width, height)
+        .radius(width / 2)
+        .fill(button.isFocusable() ? theme.accent().edge() : theme.text().disabled())
+        .inert();
+    Style at = mark.style();
+    at.position = Style.Position.ABSOLUTE;
+    at.top = Len.px((control(theme, size) - height) / 2 - stroke);
+    if (side == Side.LEFT) {
+      at.left = Len.px(-pad - stroke);
+    } else {
+      at.right = Len.px(-pad - stroke);
+    }
+    button.child(mark);
+  }
+
+  private static El overflow(Theme theme, El rail, boolean top) {
+    El edge = el().key(top ? "overflow-top" : "overflow-bottom").inert();
+    Style at = edge.style();
+    at.position = Style.Position.ABSOLUTE;
+    at.left = Len.ZERO;
+    at.right = Len.ZERO;
+    at.maxHeight = Len.percent(1);
+    if (top) {
+      at.top = Len.ZERO;
+    } else {
+      at.bottom = Len.ZERO;
+    }
+    // The app may set the rail's fill or background after rail(...) returns.
+    return edge.measure(new Measure() {
+      private boolean solid() {
+        return Colors.alpha(rail.fill()) == 255 && rail.background() == null;
+      }
+
+      @Override
+      public Measure.Size measure(
+          float knownWidth, float knownHeight, float availableWidth, float availableHeight) {
+        return new Measure.Size(0, solid() ? theme.space().l() : theme.size().stroke());
+      }
+
+      @Override
+      public void placed(float width, float height) {
+        if (solid()) {
+          int fill = rail.fill();
+          Len end = Len.percent(1);
+          edge.background(Background.linear(
+              Len.ZERO,
+              top ? Len.ZERO : end,
+              Len.ZERO,
+              top ? end : Len.ZERO,
+              fill,
+              Colors.alpha(fill, 0)));
+        } else {
+          edge.fill(theme.border().divider());
+        }
+      }
+    });
   }
 }

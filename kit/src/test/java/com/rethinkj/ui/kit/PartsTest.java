@@ -258,7 +258,7 @@ class PartsTest {
     assertEquals("public", app.focused().label());
     assertEquals("public", tabStop(app, 420), "the ellipsis came before it");
     assertEquals("public", tabStop(app, 720), "and went");
-    assertEquals("localhost", tabStop(app, 520), "public went into it: the part visited before");
+    assertEquals("localhost", tabStop(app, 480), "public went into it: the part visited before");
     assertEquals("localhost", tabStop(app, 720));
     more(app, out, 720, "key ArrowRight\nframe\nkey ArrowRight\nframe\nkey Enter\nframe");
     assertEquals("Inside public", tabStop(app, 720), "public became the current place");

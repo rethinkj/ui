@@ -49,7 +49,7 @@ el 0,0 580x298
     el #doc-1 85,33 474x136
       el 100,35 451x34
         text role=paragraph "Finds paid orders in a date range, newest first. Uses the orders_placed_at index; see Order." 100,35 451x34 readonly lines 1-1/1
-          el #link-0 role=link label="Order" 313.63,52 45.88x17 value="Order"
+          el #link-0 role=link label="Order" 312.38,52 45.88x17 value="Order"
       el role=list 100,77 451x88
         el role=group label="Params:" 100,77 451x38
           el 100,77 49x17

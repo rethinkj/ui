@@ -12,39 +12,39 @@ el 0,0 680x340
               text role=paragraph "Only the open orders query, since Monday." 29,-62 622x17 readonly lines 1-1/1
         el 29,-37 622x51 pos=3/10
           el role=article label="User message" 29,-29 622x35
-            el 222,-29 429x35
-              text role=paragraph "Why did the orders query slow down after Monday's release?" 235,-20 403x17 readonly lines 1-1/1
+            el 225,-29 426x35
+              text role=paragraph "Why did the orders query slow down after Monday's release?" 238,-20 400x17 readonly lines 1-1/1
         el 29,14 622x50 pos=4/10
           el role=article label="Agent message" 29,22 622x34
             el 29,22 622x34
               text role=paragraph "The orders table grew past 1.8M rows and has no composite index on (status, created_at), so PostgreSQL switched from an index scan to a sequential scan." 29,22 622x34 readonly lines 1-1/1
         el 29,64 622x51 pos=5/10
           el role=article label="User message" 29,72 622x35
-            el 319,72 332x35
-              text role=paragraph "Can we add the index without blocking writes?" 332,81 306x17 readonly lines 1-1/1
+            el 322,72 329x35
+              text role=paragraph "Can we add the index without blocking writes?" 335,81 303x17 readonly lines 1-1/1
         el 29,115 622x112 pos=6/10
           el role=article label="Agent message" 29,123 622x96
             el 29,123 622x96
               text role=paragraph "Yes — build it concurrently so writes keep running:" 29,123 622x17 readonly lines 1-1/1
               el role=group 29,148 622x71
                 el 30,149 620x29
-                  el label="sql" 38,154 28x18
-                    text "sql" 44,156 16x15
-                  el 70,163 568x0
+                  el label="sql" 38,154 29x18
+                    text "sql" 44,156 17x15
+                  el 71,163 567x0
                   el 642,163 0x0
                 text role=code label="sql" "CREATE INDEX CONCURRENTLY orders_status_created\n  ON orders (status, created_at);" 30,178 620x40 readonly lines 1-2/2
         el 29,227 622x51 pos=7/10
           el role=article label="User message" 29,235 622x35
-            el 418,235 233x35
-              text role=paragraph "How much space will that take?" 431,244 207x17 readonly lines 1-1/1
+            el 419,235 232x35
+              text role=paragraph "How much space will that take?" 432,244 206x17 readonly lines 1-1/1
         el 29,278 622x50 pos=8/10
           el role=article label="Agent message" 29,286 622x34
             el 29,286 622x34
               text role=paragraph "About 68 MB for the current 1.8M rows. Run ANALYZE orders; afterward so the planner picks it up immediately." 29,286 622x34 readonly lines 1-1/1
         el 29,328 622x51 pos=9/10
           el role=article label="User message" 29,336 622x35
-            el 290,336 361x35
-              text role=paragraph "Should we drop the single-column index on status?" 303,345 335x17 readonly lines 1-1/1
+            el 291,336 360x35
+              text role=paragraph "Should we drop the single-column index on status?" 304,345 334x17 readonly lines 1-1/1
         el 29,379 622x50 pos=10/10
           el role=article label="Agent message" 29,387 622x34
             el 29,387 622x34

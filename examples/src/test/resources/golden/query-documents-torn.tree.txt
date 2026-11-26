@@ -5,7 +5,7 @@ el 0,0 480x300
         el 8,8 16x16
           el 9,9 14x14
             text "\u{E4D7}" 11,11 10x10
-      text "Documents" 32,8 72x16
+      text "Documents" 32,8 70x16
     el 278,16 24x0
     el 302,0 40x32
       el 302,4 24x24

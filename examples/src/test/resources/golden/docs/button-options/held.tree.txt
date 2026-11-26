@@ -1,12 +1,12 @@
 el 0,0 420x170
-  el 12,12 194x24
-    el role=button label="Drop table" 12,12 89x24 focused
-      text "Drop table" 25,17 63x16
-    el role=button label="Discard" 105,12 73x24
-      text "Discard" 118,16 47x16
-    el role=button label="Delete row" 182,12 24x24
-      text label="delete" "\u{E47B}" 186,16 16x16
-  el 12,44 348x24
+  el 12,12 195x24
+    el role=button label="Drop table" 12,12 90x24 focused
+      text "Drop table" 25,17 64x16
+    el role=button label="Discard" 106,12 73x24
+      text "Discard" 119,16 47x16
+    el role=button label="Delete row" 183,12 24x24
+      text label="delete" "\u{E47B}" 187,16 16x16
+  el 12,44 347x24
     el role=button label="Save" 12,44 56x24 disabled
       text "Save" 25,48 30x16
     el role=button label="Refresh" 72,44 24x24 busy
@@ -32,27 +32,27 @@ el 0,0 420x170
       el 198,44 1x24
       el #arrow role=button label="More Run" 199,44 22x24 expanded=false
         text label="chevron_down" "\u{F2A2}" 202,48 16x16
-    el role=button label="Opus 5.5 High" 225,44 135x24
+    el role=button label="Opus 5.5 High" 225,44 134x24
       text label="flash" "\u{E617}" 238,48 16x16
-      el 258,48 89x16
+      el 258,48 88x16
         text "Opus 5.5" 258,48 56x16
-        text "High" 318,48 29x16
-  el 12,76 380x32
-    el role=button label="Commit" 12,80 130x24 busy
-      el 25,84 104x16
-        el 25,84 104x16
+        text "High" 318,48 28x16
+  el 12,76 378x32
+    el role=button label="Commit" 12,80 129x24 busy
+      el 25,84 103x16
+        el 25,84 103x16
           el role=progressbar label="Loading" 25,84 16x16
             el 25,84 16x16
             el 25,84 16x16
             el 25,84 16x16
             el 25,84 16x16
             el 25,84 16x16
-          text "Committing…" 45,84 84x16
-        el 25,100 104x0
-          text "Commit" 25,100 49x0
-    el role=button label="Export" 146,80 86x24 expanded=false
-      text "Export" 159,84 40x16
+          text "Committing…" 45,84 83x16
+        el 25,100 103x0
+          text "Commit" 25,100 48x0
+    el role=button label="Export" 145,80 87x24 expanded=false
+      text "Export" 158,84 41x16
       text label="chevron_down" "\u{F2A2}" 203,84 16x16
-    el role=button label="New connection" 236,76 156x32
+    el role=button label="New connection" 236,76 154x32
       text label="add" "\u{F108}" 253,84 16x16
-      text "New connection" 273,84 102x16
+      text "New connection" 273,84 100x16

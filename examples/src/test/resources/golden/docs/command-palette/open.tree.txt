@@ -9,8 +9,8 @@ overlay edge top center gap 72 on 0,0 640x360
       el #option-0 role=option label="Query: Run" 49,117 542x28 selected pos=1/2
         el 49,117 542x28
           el 57,131 16x0
-          text "Query: Run" 81,123 427x16
-          text "Ctrl+Enter" 520,123 63x16
+          text "Query: Run" 81,123 428x16
+          text "Ctrl+Enter" 521,123 62x16
       el #option-1 role=option label="Query: Format" 49,145 542x28 pos=2/2
         el 49,145 542x28
           el 57,159 16x0
