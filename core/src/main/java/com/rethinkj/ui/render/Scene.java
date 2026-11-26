@@ -1719,7 +1719,8 @@ public final class Scene {
           for (int r = coloredRanges.size() - 1; r >= 0; r--) {
             El range = coloredRanges.get(r);
             if (at >= range.rangeFrom() && at < range.rangeTo()) {
-              glyphColor = range.rangeColor();
+              // As its fill does, the range's opacity fades its color in over the parent's.
+              glyphColor = Colors.mix(glyphColor, range.rangeColor(), range.opacity());
               break;
             }
           }

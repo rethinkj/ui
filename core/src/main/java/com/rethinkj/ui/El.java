@@ -1753,12 +1753,10 @@ public final class El {
    * @param argb the text color as 0xAARRGGBB
    */
   public El color(int argb) {
-    if (text != null) {
-      text.color(argb);
-    } else if (rangeFrom >= 0) {
+    if (text == null && rangeFrom >= 0) {
       rangeColor = argb;
     } else {
-      textOnly("color");
+      textOnly("color").color(argb);
     }
     return this;
   }
