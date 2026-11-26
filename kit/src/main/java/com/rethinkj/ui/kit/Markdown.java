@@ -193,7 +193,7 @@ public final class Markdown {
     private Consumer<String> onLink;
     private Consumer<Task> onTask;
     private Function<String, Highlighter> languages = language -> null;
-    private Function<MarkdownDocument.CodeBlock, El> codeBlocks = block -> null;
+    private Function<MarkdownDocument.CodeBlock, El> codeBlocks = KEPT_CODE_BLOCKS;
     private Clipboard clipboard;
     private Button.Copied copied;
     private State state;
@@ -276,13 +276,11 @@ public final class Markdown {
     /**
      * An element to show in place of a code block, or null to keep the default code block. Asked
      * on each build of the block's row, so keep any state of the element (such as a {@code
-     * DiffView.State}) in the app's state. Answer the same way for a block of a document in every
-     * view of it, as long as the document lives: selecting and finding keep what they read of a
-     * block; to show a block another way, parse its text again. A replaced block has no code-block
-     * header row, wrap toggle or Copy code menu item; drag selection reaches only text the element
-     * itself makes selectable, while Select all and {@link Markdown#text} copy the
-     * block's source as written. While the element has the focus, it handles its own keys, such as
-     * Control+A, Control+C and Control+F.
+     * DiffView.State}) in the app's state. A replaced block has no code-block header row, wrap
+     * toggle or Copy code menu item; drag selection reaches only text the element itself makes
+     * selectable, while Select all and {@link Markdown#text} copy the block's source as written.
+     * While the element has the focus, it handles its own keys, such as Control+A, Control+C and
+     * Control+F.
      */
     public Options codeBlocks(Function<MarkdownDocument.CodeBlock, El> blocks) {
       this.codeBlocks = Objects.requireNonNull(blocks, "blocks");
@@ -443,10 +441,12 @@ public final class Markdown {
     El out = col().minSize(0, 0).selectionScope();
     if (options.virtual) {
       List<Block> blocks = document.blocks();
-      return out.rows( // each block with its space in a row, as the column has them
-          blocks.size(),
-          prepared.blockHeights,
-          i -> col().child(spaced(c, blocks, i, false, block(c, blocks.get(i)))));
+      return REPLACING.with(
+          options.codeBlocks != KEPT_CODE_BLOCKS,
+          () -> out.rows( // each block with its space in a row, as the column has them
+              blocks.size(),
+              prepared.blockHeights,
+              i -> col().child(spaced(c, blocks, i, false, block(c, blocks.get(i))))));
     }
     blocks(c, document.blocks(), false, out);
     return out;
@@ -648,6 +648,24 @@ public final class Markdown {
   /** What table widths were measured for: the scale, and whether cells showed their images. */
   private record Measured(float scale, boolean images) {}
 
+  /** No code block replaced: the default of {@link Options#codeBlocks}. */
+  private static final Function<MarkdownDocument.CodeBlock, El> KEPT_CODE_BLOCKS = block -> null;
+
+  /** Whether the virtual fragment being built has a {@link Options#codeBlocks} hook. */
+  private static final com.rethinkj.ui.Context<Boolean> REPLACING =
+      new com.rethinkj.ui.Context<>(false);
+
+  /** Whether the block is or holds a code block, in a quote or list item. */
+  private static boolean hasCode(Block block) {
+    return switch (block) {
+      case MarkdownDocument.CodeBlock code -> true;
+      case MarkdownDocument.Quote q -> q.blocks().stream().anyMatch(Markdown::hasCode);
+      case MarkdownDocument.ListBlock l ->
+        l.items().stream().flatMap(item -> item.blocks().stream()).anyMatch(Markdown::hasCode);
+      default -> false;
+    };
+  }
+
   /** The blocks of text of a document, made once per theme. */
   private static final class Prepared {
     final MarkdownDocument document;
@@ -692,6 +710,7 @@ public final class Markdown {
       this.document = document;
       List<Block> blocks = document.blocks();
       // By index, each block its own version: a selection scope keeps what it read of a block.
+      // A hook may show a code block another way on any build, so a row with one is read anew.
       this.blockHeights = new RowHeights(
           i -> i < keptBlocks.length
               ? keptBlocks[i]
@@ -699,7 +718,7 @@ public final class Markdown {
                   i < grownBlocks.length ? grownBlocks[i] : 0,
                   estimate(theme, blocks.get(i)) + theme.space().m()),
           i -> i,
-          blocks::get);
+          i -> REPLACING.get() && hasCode(blocks.get(i)) ? new Object() : blocks.get(i));
       List<Unit> units = units(document);
       this.units = units;
       this.heights = new RowHeights(i -> {
@@ -901,9 +920,19 @@ public final class Markdown {
     return item < items.size() ? items.get(item).blocks() : List.of();
   }
 
-  /** Whether blocks with code became blocks with code whose text goes on from theirs. */
+  /**
+   * Whether blocks with code became blocks with code whose structure and text go on from theirs.
+   */
   private static boolean grows(Theme theme, List<Block> was, List<Block> now) {
     if (!hasCode(was) || !hasCode(now)) {
+      return false;
+    }
+    List<Object> beforeShape = new ArrayList<>();
+    List<Object> afterShape = new ArrayList<>();
+    shape(was, beforeShape);
+    shape(now, afterShape);
+    if (afterShape.size() < beforeShape.size()
+        || !afterShape.subList(0, beforeShape.size()).equals(beforeShape)) {
       return false;
     }
     StringBuilder before = new StringBuilder();
@@ -914,6 +943,55 @@ public final class Markdown {
     // blank lines: compare without them, and count those lines by the estimate.
     return after.toString().startsWith(before.toString().stripTrailing())
         && estimate(theme, now) >= estimate(theme, was);
+  }
+
+  /**
+   * The code blocks and the images among the blocks in document order, so that a replacement that
+   * merges code blocks or turns an image into a link breaks the prefix even when the copied text
+   * stays the same. Not the other blocks' kinds: an appended underline turns a paragraph into a
+   * heading.
+   */
+  private static void shape(List<Block> blocks, List<Object> out) {
+    for (Block b : blocks) {
+      switch (b) {
+        case MarkdownDocument.Heading h -> inlineImages(h.content(), out);
+        case MarkdownDocument.Paragraph p -> inlineImages(p.content(), out);
+        case MarkdownDocument.Quote q -> shape(q.blocks(), out);
+        case MarkdownDocument.ListBlock l -> {
+          for (MarkdownDocument.Item item : l.items()) {
+            shape(item.blocks(), out);
+          }
+        }
+        case MarkdownDocument.Table table -> {
+          for (List<Inline> cell : table.header()) {
+            inlineImages(cell, out);
+          }
+          for (List<List<Inline>> row : table.rows()) {
+            for (List<Inline> cell : row) {
+              inlineImages(cell, out);
+            }
+          }
+        }
+        case MarkdownDocument.CodeBlock _ -> out.add(MarkdownDocument.CodeBlock.class);
+        case MarkdownDocument.ThematicBreak _ -> {}
+      }
+    }
+  }
+
+  private static void inlineImages(List<Inline> content, List<Object> out) {
+    for (Inline part : content) {
+      switch (part) {
+        case MarkdownDocument.Image image -> out.add(image);
+        case MarkdownDocument.Emphasis e -> inlineImages(e.content(), out);
+        case MarkdownDocument.Strong s -> inlineImages(s.content(), out);
+        case MarkdownDocument.Strike s -> inlineImages(s.content(), out);
+        case MarkdownDocument.Link l -> inlineImages(l.content(), out);
+        case MarkdownDocument.Text _,
+            MarkdownDocument.Code _,
+            MarkdownDocument.SoftBreak _,
+            MarkdownDocument.HardBreak _ -> {}
+      }
+    }
   }
 
   private static double estimate(Theme theme, List<Block> blocks) {

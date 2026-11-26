@@ -1,0 +1,1 @@
+- Selecting and finding in a virtual `Markdown.fragment` use the text its code blocks show in that view, also when another view of the same document, or an earlier build, replaced them differently through `Options.codeBlocks`.
