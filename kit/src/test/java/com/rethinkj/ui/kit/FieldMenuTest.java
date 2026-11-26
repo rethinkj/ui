@@ -143,5 +143,18 @@ class FieldMenuTest {
         List.of(Menu.item("Mine", () -> s.chosen = "mine"))));
     run(cleared, "press #f1 right\nopen");
     assertEquals("Mine", items(cleared), "a field without a field menu leaves it to the list");
+
+    App<Form> panel = app(s -> {
+      El field = textField(s.name, "Name", v -> s.name = v).key("name");
+      El own = Menu.contextMenu(
+          col().w(40).h(20).key("own"), s.own, List.of(Menu.item("Mine", () -> s.chosen = "mine")));
+      // The field is scrolled out of view, below the part of the panel that shows.
+      El box = col().padding(16).key("panel").fieldMenuOf(field);
+      return col().h(120).scroll().child(box.children(own, col().h(200), field));
+    });
+    run(panel, "press #panel at top+4 right\nopen");
+    assertEquals("Cut-, Copy-, Paste-, Select all", items(panel), "panel opens its field's menu");
+    run(panel, "key Escape\nframe\npress #own right\nopen");
+    assertEquals("Mine", items(panel), "a child control with its own menu goes first");
   }
 }

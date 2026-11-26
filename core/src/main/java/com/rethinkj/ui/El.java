@@ -554,6 +554,7 @@ public final class El {
     Consumer<Key> onAnyKeyDown;
     Runnable onPressOutside;
     PointHandler onSecondaryPress;
+    El fieldMenuOf;
     Consumer<Drag> onDrag;
     Object dragPayload;
     Consumer<Drop> onDrop;
@@ -3445,6 +3446,27 @@ public final class El {
   /** The menu {@link #fieldMenu} gave, or null; a component that adds items builds on it. */
   public FieldMenu fieldMenu() {
     return field == null ? null : field.fieldMenu;
+  }
+
+  /**
+   * Lets a secondary press on this element or inside it open {@code field}'s {@link #fieldMenu}
+   * where no nearer element has an {@link #onSecondaryPress} handler or a field menu of its own,
+   * and lets the Menu key and Shift+F10 from a focused element inside it do the same. {@code field}
+   * is an {@link #editable} field of the same tree; the menu opens only while
+   * {@code field} has a {@link #fieldMenu} and takes input.
+   *
+   * @param field the field whose menu to open, or null for none
+   */
+  public El fieldMenuOf(El field) {
+    if (field != null || handlers != null) {
+      handlers().fieldMenuOf = field;
+    }
+    return this;
+  }
+
+  /** The field whose menu {@link #fieldMenuOf} opens, or null. */
+  public El fieldMenuOf() {
+    return handlers == null ? null : handlers.fieldMenuOf;
   }
 
   /**

@@ -56,8 +56,8 @@ import java.util.function.Function;
  * fragments in one container (such as a list of chat messages) join into one selection when the
  * app marks the container {@link El#selectionScope}. A secondary press, the Menu key or Shift+F10
  * opens a context menu ({@link El#fieldMenu}) with Copy and Select all on text, Open link and Copy
- * link address on a link, Copy link on a heading, and Copy code on a code block, omitting items
- * whose option is not set.
+ * link address on a link, Copy link on a heading, and Copy code anywhere on a code block's panel
+ * (including its header), omitting items whose option is not set.
  *
  * <p>A link is an element over its range of the text ({@link El#range}): {@code role=link} with
  * its text as the label, its title (if it has one) as its tooltip, in {@link Theme.Prose#link} and
@@ -1664,7 +1664,8 @@ public final class Markdown {
         .fill(theme.surface().raised())
         .border(theme.size().stroke(), theme.border().subtle())
         .radius(theme.radius().medium())
-        .clip();
+        .clip()
+        .fieldMenuOf(field);
     boolean hasLanguage = !language.isEmpty();
     boolean hasCopy = clipboard != null;
     if (hasLanguage || hasWrap || hasCopy) {

@@ -738,7 +738,7 @@ public final class App<S> {
     }
     boolean inFieldMenu = fieldMenu != null
         && !hit.isEmpty()
-        && Animator.isBelow(Animator.identities(hit).getLast(), fieldMenu.field());
+        && Animator.isBelow(Animator.identities(hit).getLast(), fieldMenu.host());
     if (!inFieldMenu) {
       changed |= clearScopeSelection(null);
     }
@@ -829,12 +829,19 @@ public final class App<S> {
       this.focus.set(focus == null ? null : focus.el, false, time);
     }
     // A press in a field of a selection across a scope keeps it, for that field's menu: the
-    // innermost field hit, as a field in another's line ends takes the press.
+    // innermost field hit, as a field in another's line ends takes the press, or the field whose
+    // menu a container around it opens (El#fieldMenuOf).
     Editor innermost = hit.reversed().stream()
         .map(El::editor)
         .filter(Objects::nonNull)
         .findFirst()
         .orElse(null);
+    if (innermost == null && target != null && target.el.onSecondaryPress() == null) {
+      El field = menuField(target.el);
+      if (field != null) {
+        innermost = field.editor();
+      }
+    }
     if (!isScopeSelected(innermost)) {
       any |= clearScopeSelection(null);
     }
@@ -965,26 +972,37 @@ public final class App<S> {
       if (ran) {
         List<El> hit = hit(x, y);
         Object on = hit.isEmpty() ? target.id() : Animator.identities(hit).getLast();
-        openMenu(target.el, target.id(), on, x, y);
+        openMenu(target.el, on, x, y);
       }
       return ran;
     });
   }
 
-  /** Whether a secondary press on this element runs its handler or opens its field's menu. */
+  /** The field whose {@link El#fieldMenu} opens from {@code el}, or null. */
+  private El menuField(El el) {
+    El field = el.fieldMenu() != null ? el : el.fieldMenuOf();
+    if (field == null || field.fieldMenu() == null || !field.takesEdits()) {
+      return null;
+    }
+    Object id = animator.identity(field);
+    return id == null || Animator.inFieldPart(id) ? null : field;
+  }
+
+  /** Whether a secondary press on this element runs its handler or opens a field's menu. */
   private boolean opensMenu(El el) {
-    return el.onSecondaryPress() != null
-        || el.fieldMenu() != null
-            && el.takesEdits()
-            && !Animator.inFieldPart(animator.identity(el));
+    return el.onSecondaryPress() != null || menuField(el) != null;
   }
 
   /** Runs the element's {@link El#onSecondaryPress} handler, or else opens its field's menu. */
-  private void openMenu(El el, Object id, Object on, float x, float y) {
+  private void openMenu(El el, Object on, float x, float y) {
     if (el.onSecondaryPress() != null) {
       el.onSecondaryPress().accept(x, y);
     } else {
-      fieldMenu = new FieldMenu.Open(this, id, on, x, y, !clipboard.read().isEmpty());
+      Object id = animator.identity(menuField(el));
+      // Around the field, the menu attaches to the element it opened from, which may show while
+      // the field is scrolled out of view.
+      Object host = el.fieldMenu() != null ? id : animator.identity(el);
+      fieldMenu = new FieldMenu.Open(this, id, host, on, x, y, !clipboard.read().isEmpty());
       fieldMenuRows.clear();
       for (Animator.InRow in : animator.inRows(id)) {
         Object key = in.list().rowKey(in.row());
@@ -1782,9 +1800,8 @@ public final class App<S> {
       for (El el : path.reversed()) {
         if (opensMenu(el)) {
           float[] at = menuPoint(path);
-          Object id = animator.identity(el);
-          Object on = path.isEmpty() ? id : animator.identity(path.getLast());
-          openMenu(el, id, on, at[0], at[1]);
+          Object on = path.isEmpty() ? animator.identity(el) : animator.identity(path.getLast());
+          openMenu(el, on, at[0], at[1]);
           return true;
         }
       }
@@ -8064,7 +8081,7 @@ public final class App<S> {
           fieldMenu = null;
           fieldMenuShown = null;
         } else if (field != null) {
-          attachFieldMenu(field);
+          attachFieldMenu(field, Animator.find(row, rowId, fieldMenu.host()));
           took = fieldMenu != null; // the row is laid out again with its menu, as with a look
         }
       }
@@ -8556,14 +8573,14 @@ public final class App<S> {
     }
     El field = Animator.find(tree, fieldMenu.field());
     if (field != null) {
-      attachFieldMenu(field);
+      attachFieldMenu(field, Animator.find(tree, fieldMenu.host()));
     } else if (animator.inRow(fieldMenu.field()) == null) {
       fieldMenu = null;
       fieldMenuShown = null;
     }
   }
 
-  private void attachFieldMenu(El field) {
+  private void attachFieldMenu(El field, El host) {
     Editor editor = editors.get(fieldMenu.field());
     El menu = null;
     if (editor != null && field.fieldMenu() != null && field.takesEdits()) {
@@ -8575,7 +8592,7 @@ public final class App<S> {
       fieldMenu = null;
       fieldMenuShown = null;
     } else {
-      field.overlay(menu);
+      (host != null ? host : field).overlay(menu);
       fieldMenuShown = fieldMenu.field();
     }
   }

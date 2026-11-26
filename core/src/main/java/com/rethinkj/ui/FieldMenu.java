@@ -30,6 +30,7 @@ public interface FieldMenu {
   final class Open {
     private final App<?> app;
     private final Object field;
+    private final Object host; // what the overlay attaches to: the field, or El#fieldMenuOf's
     private final Object on;
     private final float x;
     private final float y;
@@ -41,9 +42,11 @@ public interface FieldMenu {
     private El target;
     private Object state;
 
-    Open(App<?> app, Object field, Object on, float x, float y, boolean clipboardText) {
+    Open(
+        App<?> app, Object field, Object host, Object on, float x, float y, boolean clipboardText) {
       this.app = app;
       this.field = field;
+      this.host = host;
       this.on = on;
       this.x = x;
       this.y = y;
@@ -53,6 +56,11 @@ public interface FieldMenu {
     /** The identity of the field. */
     Object field() {
       return field;
+    }
+
+    /** The identity of the element the menu attaches to: the field, or the element around it. */
+    Object host() {
+      return host;
     }
 
     /** Takes what the commands can do from the field of this build and its editor. */

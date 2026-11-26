@@ -1,0 +1,1 @@
+- Right-clicking anywhere on a Markdown code block's panel (including its header row and buttons) or pressing the Menu key / Shift+F10 from its header opens the code block's context menu, backed by the new `El.fieldMenuOf(El)` method for forwarding a container's context menu to an editable field inside it.
