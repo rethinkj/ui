@@ -44,8 +44,10 @@ public final class Palette {
   public static final int GRAY_386 = 0xFF575B63;
   public static final int GRAY_395 = 0xFF5A5D67;
   public static final int GRAY_407 = 0xFF5C606B;
+  public static final int GRAY_414 = 0xFF626070;
   public static final int GRAY_423 = 0xFF60646E;
   public static final int GRAY_425 = 0xFF62646D;
+  public static final int GRAY_451 = 0xFF6B6978;
   public static final int GRAY_477 = 0xFF6E717B;
   public static final int GRAY_501 = 0xFF747780;
   public static final int GRAY_547 = 0xFF7F838C;
@@ -84,6 +86,8 @@ public final class Palette {
 
   // Violet
   public static final int VIOLET_362 = 0xFF6A28CF;
+  public static final int VIOLET_389 = 0xFF5E5390;
+  public static final int VIOLET_438 = 0xFF6A5BB0;
   public static final int VIOLET_478 = 0xFF765FD1;
   public static final int VIOLET_700 = 0xFFACA1F4;
   public static final int VIOLET_782 = 0xFFD2B4FF;
@@ -98,9 +102,11 @@ public final class Palette {
 
   // Red
   public static final int RED_345 = 0xFF9E1E14;
+  public static final int RED_370 = 0xFF7A4A4C;
   public static final int RED_377 = 0xFFAC2116;
   public static final int RED_395 = 0xFFB42318;
   public static final int RED_436 = 0xFFC42B1C;
+  public static final int RED_444 = 0xFF9A5650;
   public static final int RED_457 = 0xFFC6373A;
   public static final int RED_485 = 0xFFC8483B;
   public static final int RED_493 = 0xFFCA4949;
@@ -140,6 +146,8 @@ public final class Palette {
   public static final int GREEN_826 = 0xFF86E0AB;
 
   // Teal
+  public static final int TEAL_431 = 0xFF3F6E69;
+  public static final int TEAL_480 = 0xFF3F7C76;
   public static final int TEAL_490 = 0xFF268272;
   public static final int TEAL_700 = 0xFF7EB6A9;
 

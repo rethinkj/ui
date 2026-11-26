@@ -571,6 +571,15 @@ class ThemeTest {
     for (int color : t.lanes().colors()) {
       check(failures, "lane " + Colors.toHex(color), color, laneBg, 3);
     }
+    // Series: text keeps 4.5:1 on each fill.
+    for (int color : t.series().colors()) {
+      check(
+          failures,
+          "series text",
+          t.series().text(),
+          Map.of("series " + Colors.toHex(color), color),
+          4.5);
+    }
     // Chat user bubbles: primary, muted and selected text on the bubble fill.
     int bubble = t.chat().bubble();
     Map<String, Integer> bubbleBg = Map.of("chat bubble", bubble);
@@ -850,6 +859,8 @@ class ThemeTest {
     assertEquals(Theme.Lanes.LIGHT, Theme.LIGHT.lanes());
     assertEquals(Theme.Chat.DARK, Theme.DARK.chat());
     assertEquals(Theme.Chat.LIGHT, Theme.LIGHT.chat());
+    assertEquals(Theme.Series.DARK, Theme.DARK.series());
+    assertEquals(Theme.Series.LIGHT, Theme.LIGHT.series());
   }
 
   /** Blue is the default themes' accent, and a theme takes the accent of its lightness. */

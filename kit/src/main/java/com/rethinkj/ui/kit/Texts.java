@@ -1025,4 +1025,11 @@ public interface Texts {
   default String stop() {
     return "Stop";
   }
+
+  // Meter
+
+  /** Default label of a {@link Meter} marker when the app gives none. */
+  default String marker() {
+    return "Marker";
+  }
 }

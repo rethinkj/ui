@@ -76,7 +76,58 @@ public record Theme(
     Callouts callout,
     Diff diff,
     Lanes lanes,
-    Chat chat) {
+    Chat chat,
+    Series series) {
+
+  /** A theme whose data series look as {@link Series#DARK} or {@link Series#LIGHT}. */
+  public Theme(
+      Surfaces surface,
+      TextColors text,
+      Borders border,
+      Accent accent,
+      Status status,
+      Spacing space,
+      Radii radius,
+      Type type,
+      Sizes size,
+      Motion motion,
+      Grid grid,
+      Scrollbars scrollbars,
+      Elevation elevation,
+      Code code,
+      Caption caption,
+      Prose prose,
+      Badges badge,
+      Danger danger,
+      Callouts callout,
+      Diff diff,
+      Lanes lanes,
+      Chat chat) {
+    this(
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
+        prose,
+        badge,
+        danger,
+        callout,
+        diff,
+        lanes,
+        chat,
+        lightness(surface.raised()) < 0.5 ? Series.DARK : Series.LIGHT);
+  }
 
   /** A theme whose chat messages look as {@link Chat#DARK} or {@link Chat#LIGHT}. */
   public Theme(
@@ -687,6 +738,36 @@ public record Theme(
 
     /** For light surfaces. */
     public static final Chat LIGHT = new Chat(GRAY_968, 0.8f);
+  }
+
+  /**
+   * Muted colors for data series, such as segments of a {@link Meter} or lines of a chart, indexed
+   * modulo the list's size ({@link #color(int)}). {@code text} keeps 4.5:1 contrast on each fill.
+   *
+   * @param colors opaque series fills in order, at least one
+   * @param text opaque, the text drawn on the series fills, 4.5:1 on each
+   */
+  public record Series(List<Integer> colors, int text) {
+
+    public Series {
+      if (colors.isEmpty()) {
+        throw new IllegalArgumentException("at least one series color");
+      }
+      colors = List.copyOf(colors);
+    }
+
+    /** For dark surfaces. */
+    public static final Series DARK =
+        new Series(List.of(GRAY_451, RED_370, TEAL_431, VIOLET_389), WHITE);
+
+    /** For light surfaces. */
+    public static final Series LIGHT =
+        new Series(List.of(GRAY_414, RED_444, TEAL_480, VIOLET_438), WHITE);
+
+    /** The fill at {@code index}, wrapped modulo the list's size. */
+    public int color(int index) {
+      return colors.get(Math.floorMod(index, colors.size()));
+    }
   }
 
   /**
@@ -2065,7 +2146,8 @@ public record Theme(
         callout,
         diff,
         lanes,
-        chat);
+        chat,
+        series);
   }
 
   public Theme withText(TextColors text) {
@@ -2091,7 +2173,8 @@ public record Theme(
         callout,
         diff,
         lanes,
-        chat);
+        chat,
+        series);
   }
 
   public Theme withBorder(Borders border) {
@@ -2117,7 +2200,8 @@ public record Theme(
         callout,
         diff,
         lanes,
-        chat);
+        chat,
+        series);
   }
 
   public Theme withAccent(Accent accent) {
@@ -2143,7 +2227,8 @@ public record Theme(
         callout,
         diff,
         lanes,
-        chat);
+        chat,
+        series);
   }
 
   /**
@@ -2177,7 +2262,8 @@ public record Theme(
         callout,
         diff,
         lanes,
-        chat);
+        chat,
+        series);
   }
 
   public Theme withSpace(Spacing space) {
@@ -2203,7 +2289,8 @@ public record Theme(
         callout,
         diff,
         lanes,
-        chat);
+        chat,
+        series);
   }
 
   public Theme withRadius(Radii radius) {
@@ -2229,7 +2316,8 @@ public record Theme(
         callout,
         diff,
         lanes,
-        chat);
+        chat,
+        series);
   }
 
   public Theme withType(Type type) {
@@ -2255,7 +2343,8 @@ public record Theme(
         callout,
         diff,
         lanes,
-        chat);
+        chat,
+        series);
   }
 
   public Theme withSize(Sizes size) {
@@ -2281,7 +2370,8 @@ public record Theme(
         callout,
         diff,
         lanes,
-        chat);
+        chat,
+        series);
   }
 
   public Theme withMotion(Motion motion) {
@@ -2307,7 +2397,8 @@ public record Theme(
         callout,
         diff,
         lanes,
-        chat);
+        chat,
+        series);
   }
 
   public Theme withGrid(Grid grid) {
@@ -2333,7 +2424,8 @@ public record Theme(
         callout,
         diff,
         lanes,
-        chat);
+        chat,
+        series);
   }
 
   public Theme withScrollbars(Scrollbars scrollbars) {
@@ -2359,7 +2451,8 @@ public record Theme(
         callout,
         diff,
         lanes,
-        chat);
+        chat,
+        series);
   }
 
   public Theme withCode(Code code) {
@@ -2385,7 +2478,8 @@ public record Theme(
         callout,
         diff,
         lanes,
-        chat);
+        chat,
+        series);
   }
 
   public Theme withElevation(Elevation elevation) {
@@ -2411,7 +2505,8 @@ public record Theme(
         callout,
         diff,
         lanes,
-        chat);
+        chat,
+        series);
   }
 
   public Theme withProse(Prose prose) {
@@ -2437,7 +2532,8 @@ public record Theme(
         callout,
         diff,
         lanes,
-        chat);
+        chat,
+        series);
   }
 
   public Theme withBadge(Badges badge) {
@@ -2463,7 +2559,8 @@ public record Theme(
         callout,
         diff,
         lanes,
-        chat);
+        chat,
+        series);
   }
 
   public Theme withDanger(Danger danger) {
@@ -2489,7 +2586,8 @@ public record Theme(
         callout,
         diff,
         lanes,
-        chat);
+        chat,
+        series);
   }
 
   public Theme withCaption(Caption caption) {
@@ -2515,7 +2613,8 @@ public record Theme(
         callout,
         diff,
         lanes,
-        chat);
+        chat,
+        series);
   }
 
   public Theme withCallout(Callouts callout) {
@@ -2541,7 +2640,8 @@ public record Theme(
         callout,
         diff,
         lanes,
-        chat);
+        chat,
+        series);
   }
 
   public Theme withDiff(Diff diff) {
@@ -2567,7 +2667,8 @@ public record Theme(
         callout,
         diff,
         lanes,
-        chat);
+        chat,
+        series);
   }
 
   public Theme withLanes(Lanes lanes) {
@@ -2593,7 +2694,8 @@ public record Theme(
         callout,
         diff,
         lanes,
-        chat);
+        chat,
+        series);
   }
 
   public Theme withChat(Chat chat) {
@@ -2619,7 +2721,35 @@ public record Theme(
         callout,
         diff,
         lanes,
-        chat);
+        chat,
+        series);
+  }
+
+  public Theme withSeries(Series series) {
+    return new Theme(
+        surface,
+        text,
+        border,
+        accent,
+        status,
+        space,
+        radius,
+        type,
+        size,
+        motion,
+        grid,
+        scrollbars,
+        elevation,
+        code,
+        caption,
+        prose,
+        badge,
+        danger,
+        callout,
+        diff,
+        lanes,
+        chat,
+        series);
   }
 
   /**

@@ -1,0 +1,37 @@
+---
+title: Meter
+description: Horizontal stacked bar for quotas and shares with segment labels, hatch, marker line, and trailing badges.
+---
+
+`Meter.bar` shows a measured amount in a known range — such as a quota, budget, or storage breakdown — as ordered segments stacked from the left. Each segment displays its name and whole-percent share (`Progress.percent`) with tabular figures, ellipsizing when narrow. The track fills its row by default and does not take focus or input. For ongoing work rather than a static measurement, use [Progress](/docs/components/progress).
+
+Javadoc: [`Meter`](/api/com/rethinkj/ui/kit/Meter.html), [`Meter.Segment`](/api/com/rethinkj/ui/kit/Meter.Segment.html), [`Meter.Options`](/api/com/rethinkj/ui/kit/Meter.Options.html), [`Theme.Series`](/api/com/rethinkj/ui/kit/Theme.Series.html).
+
+<Shot src="examples/docs/meter/view-{theme}" alt="A hatched horizontal meter bar with Compute at 42 percent and Storage at 24 percent, a marker line at 80 percent, and a trailing 66 percent badge" />
+
+## Example
+
+```java snippet="meter"
+```
+
+| Method | Description |
+| --- | --- |
+| `bar(segments)` | Stacked meter with default options |
+| `bar(segments, Meter.options()…)` | Stacked meter with hatch, marker, or trailing badges |
+
+Each `Meter.Segment(name, fraction, series)` takes a share of the whole track (`0.0`–`1.0`, clamped, `NaN` treated as `0`, total capped at `1.0`) and a series index into `Theme.series()` (wrapped modulo its size). Call `.color(argb)` on a segment to override its fill with an explicit ARGB color; the text picks the more readable ink by WCAG contrast.
+
+| Option | Description |
+| --- | --- |
+| `hatched()` | Draws diagonal stripes over the empty rest of the track |
+| `marker(fraction[, label])` | Draws a 2 px marker line with a 1 px outline across the track (default label from `Texts.marker()`) |
+| `trailing(El… badges)` | Places badges at the right end of the bar; hidden as a whole when they do not fit beside the segment texts |
+
+Segments and the marker spring to new values with `Theme.Motion.move()`. Customize the muted data-series fills on a theme with `theme.withSeries(new Theme.Series(colors, text))`.
+
+## In a tree dump
+
+`role=meter` with its `label` and combined `value` in whole percent, each segment as `#segment-0`, `#segment-1`, … with its own `label` and `value`, and the marker as `#marker`:
+
+```text file="examples/src/test/resources/golden/docs/meter/view.tree.txt" start="role=meter" count="6"
+```

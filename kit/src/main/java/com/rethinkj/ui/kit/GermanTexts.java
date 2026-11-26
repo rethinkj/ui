@@ -1070,4 +1070,9 @@ public class GermanTexts implements Texts {
   public String stop() {
     return "Stoppen";
   }
+
+  @Override
+  public String marker() {
+    return "Markierung";
+  }
 }

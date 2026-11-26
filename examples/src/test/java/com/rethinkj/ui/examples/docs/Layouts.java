@@ -29,6 +29,7 @@ import com.rethinkj.ui.kit.Form;
 import com.rethinkj.ui.kit.Group;
 import com.rethinkj.ui.kit.Label;
 import com.rethinkj.ui.kit.Menu;
+import com.rethinkj.ui.kit.Meter;
 import com.rethinkj.ui.kit.NavList;
 import com.rethinkj.ui.kit.Progress;
 import com.rethinkj.ui.kit.Properties;
@@ -596,6 +597,16 @@ final class Layouts {
         failed.w(240),
         running.w(240),
         row().gap(Theme.CURRENT.get().space().m()).children(spinner, ring));
+  }
+
+  static El meter(Layouts state) {
+    // docs:start meter
+    El usage = Meter.bar(
+            List.of(new Meter.Segment("Compute", 0.42, 0), new Meter.Segment("Storage", 0.24, 1)),
+            Meter.options().hatched().marker(0.8, "Soft limit").trailing(Badge.badge("66%")))
+        .label("Monthly quota");
+    // docs:end meter
+    return Frame.of(usage);
   }
 
   static El bars(Layouts state) {
