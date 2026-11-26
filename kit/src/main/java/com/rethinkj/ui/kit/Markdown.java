@@ -210,8 +210,10 @@ public final class Markdown {
      * blocks in view: for a long document in a row of a virtual list with {@link RowHeights}, such
      * as a chat transcript, where a rebuild then costs what is in view and not the whole document.
      * That list grows the row with the blocks it measures, and a selection scope around it reaches
-     * the blocks out of view for selecting, finding and copying. For a long document of its own,
-     * use {@link #markdown}. Its container gives it its width, as for any virtual list.
+     * the blocks out of view for selecting, finding and copying. The fragment uses the options as
+     * they are when it is built, so later changes to the same {@code Options} do not affect its
+     * rows. For a long document of its own, use {@link #markdown}. Its container gives it its
+     * width, as for any virtual list.
      */
     public Options virtual() {
       this.virtual = true;
@@ -329,6 +331,22 @@ public final class Markdown {
     private Button.Copied copied() {
       return copied != null ? copied : state != null ? state.copied : null;
     }
+
+    private Options copy() {
+      Options copy = new Options();
+      copy.onLink = onLink;
+      copy.onTask = onTask;
+      copy.languages = languages;
+      copy.codeBlocks = codeBlocks;
+      copy.clipboard = clipboard;
+      copy.copied = copied;
+      copy.state = state;
+      copy.scroll = scroll;
+      copy.images = images;
+      copy.textColor = textColor;
+      copy.virtual = virtual;
+      return copy;
+    }
   }
 
   public static Options options() {
@@ -437,17 +455,19 @@ public final class Markdown {
 
   private static El fragment(Theme theme, MarkdownDocument document, Options options, int color) {
     Prepared prepared = prepared(theme, document);
-    Context c = new Context(theme, options, prepared, color, 0, true);
     El out = col().minSize(0, 0).selectionScope();
     if (options.virtual) {
+      Options snapshot = options.copy();
+      Context c = new Context(theme, snapshot, prepared, color, 0, true);
       List<Block> blocks = document.blocks();
       return REPLACING.with(
-          options.codeBlocks != KEPT_CODE_BLOCKS,
+          snapshot.codeBlocks != KEPT_CODE_BLOCKS,
           () -> out.rows( // each block with its space in a row, as the column has them
               blocks.size(),
               prepared.blockHeights,
               i -> col().child(spaced(c, blocks, i, false, block(c, blocks.get(i))))));
     }
+    Context c = new Context(theme, options, prepared, color, 0, true);
     blocks(c, document.blocks(), false, out);
     return out;
   }

@@ -1,0 +1,1 @@
+- A virtual `Markdown.fragment` now captures its `Markdown.Options` when it is built, so changing the same `Options` object afterward (such as setting `Options.codeBlocks` for another view) no longer changes how that fragment's rows render or mixes their text in selection and find.

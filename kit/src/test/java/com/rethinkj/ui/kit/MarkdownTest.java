@@ -1152,6 +1152,61 @@ class MarkdownTest {
   }
 
   @Test
+  void aVirtualFragmentKeepsTheOptionsItWasBuiltWith() throws IOException {
+    StringBuilder source = new StringBuilder("""
+        ```diff
+        -topOld
+        +topNew
+        ```
+
+        """);
+    for (int i = 0; i < 300; i++) {
+      source.append("Paragraph ").append(i).append(" of the answer.\n\n");
+    }
+    source.append("""
+        ```diff
+        -old
+        +new
+        ```
+        """);
+    MarkdownDocument document = Markdown.parse(source.toString());
+    Function<MarkdownDocument.CodeBlock, El> hook = block -> block.language().equals("diff")
+        ? El.text("replaced:" + block.code().strip())
+            .editable(text -> {})
+            .readOnly()
+            .w(120)
+        : null;
+    App<Object> app = new App<>(new Object(), state -> {
+      // One Options for both panes: the hook is set after the plain pane was built.
+      Markdown.Options options = Markdown.options().virtual();
+      El plain = Markdown.fragment(document, options).key("plain");
+      El comparing = Markdown.fragment(document, options.codeBlocks(hook)).key("comparing");
+      return col()
+          .wFull()
+          .hFull()
+          .child(col().grow(1).minSize(0, 0).scroll().child(plain))
+          .child(col().grow(1).minSize(0, 0).scroll().child(comparing));
+    });
+    String tree = run(app, "frame");
+    long built = tree.lines().filter(l -> l.contains("role=paragraph")).count();
+    assertTrue(built > 0 && built < 120, "built " + built + " paragraphs across two panes");
+
+    El plain = CellEditorTest.find(app.tree(), "plain");
+    El inView = role(plain, "code");
+    assertNotNull(inView, tree);
+    assertEquals("-topOld\n+topNew", inView.text().string());
+
+    String replaced = app.scopeText(CellEditorTest.find(app.tree(), "comparing"));
+    assertTrue(replaced.contains("replaced:-topOld\n+topNew"), replaced);
+    assertTrue(replaced.contains("replaced:-old\n+new"), replaced);
+
+    String plainText = app.scopeText(plain);
+    assertFalse(plainText.contains("replaced:"), plainText);
+    assertTrue(plainText.contains("-topOld\n+topNew"), plainText);
+    assertTrue(plainText.contains("-old\n+new"), plainText);
+  }
+
+  @Test
   void oneDocumentShowsTheSameParagraphWithAndWithoutItsImages() throws IOException {
     MarkdownDocument document = Markdown.parse("Before ![Inline](inline.png) and [after](#after).");
     Map<String, com.rethinkj.ui.Image> images = Map.of("inline.png", picture(60, 30));
