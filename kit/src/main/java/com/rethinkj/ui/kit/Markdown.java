@@ -920,9 +920,19 @@ public final class Markdown {
     return item < items.size() ? items.get(item).blocks() : List.of();
   }
 
-  /** Whether blocks with code became blocks with code whose text goes on from theirs. */
+  /**
+   * Whether blocks with code became blocks with code whose structure and text go on from theirs.
+   */
   private static boolean grows(Theme theme, List<Block> was, List<Block> now) {
     if (!hasCode(was) || !hasCode(now)) {
+      return false;
+    }
+    List<Object> beforeShape = new ArrayList<>();
+    List<Object> afterShape = new ArrayList<>();
+    shape(was, beforeShape);
+    shape(now, afterShape);
+    if (afterShape.size() < beforeShape.size()
+        || !afterShape.subList(0, beforeShape.size()).equals(beforeShape)) {
       return false;
     }
     StringBuilder before = new StringBuilder();
@@ -933,6 +943,55 @@ public final class Markdown {
     // blank lines: compare without them, and count those lines by the estimate.
     return after.toString().startsWith(before.toString().stripTrailing())
         && estimate(theme, now) >= estimate(theme, was);
+  }
+
+  /**
+   * The code blocks and the images among the blocks in document order, so that a replacement that
+   * merges code blocks or turns an image into a link breaks the prefix even when the copied text
+   * stays the same. Not the other blocks' kinds: an appended underline turns a paragraph into a
+   * heading.
+   */
+  private static void shape(List<Block> blocks, List<Object> out) {
+    for (Block b : blocks) {
+      switch (b) {
+        case MarkdownDocument.Heading h -> inlineImages(h.content(), out);
+        case MarkdownDocument.Paragraph p -> inlineImages(p.content(), out);
+        case MarkdownDocument.Quote q -> shape(q.blocks(), out);
+        case MarkdownDocument.ListBlock l -> {
+          for (MarkdownDocument.Item item : l.items()) {
+            shape(item.blocks(), out);
+          }
+        }
+        case MarkdownDocument.Table table -> {
+          for (List<Inline> cell : table.header()) {
+            inlineImages(cell, out);
+          }
+          for (List<List<Inline>> row : table.rows()) {
+            for (List<Inline> cell : row) {
+              inlineImages(cell, out);
+            }
+          }
+        }
+        case MarkdownDocument.CodeBlock _ -> out.add(MarkdownDocument.CodeBlock.class);
+        case MarkdownDocument.ThematicBreak _ -> {}
+      }
+    }
+  }
+
+  private static void inlineImages(List<Inline> content, List<Object> out) {
+    for (Inline part : content) {
+      switch (part) {
+        case MarkdownDocument.Image image -> out.add(image);
+        case MarkdownDocument.Emphasis e -> inlineImages(e.content(), out);
+        case MarkdownDocument.Strong s -> inlineImages(s.content(), out);
+        case MarkdownDocument.Strike s -> inlineImages(s.content(), out);
+        case MarkdownDocument.Link l -> inlineImages(l.content(), out);
+        case MarkdownDocument.Text _,
+            MarkdownDocument.Code _,
+            MarkdownDocument.SoftBreak _,
+            MarkdownDocument.HardBreak _ -> {}
+      }
+    }
   }
 
   private static double estimate(Theme theme, List<Block> blocks) {

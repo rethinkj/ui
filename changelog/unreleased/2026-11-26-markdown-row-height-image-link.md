@@ -1,0 +1,1 @@
+- When `MarkdownDocument#next` changes the layout of an out-of-view row with a code block without changing its copied text—such as turning an image into a link or merging fenced code blocks—the row no longer keeps its old height in the scroll range of `Markdown.markdown` or a virtual `Markdown.fragment` until it comes into view.

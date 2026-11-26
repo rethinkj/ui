@@ -689,8 +689,13 @@ class MarkdownTest {
     String shortCode = "```sql\nSELECT 1;\n```\n\n" + tail;
     String linked = "- See [ref] " + "and more words ".repeat(30)
         + "\n\n  ```sql\n  SELECT 1;\n  ```\n\n" + tail;
-    // The code block shortened, its lines joined or its blank lines in a list removed, and a
-    // definition appended that turns "[ref]" into a link; in a view and in a virtual fragment.
+    String image = "- ![chart](plot.png)\n\n  ```sql\n  SELECT 1;\n  ```\n\n" + tail;
+    String merged = "> Notes " + "and more words ".repeat(30)
+        + "\n>\n> ```sql\n> SELECT 1;\n> ```\n>\n> ```sql\n> SELECT 2;\n> ```\n\n" + tail;
+    Map<String, com.rethinkj.ui.Image> images = Map.of("plot.png", picture(100, 160));
+    // The code block shortened, its lines joined or its blank lines in a list removed, a
+    // definition appended that turns "[ref]" into a link, an image turned into a link, and two
+    // fenced code blocks merged into one; in a view and in a virtual fragment.
     String[][] replacements = {
       {"view", code, shortCode},
       {
@@ -700,6 +705,14 @@ class MarkdownTest {
       },
       {"view", code, code.replace("SELECT 1;\n".repeat(40), "SELECT 1; ".repeat(40) + "\n")},
       {"view", linked, linked + "[ref]: https://example.com\n"},
+      {
+        "view",
+        merged,
+        merged.replace(
+            "> ```\n>\n> ```sql\n> SELECT 2;",
+            ">\n> SELECT 2;\n> SELECT 3;\n> SELECT 4;\n> SELECT 5;")
+      },
+      {"view", image, image.replace("![chart]", "[chart]")},
       {"fragment", code, shortCode}
     };
     for (String[] replacement : replacements) {
@@ -713,12 +726,14 @@ class MarkdownTest {
                       .wFull()
                       .hFull()
                       .scroll()
-                      .child(Markdown.fragment(document[0], Markdown.options().virtual())
+                      .child(Markdown.fragment(
+                              document[0], Markdown.options().virtual().images(images::get))
                           .key("markdown"))
                   : col()
                       .wFull()
                       .hFull()
-                      .child(Markdown.markdown(document[0], Markdown.options()).grow(1)))
+                      .child(Markdown.markdown(document[0], Markdown.options().images(images::get))
+                          .grow(1)))
           .provide(Theme.CURRENT, ignored -> Theme.DARK);
       run(
           app,
