@@ -1,0 +1,1 @@
+- Fixed: Frameless windows on Linux (X11/XWayland, such as GNOME Mutter) no longer leave drop-shadow trails when moved or lingering shadows after a drag ends; they now map opaque with a solid background instead of starting at zero `_NET_WM_WINDOW_OPACITY`, so Mutter includes the drop shadow in the window's initial paint volume.

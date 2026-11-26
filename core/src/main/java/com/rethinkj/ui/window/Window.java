@@ -501,13 +501,15 @@ public final class Window implements AutoCloseable {
   }
 
   /**
-   * Opens a window and shows it. On Windows, and on X11 with a compositor, it stays invisible
-   * until its first frame is drawn, that is until {@link #drawn} is first called, and then appears
-   * with that frame; else it would show black on Windows, and on X11 what lay there, other
-   * windows' content included, while the app gets the GPU ready and builds the frame. On Windows
-   * a system dialog or message box that opens for it before then makes it visible first. While the
-   * window opens, another thread makes the device that its {@link GpuPresenter} will draw with
-   * ({@link GpuPresenter#prepare}).
+   * Opens a window and shows it. On Windows, and for framed windows on X11 with a compositor, it
+   * stays invisible until its first frame is drawn, that is until {@link #drawn} is first called,
+   * and then appears with that frame; else it would show black on Windows, and on X11 what lay
+   * there, other windows' content included, while the app gets the GPU ready and builds the frame.
+   * Frameless windows on X11 stay opaque with a solid background instead so compositors such as
+   * Mutter include their drop shadow in their initial paint volume. On Windows a system dialog or
+   * message box that opens for it before then makes it visible first. While the window opens,
+   * another thread makes the device that its {@link GpuPresenter} will draw with ({@link
+   * GpuPresenter#prepare}).
    *
    * @param width the width of the content in logical pixels
    * @param height the height of the content in logical pixels
@@ -1981,8 +1983,8 @@ public final class Window implements AutoCloseable {
   /**
    * Tells the window that its app has drawn a frame of its current size. {@link WindowLoop} calls
    * this after each frame its presenter showed; a loop of one's own calls it too. On Windows, and
-   * on X11 with a compositor, the first call makes the window visible, which it is not before: see
-   * {@link #open(String, float, float, Options)}. On X11 it also answers the window manager's
+   * for framed windows on X11 with a compositor, the first call makes the window visible, which it
+   * is not before: see {@link #open(String, float, float, Options)}. On X11 it also answers the window manager's
    * {@code _NET_WM_SYNC_REQUEST} once the resize step that the request announced has come: during
    * a resize the window manager shows the window and takes the next step only then, or after a
    * second without an answer, so that the window never shows a size its app has not drawn.

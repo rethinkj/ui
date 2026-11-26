@@ -30,8 +30,11 @@ import java.lang.invoke.MethodHandle;
  *
  * <p>Until its first frame the window has no content of its own either: the compositor would
  * show whatever its pixmap holds, other windows' content included, while the app starts its GPU.
- * So it is transparent to the compositor ({@code _NET_WM_WINDOW_OPACITY}) from before it shows
- * until the first {@link Window#drawn()}.
+ * Framed windows stay transparent to the compositor ({@code _NET_WM_WINDOW_OPACITY}) from before
+ * they show until the first {@link Window#drawn()}. Frameless windows stay opaque with a solid
+ * background pixel instead: on Mutter, mapping an undecorated window at opacity 0 leaves {@code
+ * MetaWindowActorX11}'s cached paint volume without its drop shadow, and raising opacity later
+ * does not invalidate it, leaving shadow trails when the window is moved.
  */
 final class X11 {
 

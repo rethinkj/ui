@@ -20,6 +20,7 @@ final class X11Backend implements WindowBackend {
   private long syncValue;
   private boolean syncAsked;
   private boolean syncConfigured;
+  private boolean frameless;
   private boolean unseen; // transparent to the compositor until the first frame (see X11)
 
   X11Backend(MemorySegment display, long xwindow) {
@@ -30,6 +31,24 @@ final class X11Backend implements WindowBackend {
   @Override
   public void setUp() {
     syncCounter = X11.syncCounter(display, xwindow); // before the window shows
+  }
+
+  @Override
+  public void frameless() {
+    frameless = true;
+  }
+
+  @Override
+  public void cloak() {
+    if (frameless) {
+      // On Mutter, mapping an undecorated X11 window at opacity 0 leaves MetaWindowActorX11's
+      // cached paint volume without its drop shadow, and raising opacity later does not invalidate
+      // it, causing shadow trails when the window is moved. Keep it opaque and give it a solid
+      // background pixel instead of SDL's None so it never shows other windows' content before the
+      // first frame.
+      background(Sdl.getSystemTheme() == Sdl.SYSTEM_THEME_LIGHT ? 0xFFFFFFFF : 0xFF000000);
+      return;
+    }
     X11.opacity(display, xwindow, 0);
     unseen = true;
   }
