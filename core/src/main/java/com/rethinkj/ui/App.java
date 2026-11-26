@@ -4096,19 +4096,26 @@ public final class App<S> {
       // The next input goes to a tree built from the state now, and from the answers of topRow
       // and atEnd that a scroll since the last build changed, as a scroll spy reads them: a
       // jump of scrollToRow with a state the view asked lands first, on the rows it measures there.
+      // An autofocus in those rows waits for the end of the frame, as when they were built only
+      // there: the input queued after the jump goes where the focus was.
       boolean scrolledOnly = scrolled && !handled && !changedOutside && root != null;
-      if (scrolledOnly
-          && rowGoals.keySet().stream()
-              .map(animator::element)
-              .filter(Objects::nonNull)
-              .map(El::scrollState)
-              .anyMatch(s -> s != null && (s.toldTopRow >= 0 || s.toldEnd || s.toldAway))) {
-        drawn |= settle();
-      }
-      if (handled || changedOutside || scrolledOnly && scrollStatesMoved(root)) {
-        // After invalidate alone with its rows: an action may look for them.
-        build(handled || !changedOutside, false);
-        drawn = true;
+      focus.holdAsks(scrolledOnly);
+      try {
+        if (scrolledOnly
+            && rowGoals.keySet().stream()
+                .map(animator::element)
+                .filter(Objects::nonNull)
+                .map(El::scrollState)
+                .anyMatch(s -> s != null && (s.toldTopRow >= 0 || s.toldEnd || s.toldAway))) {
+          drawn |= settle();
+        }
+        if (handled || changedOutside || scrolledOnly && scrollStatesMoved(root)) {
+          // After invalidate alone with its rows: an action may look for them.
+          build(handled || !changedOutside, false);
+          drawn = true;
+        }
+      } finally {
+        focus.holdAsks(false);
       }
       if (focus.waits()) {
         drawn |= settle(); // the focused row that a scroll of this frame brought back takes input
@@ -4148,6 +4155,7 @@ public final class App<S> {
     if (edgeScroll()) {
       drawn = true;
     }
+    stale |= focus.askHeld(time); // the rebuild then finds the element that took the focus
     stale |= shownFor();
     ran |= handled;
     stale |= handled || !Objects.equals(focus.id(), wasFocused) || focus.ring() != hadRing;

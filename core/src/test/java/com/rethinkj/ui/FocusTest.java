@@ -591,6 +591,55 @@ class FocusTest {
   }
 
   @Test
+  void scrollToRowWithAScrollSpyDoesNotHandQueuedTypingToARowsAutofocus() {
+    ScrollState scroll = new ScrollState();
+    StringBuilder outside = new StringBuilder();
+    StringBuilder inRow = new StringBuilder();
+    App<ScrollState> app = start(
+        new App<>(scroll, s -> {
+          int top = s.topRow();
+          return col()
+              .wFull()
+              .hFull()
+              .children(
+                  el().key("spy-" + top).h(10),
+                  el().key("field").focusable().size(80, 20).onText(outside::append),
+                  col()
+                      .key("list")
+                      .w(80)
+                      .h(60)
+                      .scrollState(s)
+                      .rows(
+                          50,
+                          20,
+                          row -> row == 30
+                              ? el().key("row-field")
+                                  .focusable()
+                                  .autofocus()
+                                  .h(20)
+                                  .onText(inRow::append)
+                              : el().h(20)));
+        }),
+        100,
+        100);
+    app.focus(find(app.tree(), "field"));
+    app.frame();
+    assertEquals("field", focusedKey(app));
+
+    app.scrollToRow(scroll, 30);
+    app.textInput("abc");
+    app.frame();
+    assertEquals("abc", outside.toString(), "queued typing stays in the field that had focus");
+    assertEquals("", inRow.toString(), "the jumped-to row's autofocus does not take queued typing");
+    assertEquals("row-field", focusedKey(app), "the autofocus still takes focus at frame end");
+    assertEquals(30, scroll.topRow());
+
+    app.textInput("z");
+    app.frame();
+    assertEquals("z", inRow.toString(), "subsequent typing goes to the newly focused row");
+  }
+
+  @Test
   void focusRefusesWhatCannotTakeIt() {
     App<Lights> app = start(new App<>(new Lights(), Examples::switchAlone), 200, 120);
     El stray = el().key("stray").focusable();
