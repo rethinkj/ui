@@ -873,8 +873,8 @@ public final class TabGroups<T> {
       int at = indexOf(group, tab);
       if (at >= 0) {
         onCloseTab.accept(group, at);
-        if (hasGroup(group) && indexOf(group, tab) >= 0) {
-          return; // deferred (e.g. awaiting confirmation): avoid overwriting a pending prompt
+        if (groupOf(tab) != null) {
+          return; // still open, here or moved (e.g. awaiting confirmation): keep a pending prompt
         }
       }
     }
