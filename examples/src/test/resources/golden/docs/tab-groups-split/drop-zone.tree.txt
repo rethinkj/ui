@@ -1,0 +1,30 @@
+el 0,0 540x240
+  el 8,8 524x224
+    el #bar 9,9 522x33
+      el #tablist role=tablist 11,9 302x32
+        el #tab-0 role=tab label="Groceries" 11,9 116x32 selected
+          el 11,39 116x2
+          text label="document" "\u{E4D7}" 19,17 16x16
+          text "Groceries" 39,17 60x16
+          el #close-0 role=button label="Close Groceries" 103,17 16x16
+            text label="dismiss" "\u{F368}" 103,17 16x16
+        el #tab-1 role=tab label="Ideas" 129,9 89x32 grabbed hovered
+          text label="document" "\u{E4D7}" 137,17 16x16
+          text "Ideas" 157,17 33x16
+          el #close-1 role=button label="Close Ideas" 194,17 16x16
+            text label="dismiss" "\u{F368}" 194,17 16x16
+        el #tab-2 role=tab label="Todos" 220,9 93x32
+          text label="document" "\u{E4D7}" 228,17 16x16
+          text "Todos" 248,17 37x16
+          el #close-2 role=button label="Close Todos" 289,17 16x16
+            text label="dismiss" "\u{F368}" 289,17 16x16
+      el 315,13 24x24
+        el #add role=button label="New tab" 315,13 24x24
+          text label="add" "\u{F108}" 319,17 16x16
+      el #room 339,25 26x0
+    el #panel role=tabpanel label="Groceries" 9,42 522x189
+      el #content-0 9,42 522x189
+        el 9,42 522x189
+          text "Milk, bread" 21,54 498x16
+      el #drop 9,42 522x189
+        el #zone 270,44 259x185 value="right"
