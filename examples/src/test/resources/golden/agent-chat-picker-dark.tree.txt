@@ -305,14 +305,14 @@ overlay top end gap 2 on #model-picker role=button label="Atlas 3 High" 737,746 
     el 412,399 446x345
       el 412,399 446x304
         el role=toolbar label="Providers" 412,399 41x304
-          el #item 0 role=button label="All providers" 416,403 32x32 checked
+          el #item-0 role=button label="All providers" 416,403 32x32 checked
             text label="shapes" "\u{F6AC}" 424,411 16x16
           el role=separator 420,441 24x1
-          el #item 1 role=button label="Northstar" 416,448 32x32 checked=false
+          el #item-1 role=button label="Northstar" 416,448 32x32 checked=false
             text label="star" "\u{F70E}" 424,456 16x16
-          el #item 2 role=button label="Solstice" 416,484 32x32 checked=false
+          el #item-2 role=button label="Solstice" 416,484 32x32 checked=false
             text label="lightbulb" "\u{F4D5}" 424,492 16x16
-          el #item 3 role=button label="Timber" 416,520 32x32 checked=false
+          el #item-3 role=button label="Timber" 416,520 32x32 checked=false
             text label="cube" "\u{F334}" 424,528 16x16
         el 453,399 276x304
           el 461,407 260x288
