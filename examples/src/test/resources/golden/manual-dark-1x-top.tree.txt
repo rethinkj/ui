@@ -36,7 +36,7 @@ el 0,0 960x640
           el role=separator 13,97 230x1
           text "On this page" 21,104 214x16
           el #outline role=listbox label="On this page" 13,124 230x503
-            el #item-0 role=option label="Writing documents" 13,124 230x28 pos=1/9
+            el #item-0 role=option label="Writing documents" 13,124 230x28 selected pos=1/9
               el 13,126 230x24
                 el 15,130 2x16
                 text "Writing documents" 21,130 214x16

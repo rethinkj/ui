@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
@@ -13,6 +14,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.RowHeights;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.ScrollState;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Text;
 import com.rethinkj.ui.render.Pixels;
@@ -1925,6 +1927,71 @@ class MarkdownTest {
     for (Text.Line line : wrappedRight.lines()) {
       assertTrue(line.x() > 0, "wrapped right row is indented: " + line);
     }
+  }
+
+  @Test
+  void scrollOptionJumpsToHeadingsAndRebuildsViewWhenCurrentHeadingMoves() {
+    String filler = "Paragraph text to give the section enough height to scroll past the top.\n\n";
+    String source = "Preamble before any heading.\n\n"
+        + "# First\n\n"
+        + filler.repeat(6)
+        + "## Second\n\n"
+        + filler.repeat(6)
+        + "#### Detail\n\n"
+        + filler.repeat(6)
+        + "## Third\n\n"
+        + filler.repeat(12);
+    MarkdownDocument document = Markdown.parse(source);
+    List<MarkdownDocument.Heading> outline =
+        document.headings().stream().filter(h -> h.level() <= 3).toList();
+    ScrollState scroll = new ScrollState();
+    int[] shown = {-2};
+    App<Object> app = new App<>(new Object(), state -> {
+          shown[0] = Markdown.current(document, outline, scroll);
+          return col()
+              .wFull()
+              .hFull()
+              .child(
+                  Markdown.markdown(document, Markdown.options().scroll(scroll)).grow(1));
+        })
+        .provide(Theme.CURRENT, state -> Theme.DARK);
+    app.textRendering(TextRendering.LINUX);
+    app.resize(640, 240, 1);
+    app.frame();
+
+    assertEquals(-1, Markdown.current(document, outline, scroll), "preamble is before First");
+    assertEquals(-1, shown[0]);
+
+    // Jumping to a heading via ScrollState puts its row at the top and rebuilds the view with it.
+    app.scrollToRow(scroll, Markdown.rowOf(document, "second"));
+    app.frame();
+    assertEquals(Markdown.rowOf(document, "second"), scroll.topRow());
+    assertEquals(1, Markdown.current(document, outline, scroll));
+    assertEquals(1, shown[0], "view rebuilt with the heading jumped to");
+
+    // A heading omitted from the outline leaves the previous outline heading active.
+    app.scrollToRow(scroll, Markdown.rowOf(document, "detail"));
+    app.frame();
+    assertEquals(1, Markdown.current(document, outline, scroll));
+    assertEquals(1, shown[0]);
+
+    // User wheel scrolling past Third rebuilds the view so the active heading moves to Third.
+    app.wheel(320, 120, 0, 400);
+    app.frame();
+    assertEquals(2, Markdown.current(document, outline, scroll));
+    assertEquals(2, shown[0], "view rebuilt when wheel moved past Third");
+
+    // Scrolling back to the top returns to -1.
+    app.wheel(320, 120, 0, -5000);
+    app.frame();
+    assertEquals(0, scroll.topRow());
+    assertEquals(-1, Markdown.current(document, outline, scroll));
+    assertEquals(-1, shown[0]);
+
+    // Invalid row throws; an unattached ScrollState is a no-op.
+    assertThrows(IllegalArgumentException.class, () -> app.scrollToRow(scroll, -1));
+    app.scrollToRow(new ScrollState(), 0);
+    app.frame();
   }
 
   private static void collectTableCells(El el, List<El> into) {

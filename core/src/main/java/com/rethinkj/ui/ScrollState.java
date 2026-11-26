@@ -53,6 +53,9 @@ public final class ScrollState {
   // layout or scrolling makes one of them wrong builds the view again.
   boolean toldEnd;
   boolean toldAway;
+  int topRow;
+  // The row topRow() last gave the view, or -1 when not asked since the last change.
+  int toldTopRow = -1;
   // Asked for its end by scrollToEnd until its rows are measured: those rows keep it there.
   boolean toEnd;
   // The element that has it now, the only one whose scrolling writes here: not the one of an
@@ -125,6 +128,18 @@ public final class ScrollState {
     toldEnd |= atEnd;
     toldAway |= !atEnd;
     return atEnd;
+  }
+
+  /**
+   * The row of a {@link El#rows virtual list} at the top of its content box when last laid out:
+   * the last row that starts at or above the vertical offset (clamped to {@code 0..rowCount-1}),
+   * or 0 for an area that is not a virtual list, has no rows, or has not been laid out yet. A view
+   * that asks is built again in the frame in which layout or scrolling changes the answer, as with
+   * {@link #atEnd}.
+   */
+  public int topRow() {
+    toldTopRow = topRow;
+    return topRow;
   }
 
   /**

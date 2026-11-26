@@ -3641,12 +3641,40 @@ public final class App<S> {
     if (row < 0) {
       throw new IllegalArgumentException("row must be 0 or more, was " + row);
     }
-    Object id = animator.identity(list);
+    scrollToRowById(animator.identity(list), row);
+  }
+
+  /**
+   * Like {@link #scrollToRow(El, int)}, for the virtual list ({@link El#rows}) that has this
+   * {@link ScrollState} in this app's last {@link #tree}; does nothing when no area of this app
+   * has it.
+   *
+   * @param row the index of the row, from 0; one beyond the last scrolls to the end
+   * @throws IllegalArgumentException if the area that has {@code state} is not a virtual list or
+   *     {@code row} is negative
+   */
+  public void scrollToRow(ScrollState state, int row) {
+    Objects.requireNonNull(state, "state");
+    if (row < 0) {
+      throw new IllegalArgumentException("row must be 0 or more, was " + row);
+    }
+    El el = state.owner == animator && state.id != null ? animator.liveElement(state.id) : null;
+    if (el == null || el != state.el) {
+      return;
+    }
+    if (!el.isVirtualList()) {
+      throw new IllegalArgumentException(
+          "This element is not a list of rows; El.rows(count, rowHeight, row) makes one.");
+    }
+    scrollToRowById(state.id, row);
+  }
+
+  private void scrollToRowById(Object id, int row) {
     enqueue(() -> {
       settle();
       El el = id == null ? null : animator.element(id);
-      scrolled |= el != null && el.scrollTo(el.scrollX(), el.rowOffset(row));
-      if (el != null) {
+      if (el != null && el.isVirtualList()) {
+        scrolled |= el.scrollTo(el.scrollX(), el.rowOffset(row));
         el.toEnd(false); // the later row wins over a pending end
         rowGoals.put(id, new RowGoal(row, el.rowsVersion(), el.rowKey(row)));
       }
@@ -4090,7 +4118,7 @@ public final class App<S> {
       scrolled = false;
     } else {
       drawn |= settle(); // the rows that scrolling or a rebuild between inputs left to build
-      stale |= endsMoved(root)
+      stale |= scrollStatesMoved(root)
           | tellUnfolds()
           | tellSelections() // of fields in those rows, which the rebuild shows
           | tellFocusIn()
@@ -4200,14 +4228,14 @@ public final class App<S> {
     resizeDue = false;
     try {
       build(false, true);
-      while (resizeRounds < RESIZE_ROUNDS && (!resized.isEmpty() || endsMoved(root))) {
+      while (resizeRounds < RESIZE_ROUNDS && (!resized.isEmpty() | scrollStatesMoved(root))) {
         resizeRounds++;
         keyScroll = false; // what onResize handlers change is not the key's
         tellResized();
         build(false, true);
       }
-      // An answer of atEnd that the last round made wrong: the next frame builds the view again.
-      resizeDue |= resizeRounds >= RESIZE_ROUNDS && endsMoved(root);
+      // An answer of atEnd or topRow that the last round made wrong: the next frame builds again.
+      resizeDue |= resizeRounds >= RESIZE_ROUNDS && scrollStatesMoved(root);
     } finally {
       // What is left, of a view that has not settled or after a throw: the next frame's last
       // build tells it again, from its own tree.
@@ -7794,23 +7822,31 @@ public final class App<S> {
   }
 
   /**
-   * Whether layout or scrolling made an answer of {@link ScrollState#atEnd} wrong that an area at or
-   * below {@code el} gave the view; forgets the answers of those, so that a view that does not ask
-   * again is not built again for them.
+   * Updates each {@link ScrollState#topRow} below {@code el} from the area's layout and reports
+   * whether layout or scrolling made an answer of {@link ScrollState#atEnd} or {@link
+   * ScrollState#topRow} wrong that an area gave the view; forgets the answers of those, so that a
+   * view that does not ask again is not built again for them.
    */
-  private static boolean endsMoved(El el) {
+  private static boolean scrollStatesMoved(El el) {
     boolean moved = false;
     ScrollState state = el.scrollState();
-    if (state != null && state.el == el && (state.atEnd ? state.toldAway : state.toldEnd)) {
-      state.toldEnd = false;
-      state.toldAway = false;
-      moved = true;
+    if (state != null && state.el == el) {
+      if (state.atEnd ? state.toldAway : state.toldEnd) {
+        state.toldEnd = false;
+        state.toldAway = false;
+        moved = true;
+      }
+      state.topRow = el.topRow();
+      if (state.toldTopRow >= 0 && state.toldTopRow != state.topRow) {
+        state.toldTopRow = -1;
+        moved = true;
+      }
     }
     for (El child : el.children()) {
-      moved |= endsMoved(child);
+      moved |= scrollStatesMoved(child);
     }
     for (El overlay : el.overlays()) {
-      moved |= endsMoved(overlay);
+      moved |= scrollStatesMoved(overlay);
     }
     return moved;
   }

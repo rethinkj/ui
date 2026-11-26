@@ -11,6 +11,7 @@ import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
 import com.rethinkj.ui.RowHeights;
+import com.rethinkj.ui.ScrollState;
 import com.rethinkj.ui.Spans;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.WindowState;
@@ -123,6 +124,7 @@ public final class Markdown {
     private Clipboard clipboard;
     private Button.Copied copied;
     private State state;
+    private ScrollState scroll;
     private Function<String, com.rethinkj.ui.Image> images;
     private int textColor;
     private boolean virtual;
@@ -204,6 +206,17 @@ public final class Markdown {
       return this;
     }
 
+    /**
+     * The scroll offsets of the document {@link #markdown} returns ({@link El#scrollState}), so
+     * that it keeps its position across switches, scrolls to a heading with {@code
+     * app.scrollToRow(state, Markdown.rowOf(document, id))}, and reports the heading in view with
+     * {@link #current}. Ignored by {@link #fragment} and {@link #definitions}.
+     */
+    public Options scroll(ScrollState state) {
+      this.scroll = state;
+      return this;
+    }
+
     private Button.Copied copied() {
       return copied != null ? copied : state != null ? state.copied : null;
     }
@@ -271,6 +284,9 @@ public final class Markdown {
                 .child(unit(c, units.get(i))
                     .wFull()
                     .maxSize(theme.prose().measure(), Float.POSITIVE_INFINITY)));
+    if (options.scroll != null) {
+      list.scrollState(options.scroll);
+    }
     State state = options.state;
     if (state != null) {
       list.onAnyPointerDown(() -> state.all = false);
@@ -426,17 +442,40 @@ public final class Markdown {
   public static int rowOf(MarkdownDocument document, String id) {
     List<Unit> units = units(document);
     for (int i = 0; i < units.size(); i++) {
-      List<Block> inside = units.get(i).item < 0
-          ? List.of(units.get(i).block)
-          : ((MarkdownDocument.ListBlock) units.get(i).block)
-              .items()
-              .get(units.get(i).item)
-              .blocks();
-      if (new MarkdownDocument(inside).headings().stream().anyMatch(h -> h.id().equals(id))) {
+      if (new MarkdownDocument(inside(units.get(i)))
+          .headings().stream().anyMatch(h -> h.id().equals(id))) {
         return i;
       }
     }
     return -1;
+  }
+
+  /**
+   * The index into {@code headings} of the last heading whose row ({@link #rowOf}) is at or above
+   * {@link ScrollState#topRow scroll.topRow()}, or -1 when none is: for an outline that marks the
+   * heading in view as the document scrolls. {@code headings} are headings of {@code document} in
+   * document order, such as {@link MarkdownDocument#headings} filtered by level.
+   */
+  public static int current(
+      MarkdownDocument document, List<MarkdownDocument.Heading> headings, ScrollState scroll) {
+    List<Unit> units = units(document);
+    int top = Math.min(scroll.topRow(), units.size() - 1);
+    int next = 0;
+    for (int i = 0; i <= top; i++) {
+      for (MarkdownDocument.Heading h : new MarkdownDocument(inside(units.get(i))).headings()) {
+        if (next < headings.size() && h.id().equals(headings.get(next).id())) {
+          next++;
+        }
+      }
+    }
+    return next - 1;
+  }
+
+  /** The blocks of a row: its block, or the blocks of its item. */
+  private static List<Block> inside(Unit u) {
+    return u.item < 0
+        ? List.of(u.block)
+        : ((MarkdownDocument.ListBlock) u.block).items().get(u.item).blocks();
   }
 
   /**
