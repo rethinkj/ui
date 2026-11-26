@@ -3,6 +3,7 @@ el 0,0 480x216
     el #segment-0 label="Requests" 12,12 246x32 value="54%"
       text "Requests 54%" 20,21 84x14
     el #marker label="Target" 328,12 4x32 value="70%"
+    el 12,12 456x32
     el #trailing-layer 12,12 456x32
       el 12,12 456x0
       el 12,12 456x32
@@ -29,6 +30,7 @@ el 0,0 480x216
     el #segment-0 label="Allocated" 12,132 456x32 value="100%"
       text "Allocated 100%" 20,141 92x14
     el #marker label="Alert" 419,132 4x32 value="90%"
+    el 12,132 456x32
     el #trailing-layer 12,132 456x32
       el 12,132 456x0
       el 12,132 456x32
@@ -42,12 +44,13 @@ el 0,0 480x216
     el #segment-0 label="Production traffic" 12,172 98x32 value="65%"
       text "Production traffic 65%" 20,181 82x14
     el #marker label="Limit" 122,172 4x32 value="75%"
+    el 12,172 150x32
     el #trailing-layer 12,172 150x32
       el 12,172 150x0
-      el 12,172 150x32
-        el 12,172 98x32
-        el 110,172 52x32
-        el #trailing 20,204 67x32
-          el 20,211 67x18
-            el label="Near limit" 20,211 67x18
-              text "Near limit" 26,213 55x14
+      el 162,172 150x50
+        el 162,172 98x32
+        el 260,172 52x32
+        el #trailing 170,204 67x18
+          el 170,204 67x18
+            el label="Near limit" 170,204 67x18
+              text "Near limit" 176,206 55x14

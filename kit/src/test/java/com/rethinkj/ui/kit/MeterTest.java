@@ -206,6 +206,64 @@ class MeterTest {
   }
 
   @Test
+  void trailingBadgeDoesNotCoverMovingLabelWhileSegmentsSpring() throws IOException {
+    double[] shares = {0.78, 0.21};
+    App<double[]> app = new App<>(
+        shares,
+        state -> col()
+            .wFull()
+            .child(Meter.bar(
+                    List.of(
+                        new Meter.Segment("Compute", state[0], 0),
+                        new Meter.Segment("Storage", state[1], 1)),
+                    Meter.options().trailing(Badge.badge("5d 23h")))
+                .key("meter")
+                .w(400)));
+    Script.run("size 400 80\nframe", app, out);
+    assertTrue(
+        findByKey(app.tree(), "trailing").y() >= findByKey(app.tree(), "meter").height(),
+        "initially hidden");
+
+    shares[0] = 0.30;
+    shares[1] = 0.69;
+    app.invalidate();
+    Script.run("frame", app, out);
+    assertTrue(app.isMoving(), "segments and trailing badges spring");
+
+    for (int step = 0; step < 100; step++) {
+      El meter = findByKey(app.tree(), "meter");
+      El layer = findByKey(meter, "trailing-layer");
+      El row = layer.children().get(1);
+      El trailing = findByKey(row, "trailing");
+      float badgeLeft = layer.x() + row.x() + trailing.x();
+      float badgeTop = layer.y() + row.y() + trailing.y();
+      El storage = findByKey(meter, "segment-1");
+      El label = storage.children().getFirst();
+      float labelRight = Math.min(
+          storage.x() + storage.width(), storage.x() + label.x() + TextSizing.measured(label));
+      assertTrue(
+          badgeLeft >= meter.width() || badgeTop >= meter.height() || badgeLeft >= labelRight,
+          "step " + step + ": badge left " + badgeLeft + " covers Storage label ending at "
+              + labelRight);
+      if (!app.isMoving()) {
+        break;
+      }
+      Script.run("advance 0.015\nframe", app, out);
+    }
+
+    assertFalse(app.isMoving(), "settled");
+    El meter = findByKey(app.tree(), "meter");
+    El layer = findByKey(meter, "trailing-layer");
+    El row = layer.children().get(1);
+    El trailing = findByKey(row, "trailing");
+    float badgeLeft = layer.x() + row.x() + trailing.x();
+    float badgeTop = layer.y() + row.y() + trailing.y();
+    assertTrue(
+        badgeLeft >= 0 && badgeLeft < meter.width() && badgeTop >= 0 && badgeTop < meter.height(),
+        "settled badge inside track: x=" + badgeLeft + ", y=" + badgeTop);
+  }
+
+  @Test
   void tinyLastSegmentDoesNotHideFittingTrailingBadge() throws IOException {
     App<Object> app = new App<>(
         new Object(),

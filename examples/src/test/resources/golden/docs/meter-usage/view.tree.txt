@@ -21,6 +21,7 @@ el 0,0 720x371
               el #segment-0 label="Chat" 209,72 171x32 value="72%"
                 text "Chat 72%" 217,80 58x15
               el #marker label="Expected" 314,72 4x32 value="45%"
+              el 209,72 237x32
               el #trailing-layer 209,72 237x32
                 el 209,72 237x0
                 el 209,72 237x32
@@ -38,6 +39,7 @@ el 0,0 720x371
               el #segment-0 label="Code" 454,72 223x32 value="94%"
                 text "Code 94%" 462,80 61x15
               el #marker label="Expected" 571,72 4x32 value="50%"
+              el 454,72 237x32
               el #trailing-layer 454,72 237x32
                 el 454,72 237x0
                 el 454,72 237x32
@@ -68,6 +70,7 @@ el 0,0 720x371
             el #segment-0 label="" 209,206 415x32 value="86%"
               text "86%" 217,215 28x15
             el #marker label="Expected" 606,206 4x32 value="83%"
+            el 209,206 482x32
             el #trailing-layer 209,206 482x32
               el 209,206 482x0
               el 209,206 482x32
@@ -90,6 +93,7 @@ el 0,0 720x371
           el role=meter label="Personal large model" 209,300 482x32 value="100%"
             el #segment-0 label="" 209,300 482x32 value="100%"
               text "100%" 217,309 36x15
+            el 209,300 482x32
             el #trailing-layer 209,300 482x32
               el 209,300 482x0
               el 209,300 482x32

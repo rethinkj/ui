@@ -30,8 +30,9 @@ import java.util.Objects;
  * while it reads at 4.5:1 and otherwise takes the primary text, white or black, whichever reads
  * ({@link Colors#contrast}). Segments and the marker
  * spring to new values with {@link Theme.Motion#move}. Trailing elements sit vertically centered at
- * the right end of the track, each on the window's color so that it reads on any fill, and are
- * hidden as a whole when they do not fit beside the segment texts.
+ * the right end of the track, each on the window's color so that it reads on any fill, hide as a
+ * whole when they do not fit beside the segment texts, and slide in from the right with {@link
+ * Theme.Motion#move} as space opens.
  *
  * <p>In a tree dump the bar is {@code role=meter} with its {@link El#label label} (if set) and the
  * whole percent of all segments together as {@code value}. Each segment is a keyed child ({@code
@@ -252,7 +253,7 @@ public final class Meter {
     }
 
     if (!options.trailing.isEmpty()) {
-      track.child(trailingLayer(theme, options.trailing, slices, pad));
+      addTrailing(track, theme, options.trailing, slices, pad);
     }
 
     return track;
@@ -262,21 +263,27 @@ public final class Meter {
   private record Slice(double start, double share, El text) {}
 
   /**
-   * Places trailing badges at the right end of the track in a wrapping overlay clipped to the track
-   * height: when the badges do not fit beside the rightmost segment text that actually draws
-   * glyphs, Flexbox wraps the entire badge row onto the second line below the clip box so no
-   * partial badge shows.
+   * Adds the trailing badges at the right end of the track, in an overlay clipped to the track: a
+   * column that wraps, holding a row as high as the track that wraps too. When the badges do not
+   * fit beside the rightmost segment text that actually draws glyphs, they wrap onto the row's
+   * second line, and the row, now twice as high, wraps into a second column right of the track, so
+   * no partial badge shows.
    *
-   * <p>The outer column places a zero-height full-width leaf ahead of the wrapping row so layout
-   * hands the track's pixel width to the row's reserve element, since CSS flexbox measures
-   * auto-width items in a row against {@link Measure#MAX_CONTENT}. Because the track lays out its
-   * in-flow segments before its absolute overlays, each segment's {@link Text#lines()} already
-   * reflects whether any glyph fit inside the segment.
+   * <p>The row springs with {@link Theme.Motion#move}, as the segments do: when room opens, the
+   * badges slide in from the right edge over the whole width of the track, farther than any label
+   * travels, so they never pass over one; when room closes, they drop onto the hidden second line
+   * at once.
+   *
+   * <p>A probe laid out over the track ahead of the overlay hands the track's pixel size to the
+   * reserve element, since CSS flexbox measures auto-width items in a row against {@link
+   * Measure#MAX_CONTENT}. Because the track lays out its in-flow segments before its absolute
+   * children, each segment's {@link Text#lines()} already reflects whether any glyph fit inside the
+   * segment.
    */
-  private static El trailingLayer(Theme theme, List<El> badges, List<Slice> slices, float pad) {
+  private static void addTrailing(
+      El track, Theme theme, List<El> badges, List<Slice> slices, float pad) {
     El trailing = row()
         .key("trailing")
-        .hFull()
         .shrink(0)
         .align(Style.Align.CENTER)
         .gap(theme.space().s())
@@ -292,35 +299,46 @@ public final class Meter {
       El layer =
           row().key("trailing-layer").absolute(0, 0).wFull().hFull().wrap().clip();
       layer.style().alignContent = Style.Content.FLEX_START;
-      return layer.child(el().w(0).hFull().grow(1)).child(trailing);
+      track.child(layer.child(el().w(0).hFull().grow(1)).child(trailing));
+      return;
     }
 
     float[] trackWidth = {Float.NaN};
-    El probe = el().wFull().shrink(0).minSize(0, 0).measure((knownW, knownH, availW, availH) -> {
+    float[] trackHeight = {0};
+    // laid out before the layer, like every earlier absolute child of the track
+    El probe = el().absolute(0, 0).wFull().hFull().measure((knownW, knownH, availW, availH) -> {
       float width = Float.isNaN(knownW) ? availW : knownW;
+      float height = Float.isNaN(knownH) ? availH : knownH;
       if (Float.isFinite(width)) {
         trackWidth[0] = width;
       }
+      if (Float.isFinite(height)) {
+        trackHeight[0] = height;
+      }
       return new Measure.Size(0, 0);
     });
-    El reserve = el().hFull().shrink(0).minSize(0, 0).measure((knownW, knownH, availW, availH) -> {
+    // as high as the track, so that one line fills the first column and a second one wraps away
+    El reserve = el().shrink(0).minSize(0, 0).measure((knownW, knownH, availW, availH) -> {
       if (availW == Measure.MIN_CONTENT) {
-        return new Measure.Size(0, 0);
+        return new Measure.Size(0, trackHeight[0]);
       }
-      return new Measure.Size(reservedWidth(slices, trackWidth[0], pad), 0);
+      return new Measure.Size(reservedWidth(slices, trackWidth[0], pad), trackHeight[0]);
     });
-    El row = row().wFull().hFull().shrink(0).minSize(0, 0).wrap();
+    El row = row().wFull().shrink(0).minSize(0, 0).wrap().motion(theme.motion().move());
     row.style().alignContent = Style.Content.FLEX_START;
-    row.child(reserve).child(el().w(0).hFull().grow(1)).child(trailing);
+    row.child(reserve).child(el().w(0).grow(1)).child(trailing);
 
-    return col()
+    El layer = col()
         .key("trailing-layer")
         .absolute(0, 0)
         .wFull()
         .hFull()
+        .wrap()
         .clip()
-        .child(probe)
+        .child(el().wFull()) // fills the first column to the track's width
         .child(row);
+    layer.style().alignContent = Style.Content.FLEX_START;
+    track.child(probe).child(layer);
   }
 
   /**

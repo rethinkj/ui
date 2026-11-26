@@ -1,0 +1,1 @@
+- `Meter` slides its trailing badges in from the right edge with `Theme.Motion#move` when a value change makes room for them again, so a badge no longer covers a segment label that is still springing left.
