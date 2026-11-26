@@ -27,7 +27,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -1972,53 +1974,40 @@ class TabGroupsTest {
     assertSame(leftOfEmpty, wd.groups.main().active());
   }
 
+  private record SidebarItem(String id) {}
+
+  /** A sidebar of rows dragging {@code ids}, a row with a refused payload, and {@code groups}. */
+  private static App<Object> withSidebar(TabGroups<String> groups, String... ids) {
+    return new App<>(new Object(), s -> {
+      List<El> rows = new ArrayList<>();
+      for (String id : ids) {
+        rows.add(El.el()
+            .key("item-" + id)
+            .size(80, 24)
+            .dragPayload(new SidebarItem(id))
+            .onDrag(drag -> {}));
+      }
+      rows.add(El.el().key("item-bad").size(80, 24).dragPayload("ignored").onDrag(drag -> {}));
+      El sidebar = col().w(80).hFull().shrink(0).children(rows.toArray(El[]::new));
+      El tabs = groups.tabs(groups.main(), Tab::new, t -> t == null ? null : Label.label(t));
+      return row().wFull().hFull().onKey(tabs.onKey()).children(sidebar, tabs.grow(1));
+    });
+  }
+
+  private static TabGroups<String> acceptingGroups(Map<String, String> byId, String... open) {
+    return new TabGroups<>(Arrays.stream(open).map(byId::get).toList())
+        .splits(true)
+        .accept(payload -> payload instanceof SidebarItem item ? byId.get(item.id()) : null);
+  }
+
   @Test
-  void externalDragOpensInSplitEdgeBarMovesExistingAndCancelsOnEscape() throws IOException {
-    record SidebarItem(String id) {}
+  void externalDragOpensInSplitEdgeAndBarAndMovesAnOpenTab() throws IOException {
     String a = new String("a");
     String b = new String("b");
     String e = new String("e");
     String f = new String("f");
-    String g = new String("g");
-    java.util.Map<String, String> byId = java.util.Map.of("a", a, "b", b, "e", e, "f", f, "g", g);
-    TabGroups<String> groups = new TabGroups<>(List.of(a, b))
-        .splits(true)
-        .accept(payload -> payload instanceof SidebarItem item ? byId.get(item.id()) : null);
-    App<Object> app = new App<>(new Object(), s -> {
-      El sidebar = col()
-          .w(80)
-          .hFull()
-          .shrink(0)
-          .children(
-              El.el()
-                  .key("item-e")
-                  .size(80, 24)
-                  .dragPayload(new SidebarItem("e"))
-                  .onDrag(drag -> {}),
-              El.el()
-                  .key("item-f")
-                  .size(80, 24)
-                  .dragPayload(new SidebarItem("f"))
-                  .onDrag(drag -> {}),
-              El.el()
-                  .key("item-a")
-                  .size(80, 24)
-                  .dragPayload(new SidebarItem("a"))
-                  .onDrag(drag -> {}),
-              El.el()
-                  .key("item-g")
-                  .size(80, 24)
-                  .dragPayload(new SidebarItem("g"))
-                  .onDrag(drag -> {}),
-              El.el()
-                  .key("item-b")
-                  .size(80, 24)
-                  .dragPayload(new SidebarItem("b"))
-                  .onDrag(drag -> {}),
-              El.el().key("item-bad").size(80, 24).dragPayload("ignored").onDrag(drag -> {}));
-      El tabs = groups.tabs(groups.main(), Tab::new, t -> t == null ? null : Label.label(t));
-      return row().wFull().hFull().onKey(tabs.onKey()).children(sidebar, tabs.grow(1));
-    });
+    TabGroups<String> groups = acceptingGroups(Map.of("a", a, "b", b, "e", e, "f", f), "a", "b");
+    App<Object> app = withSidebar(groups, "e", "f", "a");
 
     // (a) Dragging a new item onto the right edge previews #zone value="right" and splits.
     Script.run("""
@@ -2079,10 +2068,21 @@ class TabGroupsTest {
     assertSame(a, right.activeTab());
     assertSame(right, groups.main().active());
     assertSame(find(find(app.tree(), "group-1"), "tablist"), app.focused());
+  }
 
-    // (d) Refused payload shows neither marker nor zone and changes nothing.
+  @Test
+  void externalDragRefusedOrCancelledChangesNothingAndActivatesAMovedTab() throws IOException {
+    String a = new String("a");
+    String b = new String("b");
+    String g = new String("g");
+    TabGroups<String> groups = acceptingGroups(Map.of("a", a, "b", b, "g", g), "a", "b");
+    App<Object> app = withSidebar(groups, "g", "b");
+    Group<String> left = groups.main().active();
+
+    // A refused payload shows neither marker nor zone and changes nothing.
     Script.run("""
         size 480 160
+        frame
         down #item-bad
         move 130,17
         frame
@@ -2094,22 +2094,10 @@ class TabGroupsTest {
         frame""", app, out);
     assertFalse(tree("ext-bad-bar").contains("#marker"), tree("ext-bad-bar"));
     assertFalse(tree("ext-bad-panel").contains("#zone"), tree("ext-bad-panel"));
-    assertEquals(List.of("f", "b"), left.tabs());
-    assertEquals(List.of("e", "a"), right.tabs());
+    assertEquals(List.of(left), groups.groups());
+    assertEquals(List.of("a", "b"), left.tabs());
 
-    // An open, inactive tab dropped on its own bar moves there and becomes active.
-    assertSame(f, left.activeTab());
-    Script.run("""
-        size 480 160
-        down #item-b
-        move 90,17
-        frame
-        up 90,17
-        frame""", app, out);
-    assertEquals(List.of("b", "f"), left.tabs());
-    assertSame(b, left.activeTab());
-
-    // (e) Escape mid-drag over a panel or over a bar leaves groups unchanged and clears previews.
+    // Escape mid-drag over a panel or over a bar leaves groups unchanged and clears previews.
     Script.run("""
         size 480 160
         down #item-g
@@ -2134,8 +2122,20 @@ class TabGroupsTest {
     assertFalse(tree("ext-esc-zone-after").contains("#zone"), tree("ext-esc-zone-after"));
     assertTrue(tree("ext-esc-bar").contains("#marker"), tree("ext-esc-bar"));
     assertFalse(tree("ext-esc-bar-after").contains("#marker"), tree("ext-esc-bar-after"));
-    assertEquals(List.of("b", "f"), left.tabs());
-    assertEquals(List.of("e", "a"), right.tabs());
+    assertEquals(List.of(left), groups.groups());
+    assertEquals(List.of("a", "b"), left.tabs());
+
+    // An open, inactive tab dropped on its own bar moves there and becomes active.
+    assertSame(a, left.activeTab());
+    Script.run("""
+        size 480 160
+        down #item-b
+        move 90,17
+        frame
+        up 90,17
+        frame""", app, out);
+    assertEquals(List.of("b", "a"), left.tabs());
+    assertSame(b, left.activeTab());
   }
 
   @Test
