@@ -681,7 +681,7 @@ final class Layouts {
     El figure = row()
         .gap(theme.space().s())
         .align(Style.Align.BASELINE)
-        .children(Label.label(Label.Variant.TITLE, percent).fontFeatures("+tnum"), remaining);
+        .children(Label.label(Label.Variant.STAT, percent), remaining);
     El summary =
         col().w(168).shrink(0).gap(theme.space().xs()).children(Label.label(title), figure);
     if (note != null) {

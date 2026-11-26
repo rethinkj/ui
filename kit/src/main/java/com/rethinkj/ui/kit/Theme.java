@@ -1280,9 +1280,10 @@ public record Theme(
   public record TextStyle(Supplier<Font> font, float size) {}
 
   /**
-   * The type scale, from a page's title down to code. Headings come in four styles: {@code
-   * title} over a page, {@code dialog} over a dialog, {@code section} over a section of a page,
-   * {@code heading} over a card. Titles and headings are semibold, strong text medium.
+   * The type scale, from a stat figure and a page's title down to code. Headings come in four
+   * styles: {@code title} over a page, {@code dialog} over a dialog, {@code section} over a section
+   * of a page, {@code heading} over a card. Titles, headings and stat figures are semibold, strong
+   * text medium.
    *
    * @param body the text of the interface and of controls
    * @param mono code, identifiers and values that line up
@@ -1295,6 +1296,7 @@ public record Theme(
    *     details of a status bar, the kind of a completion, the count of a find bar; the regular
    *     weight, so that it recedes, where a badge's text is medium to hold on its fill
    * @param section the heading of a section of a page, between {@code heading} and {@code title}
+   * @param stat a large figure that leads a stat or quota card
    * @param icons the font of an {@link Icon}'s {@link Symbol}s, sized to {@link Sizes#icon} or the
    *     size the view gives
    * @param count the font of the count an {@link AppIcon#count} draws, sized to the image
@@ -1308,6 +1310,7 @@ public record Theme(
       TextStyle dialog,
       TextStyle small,
       TextStyle section,
+      TextStyle stat,
       Supplier<Font> icons,
       Supplier<Font> count) {}
 
@@ -1970,6 +1973,7 @@ public record Theme(
       new TextStyle(Font::sansSemibold, 16),
       new TextStyle(Font::sans, 12),
       new TextStyle(Font::sansSemibold, 16),
+      new TextStyle(Font::sansSemibold, 28),
       Font::icons,
       Font::sansBold);
   private static final Sizes SIZE = new Sizes(
@@ -2025,7 +2029,9 @@ public record Theme(
    * for every hue.
    *
    * Sizes and type. Controls 24, rows 24, text 13; radii 4 for small parts, 6 for controls, 10 for
-   * cards; card titles 14, section and dialog titles 16, secondary text beside its subject 12; headings semibold, strong text, column titles and buttons medium.
+   * cards; card titles 14, section and dialog titles 16, page titles 20, stat figures 28, secondary
+   * text beside its subject 12; headings and stat figures semibold, strong text, column titles and
+   * buttons medium.
    *
    * Palette. Every color is one of Palette's, named by its hue and its L* times ten, or one of
    * them at an alpha: alpha(GRAY_298, 0.25f) is the dark theme's hover. Tokens that share a color

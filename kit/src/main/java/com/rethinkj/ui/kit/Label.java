@@ -24,7 +24,12 @@ public final class Label {
      * Secondary text in the small size, beside what it is about: the details of a status bar, the
      * kind of a completion, the count of a find bar. Muted, as {@link #MUTED}.
      */
-    SMALL
+    SMALL,
+    /**
+     * A large figure that leads a stat or quota card, in tabular figures so values line up across
+     * cards.
+     */
+    STAT
   }
 
   private Label() {}
@@ -43,13 +48,15 @@ public final class Label {
       case TITLE -> theme.type().title();
       case STRONG -> theme.type().strong();
       case SMALL -> theme.type().small();
+      case STAT -> theme.type().stat();
     };
-    return El.text(text)
+    El el = El.text(text)
         .font(style.font().get())
         .fontSize(style.size())
         .color(
             variant == Variant.MUTED || variant == Variant.SMALL
                 ? theme.text().muted()
                 : theme.text().primary());
+    return variant == Variant.STAT ? el.fontFeatures("+tnum") : el;
   }
 }

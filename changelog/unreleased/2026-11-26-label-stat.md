@@ -1,0 +1,1 @@
+- **Breaking:** `Label.Variant.STAT` displays large figures for stat and quota cards in tabular figures (`+tnum`), using the new `Theme.Type.stat` style (28 px semibold). A theme that builds its own `Theme.Type` passes the new style after `section`.

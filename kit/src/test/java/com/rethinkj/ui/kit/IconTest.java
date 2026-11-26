@@ -318,6 +318,7 @@ class IconTest {
         base.dialog(),
         base.small(),
         base.section(),
+        base.stat(),
         () -> customIcons,
         () -> customCount));
     El symbol = Theme.CURRENT.with(theme, () -> icon(Symbol.TABLE));

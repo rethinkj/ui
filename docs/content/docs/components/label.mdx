@@ -1,6 +1,6 @@
 ---
 title: Label
-description: "Themed text styles: normal, muted, small, monospace, strong, headings, and page titles."
+description: "Themed text styles: normal, muted, small, monospace, strong, headings, page titles, and stat figures."
 ---
 
 `Label.label` creates a text element using one of the active theme's typography styles and colors. Use it for all standard UI text. For custom fonts or sizes, use `El.text` ([Text and fonts](/docs/concepts/text)).
@@ -24,6 +24,7 @@ Javadoc: [`Label`](/api/com/rethinkj/ui/kit/Label.html).
 | `TITLE` | Page titles |
 | `STRONG` | Emphasized titles (e.g., popover headings) |
 | `SMALL` | Compact 12 px muted text (status bar details, match counts) |
+| `STAT` | Large figures leading stat or quota cards, in tabular figures |
 
 Chain `.wrapText()` for multi-line wrapping or `.ellipsis()` for truncation.
 
