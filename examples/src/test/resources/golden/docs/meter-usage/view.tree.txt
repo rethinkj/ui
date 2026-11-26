@@ -12,7 +12,7 @@ el 0,0 720x371
               text "83%" 29,71 64x34
               el 97,85 33x16
                 text "left" 97,85 19x16
-                text label="arrow_down" "\u{F8D0}" 118,87 12x12
+                text label="arrow_trending_down" "\u{E119}" 118,87 12x12
             el 29,107 168x15
               text label="clock" "\u{F2DB}" 29,109 12x12
               text "+3% in 6d 10h" 43,107 80x15
@@ -59,7 +59,7 @@ el 0,0 720x371
               text "86%" 29,214 64x34
               el 97,228 33x16
                 text "left" 97,228 19x16
-                text label="arrow_down" "\u{F8D0}" 118,230 12x12
+                text label="arrow_trending_down" "\u{E119}" 118,230 12x12
           el role=meter label="Personal weekly" 209,206 482x32 value="86%"
             el #segment-0 label="" 209,206 415x32 value="86%"
               text "86%" 217,215 28x15
@@ -80,7 +80,7 @@ el 0,0 720x371
               text "100%" 29,308 82x34
               el 115,322 33x16
                 text "left" 115,322 19x16
-                text label="arrow_down" "\u{F8D0}" 136,324 12x12
+                text label="arrow_trending_down" "\u{E119}" 136,324 12x12
           el role=meter label="Personal large model" 209,300 482x32 value="100%"
             el #segment-0 label="" 209,300 482x32 value="100%"
               text "100%" 217,309 36x15

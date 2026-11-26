@@ -1,0 +1,1 @@
+- Added: `Symbol.ARROW_TRENDING` and `Symbol.ARROW_TRENDING_DOWN` for rising and falling trends in stats and quota cards.

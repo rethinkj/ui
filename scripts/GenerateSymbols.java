@@ -39,7 +39,8 @@ public class GenerateSymbols {
   static final String NAMES = """
       add alert arrow_clockwise arrow_down arrow_download arrow_import arrow_left arrow_maximize
       arrow_export_ltr arrow_minimize arrow_redo arrow_right arrow_sort arrow_sort_down
-      arrow_sort_up arrow_sync arrow_undo arrow_up arrow_upload braces branch calendar_ltr checkmark
+      arrow_sort_up arrow_sync arrow_trending arrow_trending_down arrow_undo arrow_up arrow_upload
+      braces branch calendar_ltr checkmark
       checkmark_circle chevron_double_down chevron_double_up chevron_down chevron_left chevron_right
       chevron_up circle
       clipboard_paste clock cloud code column_single copy cube cut database delete dismiss
