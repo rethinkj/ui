@@ -391,7 +391,8 @@ public final class TabGroups<T> {
   private int startY;
   private Group<T> zoneGroup; // group whose panel shows a drop-zone preview, or null
   private Zone zone;
-  private T openingTab; // tab currently being handed to opener.open, to reject re-adding it
+  // Tabs being handed to opener.open, also nested ones, to reject re-adding them.
+  private final Set<T> opening = Collections.newSetFromMap(new IdentityHashMap<>());
 
   /**
    * Tabs in one window, without tearing tabs off into new windows: for single-window apps that use
@@ -630,16 +631,14 @@ public final class TabGroups<T> {
     boolean alone = alone(group);
     List<Tabs.Tab> uiTabs = group.tabs.stream().map(tab).toList();
     // The menu opens for the active tab, acts on that tab wherever it goes, and ends with it.
-    if (group.tabs.isEmpty()) {
+    boolean gone = group.menuTab != null && indexOf(group, group.menuTab) < 0;
+    if (group.tabs.isEmpty() || (gone && group.menu.isOpen())) {
       group.menu.close();
       group.menuTab = null;
     } else if (!group.menu.isOpen()) {
       group.menuTab = null;
     } else if (group.menuTab == null) {
       group.menuTab = group.activeTab();
-    } else if (indexOf(group, group.menuTab) < 0) {
-      group.menu.close();
-      group.menuTab = null;
     }
     T target = group.menuTab != null ? group.menuTab : group.activeTab();
     List<Menu.Item> items = List.of();
@@ -1052,7 +1051,7 @@ public final class TabGroups<T> {
     requireOpen(group);
     Objects.requireNonNull(tab, "tab");
     Objects.checkIndex(at, group.tabs.size() + 1);
-    if (tab == openingTab || groupOf(tab) != null) {
+    if (opening.contains(tab) || groupOf(tab) != null) {
       throw new IllegalArgumentException("Tab is already open: " + tab);
     }
     T d = dragged();
@@ -1352,15 +1351,18 @@ public final class TabGroups<T> {
   private Group<T> openWindow(Group<T> from, int index, Window.Options options, boolean prune) {
     Frame<T> fromFrame = from.frame;
     T prevActiveTab = from.activeTab();
+    boolean draggedTab = dragging.on(from, index);
     T tab = remove(from, index, false);
     Group<T> group = new Group<>(groupsMade++);
     Frame<T> frame = new Frame<>(group);
     group.frame = frame;
     group.tabs.add(tab);
     group.active = 0;
+    if (draggedTab) { // in the staged group, so that what the opener changes leaves the drag alone
+      dragging.moved(group, 0);
+    }
     Windows.Handle opened;
-    T previousOpening = openingTab;
-    openingTab = tab;
+    opening.add(tab);
     try {
       opened = Objects.requireNonNull(opener.open(frame, options), "opener returned null");
     } catch (RuntimeException | Error e) {
@@ -1374,9 +1376,12 @@ public final class TabGroups<T> {
       } else if (target.active < 0) {
         target.active = restoreAt;
       }
+      if (draggedTab) {
+        dragging.moved(target, restoreAt);
+      }
       throw e;
     } finally {
-      openingTab = previousOpening;
+      opening.remove(tab);
     }
     if (prune && from.tabs.isEmpty()) {
       prune(from, true);
@@ -1427,11 +1432,11 @@ public final class TabGroups<T> {
         // Its own tree says where its tab lies, also where the first step is already over
         // another window, whose place the step's own numbers are of.
         float[] at = firstTab(following);
-        if (at != null) {
+        if (at.length > 0) {
           firstX = at[0];
           firstY = at[1];
         }
-        tabHeight = at == null ? Float.NaN : at[2];
+        tabHeight = at.length == 0 ? Float.NaN : at[2];
         placed = true;
       } else { // a window of its own, under the pointer
         origin = group;
@@ -1467,7 +1472,7 @@ public final class TabGroups<T> {
     if (moving && open) {
       if (!placed) { // the new window's own tree says where its tab lies, once it has one
         float[] at = firstTab(f);
-        if (at != null) {
+        if (at.length > 0) {
           firstX = at[0];
           firstY = at[1];
           tabHeight = at[2];
@@ -1525,14 +1530,16 @@ public final class TabGroups<T> {
     }
   }
 
+  private static final float[] NO_TAB = {};
+
   /**
-   * Where the first tab of {@code frame}'s first group lies in its window, and its height; null
+   * Where the first tab of {@code frame}'s first group lies in its window, and its height; empty
    * without one.
    */
   private static <T> float[] firstTab(Frame<T> frame) {
     El root = frame.window == null ? null : frame.window.app().tree();
     if (root == null) {
-      return null;
+      return NO_TAB;
     }
     El target = Frame.firstGroup(frame.root).tablist;
     return find(root, target, 0, 0);
@@ -1545,14 +1552,14 @@ public final class TabGroups<T> {
           return new float[] {x + child.x(), y + child.y(), child.height()};
         }
       }
-      return null;
+      return NO_TAB;
     }
     for (El child : el.children()) {
       float[] at = find(child, target, x + child.x(), y + child.y());
-      if (at != null) {
+      if (at.length > 0) {
         return at;
       }
     }
-    return null;
+    return NO_TAB;
   }
 }

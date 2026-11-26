@@ -27,6 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -59,12 +60,14 @@ class TabGroupsTest {
     final TabGroups<String> groups = new TabGroups<>(List.of("a", "b", "c", "d"), this::open);
     final List<String> closed = new ArrayList<>();
     final List<String> closedWindows = new ArrayList<>();
+    Consumer<Frame<String>> onOpen = frame -> {}; // what the app does while a window opens
 
     Docs() {
       groups.onClosed(closed::add);
     }
 
     Windows.Handle open(Frame<String> frame, Window.Options options) {
+      onOpen.accept(frame);
       Windows.Handle handle = app.windows()
           .open(frame.active().activeTab(), 300, 160, options, new App<>(this, s -> s.view(frame)));
       handle.onClosed(() -> closedWindows.add(handle.title()));
@@ -224,6 +227,40 @@ class TabGroupsTest {
     App<Docs> app = start();
     run(app, TEAR_B + "key Escape");
     assertEquals(List.of(List.of("a", "b", "c", "d")), order(app.state()));
+  }
+
+  @Test
+  void escapeAfterATearOffWhoseOpenerClosedATabStillPutsTheTabBack() throws IOException {
+    App<Docs> app = start();
+    Docs d = app.state();
+    d.onOpen = frame -> {
+      Group<String> source = d.groups.groupOf("c");
+      d.groups.close(source, source.tabs().indexOf("c"));
+    };
+    run(app, TEAR_B + "key Escape");
+    assertEquals(List.of(List.of("a", "b", "d")), order(d));
+    assertFalse(d.groups.isDragging());
+  }
+
+  @Test
+  void aNestedOpenerCannotReAddTheOuterTabInFlight() throws IOException {
+    App<Docs> app = start();
+    Docs d = app.state();
+    Script.run("size 400 160 at 100,100\nframe", app, out);
+    List<String> rejected = new ArrayList<>();
+    d.onOpen = frame -> {
+      if (frame.active().activeTab().equals("b")) {
+        Group<String> source = d.groups.groupOf("c");
+        d.groups.toNewWindow(source, source.tabs().indexOf("c"));
+      } else {
+        Group<String> main = d.groups.main().active();
+        assertThrows(IllegalArgumentException.class, () -> d.groups.add(main, 0, "b"));
+        rejected.add("b");
+      }
+    };
+    d.groups.toNewWindow(d.groups.main().active(), 1);
+    assertEquals(List.of("b"), rejected);
+    assertEquals(List.of(List.of("a", "d"), List.of("c"), List.of("b")), order(d));
   }
 
   @Test
