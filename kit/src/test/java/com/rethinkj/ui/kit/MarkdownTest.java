@@ -315,13 +315,16 @@ class MarkdownTest {
   }
 
   @Test
-  void aCodeBlockCopiesItsCodeWithTheButtonUnderThePointer() throws IOException {
+  void aCodeBlockHeaderShowsLanguageAndCopiesCode() throws IOException {
     App<Doc> app = app(DOC);
-    String tree = run(app, "frame\nmove role=code\nframe");
-    assertTrue(line(tree, "role=code").endsWith(" hovered"), tree);
+    String tree = run(app, "frame");
+    assertTrue(line(tree, "label=\"sql\"").contains("label=\"sql\""), tree);
+    assertTrue(line(tree, "#wrap").startsWith("el #wrap role=button label=\"Wrap lines\""), tree);
     assertTrue(line(tree, "label=\"Copy code\"").startsWith("el #copy role=button"), tree);
-    // The button springs in with the theme's feedback, so the clock moves past it first.
-    run(app, "frame\nmove role=code\nframe\nadvance 1\nframe\npress label=\"Copy code\"\nframe");
+    float[] copyBounds = bounds(tree, "#copy ");
+    float[] codeBounds = bounds(tree, "role=code");
+    assertTrue(copyBounds[1] + copyBounds[3] <= codeBounds[1], tree);
+    run(app, "press label=\"Copy code\"\nframe");
     assertEquals("SELECT 1;", app.clipboard().read());
     // Hovered it is a ghost button's overlay, and it confirms with a check for a moment.
     tree = run(app, "move label=\"Copy code\"\nframe\nadvance 0.25\nframe");
@@ -333,6 +336,111 @@ class MarkdownTest {
     tree = run(app, "advance 2\nframe\nadvance 1\nframe");
     assertFalse(tree.contains("label=\"checkmark\""), "the copy icon back");
     assertFalse(tree.contains("label=\"Copied\""), tree);
+  }
+
+  @Test
+  void aCodeBlockWrapToggleWrapsLinesAndRestoresSidewaysScrolling() throws IOException {
+    String longLine = "SELECT order_id, customer_id, status, total_cents, created_at, updated_at"
+        + " FROM orders WHERE status = 'pending' AND total_cents > 10000 ORDER BY created_at DESC;";
+    String source = "```sql\n" + longLine + "\n```\n\nFollowing paragraph.";
+    App<Doc> app = app(source);
+    app.textRendering(TextRendering.LINUX);
+
+    String initial = run(app, "size 420 320\nframe");
+    assertTrue(line(initial, "#wrap").contains("checked=false"), initial);
+    assertFalse(app.state().selection.wraps(0));
+    El unwrappedCode = role(app.tree(), "code");
+    assertEquals(1, unwrappedCode.text().lines().size(), initial);
+    assertNotNull(unwrappedCode.horizontalBar(), "scrolls sideways while unwrapped");
+    float unwrappedHeight = unwrappedCode.height();
+    float[] paraBefore = bounds(initial, "role=paragraph");
+
+    // Toggle wrap on: the line wraps across rows, horizontal scrolling disappears, and the row
+    // grows.
+    String wrapped = run(app, "size 420 320\npress #wrap\nframe");
+    assertTrue(line(wrapped, "#wrap").contains(" checked"), wrapped);
+    assertFalse(line(wrapped, "#wrap").contains("checked=false"), wrapped);
+    assertTrue(app.state().selection.wraps(0));
+    El wrappedCode = role(app.tree(), "code");
+    assertTrue(wrappedCode.text().lines().size() > 1, "wrapped into multiple lines");
+    assertEquals(null, wrappedCode.horizontalBar(), "no sideways scrollbar while wrapped");
+    assertTrue(wrappedCode.height() > unwrappedHeight, "height grew when wrapped");
+    float[] boxWrapped = bounds(wrapped, "role=group");
+    float[] paraWrapped = bounds(wrapped, "role=paragraph");
+    assertTrue(paraWrapped[1] >= boxWrapped[1] + boxWrapped[3], "no overlap below:\n" + wrapped);
+    assertTrue(paraWrapped[1] > paraBefore[1], "following paragraph shifted down");
+
+    // Toggle wrap off: restores single line, sideways scrolling, and original height.
+    String restored = run(app, "size 420 320\npress #wrap\nframe");
+    assertTrue(line(restored, "#wrap").contains("checked=false"), restored);
+    assertFalse(app.state().selection.wraps(0));
+    El restoredCode = role(app.tree(), "code");
+    assertEquals(1, restoredCode.text().lines().size(), restored);
+    assertNotNull(restoredCode.horizontalBar(), "sideways scrolling restored");
+    assertEquals(unwrappedHeight, restoredCode.height(), 0.5f);
+    assertEquals(paraBefore[1], bounds(restored, "role=paragraph")[1], 0.5f);
+
+    // A fragment with a State also shows the wrap toggle; without a State it does not.
+    MarkdownDocument doc = Markdown.parse(source);
+    Markdown.State fragState = new Markdown.State();
+    App<Object> frag = new App<>(
+            new Object(),
+            ignored -> col()
+                .wFull()
+                .hFull()
+                .child(Markdown.fragment(doc, Markdown.options().state(fragState)))
+                .child(Markdown.fragment(doc, Markdown.options())))
+        .provide(Theme.CURRENT, ignored -> Theme.DARK);
+    String fragTree = run(frag, "size 420 320\nframe\npress #wrap\nframe");
+    assertEquals(1, fragTree.lines().filter(l -> l.contains("#wrap")).count(), fragTree);
+    assertTrue(fragState.wraps(0));
+  }
+
+  @Test
+  void aLongLanguageShortensSoThatTheButtonsStayInTheBlock() throws IOException {
+    MarkdownDocument document =
+        Markdown.parse("```src/components/settings/SettingsPanel.tsx\nx\n```");
+    Clipboard clipboard = Clipboard.inMemory();
+    App<Object> app = new App<>(
+            new Object(),
+            ignored -> col()
+                .wFull()
+                .child(Markdown.fragment(
+                    document, Markdown.options().copy(clipboard).state(new Markdown.State()))))
+        .provide(Theme.CURRENT, ignored -> Theme.DARK);
+    String tree = run(app, "size 200 200\nframe");
+    float[] block = bounds(tree, "role=group");
+    float[] copy = bounds(tree, "#copy ");
+    assertTrue(copy[0] + copy[2] <= block[0] + block[2], tree);
+    assertTrue(bounds(tree, "#wrap ")[0] >= block[0], tree);
+  }
+
+  @Test
+  void aWrappedCodeBlockThatStreamsKeepsItsHeightAndTheScrollOffset() throws IOException {
+    String line = "SELECT " + "column_name, ".repeat(16) + "\n";
+    // On its own, and in the second item of a list.
+    for (String source : new String[] {
+      "Intro.\n\n```sql\n" + line.repeat(30),
+      "Intro.\n\n- one\n- two\n\n  ```sql\n" + ("  " + line).repeat(30)
+    }) {
+      MarkdownDocument[] document = {Markdown.parse(source)};
+      Markdown.State state = new Markdown.State();
+      state.wrap(0, true);
+      App<Object> app = new App<>(
+              new Object(),
+              ignored -> col()
+                  .wFull()
+                  .hFull()
+                  .child(Markdown.markdown(document[0], Markdown.options().state(state))
+                      .grow(1)))
+          .provide(Theme.CURRENT, ignored -> Theme.DARK);
+      run(app, "size 420 320\nframe\nwheel #markdown 0 3000\nframe\nframe");
+      double scrolled = CellEditorTest.find(app, "markdown").scrollY();
+      assertTrue(scrolled > 1000, "scrolled into the wrapped block: " + scrolled);
+      document[0] = document[0].next(source + "SELECT");
+      run(app, "size 420 320\nframe");
+      assertEquals(scrolled, CellEditorTest.find(app, "markdown").scrollY(), 1, source);
+    }
   }
 
   @Test
@@ -350,33 +458,19 @@ class MarkdownTest {
     app.textRendering(TextRendering.LINUX);
     String tree = run(app, """
         frame
-        move role=code
-        frame
-        advance 1
-        frame
         press label="Copy code"
         frame
         advance 0.25
         frame""");
     assertEquals("SELECT 42;", clipboard.read());
+    assertFalse(tree.contains("#wrap"), "no wrap toggle without a State:\n" + tree);
     assertTrue(tree.contains("text label=\"checkmark\""), tree);
     assertTrue(tree.contains("role=tooltip label=\"Copied\""), tree);
-    // The button lies on a fill of its own, so that a long first line does not show through.
-    El corner = holder(app.tree(), CellEditorTest.find(app, "copy"));
-    assertEquals(Theme.DARK.surface().raised(), corner.fill());
+    float[] copy = bounds(tree, "#copy ");
+    float[] code = bounds(tree, "role=code");
+    assertTrue(copy[1] + copy[3] <= code[1], "copy button sits in the header above code:\n" + tree);
     tree = run(app, "advance 2\nframe\nadvance 1\nframe");
     assertFalse(tree.contains("label=\"Copied\""), tree);
-  }
-
-  /** The element that has {@code child} among its children, or null. */
-  private static El holder(El el, El child) {
-    for (El each : el.children()) {
-      El found = each == child ? el : holder(each, child);
-      if (found != null) {
-        return found;
-      }
-    }
-    return null;
   }
 
   @Test

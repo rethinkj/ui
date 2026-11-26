@@ -1,0 +1,1 @@
+- Code blocks in `Markdown.markdown` and `Markdown.fragment` now show a slim header row with a language badge on the left, a word-wrap toggle (stored per block in `Markdown.State` via `wraps(int)` and `wrap(int, boolean)`) and the copy button on the right, replacing the hover-only corner copy button.

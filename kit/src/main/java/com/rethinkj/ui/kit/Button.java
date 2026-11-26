@@ -623,6 +623,11 @@ public final class Button {
    * app's clock; null for no confirmation.
    */
   public static El copy(Clipboard clipboard, String text, String label, Copied copied) {
+    return copy(clipboard, text, label, copied, Size.REGULAR);
+  }
+
+  /** As {@link #copy(Clipboard, String, String, Copied)}, at the given button size. */
+  static El copy(Clipboard clipboard, String text, String label, Copied copied, Size size) {
     Theme theme = Theme.CURRENT.get();
     boolean done = copied != null && copied.shows(label, text);
     String what = label + '\n' + text;
@@ -636,8 +641,8 @@ public final class Button {
     El button = enable(
         theme,
         look,
-        frame(theme, look, Size.REGULAR, label, false)
-            .w(theme.size().control())
+        frame(theme, look, size, label, false)
+            .w(height(theme, size))
             .child(Icon.icon(
                 done ? Symbol.CHECKMARK : Symbol.COPY,
                 done ? Icon.Variant.SUCCESS : Icon.Variant.MUTED)),

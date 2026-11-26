@@ -136,6 +136,11 @@ public interface Texts {
     return "Copy code";
   }
 
+  /** Label and tooltip of the toggle button that wraps long lines in a code block. */
+  default String wrapLines() {
+    return "Wrap lines";
+  }
+
   default String paste() {
     return "Paste";
   }

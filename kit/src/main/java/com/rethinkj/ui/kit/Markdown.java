@@ -18,6 +18,7 @@ import com.rethinkj.ui.kit.MarkdownDocument.Block;
 import com.rethinkj.ui.kit.MarkdownDocument.Inline;
 import com.rethinkj.ui.text.Font;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -59,10 +60,11 @@ import java.util.function.Function;
  * heading-<id>} with GitHub's anchor as the id ({@link MarkdownDocument.Heading#id}), so that the
  * app finds one to scroll to for a link {@code #id}.
  *
- * <p>Code blocks are in the mono type on the raised surface, scroll sideways, and are colored by
- * the highlighter {@link Options#languages} gives for their language; with {@link Options#copy} a
- * copy button shows in the corner under the pointer. Task list items show the kit's checkbox,
- * which takes no input.
+ * <p>Code blocks are in the mono type on the raised surface, scroll sideways unless wrapped, and
+ * are colored by the highlighter {@link Options#languages} gives for their language. A slim header
+ * row above the block shows a badge with its language (when it has one), a word-wrap toggle (with
+ * {@link Options#state}) and a copy button (with {@link Options#copy}). Task list items show the
+ * kit's checkbox, which takes no input.
  *
  * <p>Images come from the app: {@link Options#images} gives the image for an address, or null
  * while it has none, and the kit's {@link Image} shows it, or its placeholder with the image's
@@ -100,9 +102,13 @@ public final class Markdown {
     return MarkdownDocument.parse(source);
   }
 
-  /** Whether Control+A has selected the whole document; the app keeps one per document. */
+  /**
+   * Per-document view state: whether Control+A has selected the whole document and which code
+   * blocks wrap their lines; the app keeps one per document.
+   */
   public static final class State {
     private boolean all;
+    private final BitSet wrapped = new BitSet();
     final Button.Copied copied = new Button.Copied(); // a code block's copy button's confirmation
 
     /** Whether the whole document shows as selected. */
@@ -113,6 +119,22 @@ public final class Markdown {
     /** Selects the whole document, or no longer. */
     public void selectAll(boolean all) {
       this.all = all;
+    }
+
+    /**
+     * Whether the {@code codeBlock}-th code block of the document (counted from 0 in document
+     * order, including those inside quotes and lists) wraps its lines.
+     */
+    public boolean wraps(int codeBlock) {
+      return codeBlock >= 0 && wrapped.get(codeBlock);
+    }
+
+    /** Sets whether the {@code codeBlock}-th code block wraps its lines. */
+    public void wrap(int codeBlock, boolean wrap) {
+      if (codeBlock < 0) {
+        throw new IllegalArgumentException("codeBlock must be non-negative: " + codeBlock);
+      }
+      wrapped.set(codeBlock, wrap);
     }
   }
 
@@ -198,7 +220,11 @@ public final class Markdown {
       return this;
     }
 
-    /** Where Control+A keeps that the whole document is selected; without it, it selects none. */
+    /**
+     * Per-document state for Control+A full-document selection, per-code-block line wrapping, and
+     * default copy-button confirmation; without it, full-document selection and the wrap toggle are
+     * off.
+     */
     public Options state(State state) {
       this.state = state;
       return this;
@@ -510,20 +536,43 @@ public final class Markdown {
     final RowHeights heights;
     final RowHeights blockHeights; // the rows of a virtual fragment: its blocks
     String text; // the whole document's, for Control+C after Control+A
+    // Code block -> its 0-based ordinal in document order (depth first), built lazily.
+    private Map<MarkdownDocument.CodeBlock, Integer> codeBlocks;
 
-    Prepared(MarkdownDocument document, Theme theme) {
-      this(document, theme, new double[0], new double[0]);
+    int codeBlockIndex(MarkdownDocument.CodeBlock block) {
+      if (codeBlocks == null) {
+        codeBlocks = new IdentityHashMap<>();
+        indexCodeBlocks(document.blocks(), codeBlocks, 0);
+      }
+      Integer index = codeBlocks.get(block);
+      return index != null ? index : -1;
     }
 
-    /** With the heights of the first rows as they were, the others estimated. */
-    Prepared(MarkdownDocument document, Theme theme, double[] kept, double[] keptBlocks) {
+    Prepared(MarkdownDocument document, Theme theme) {
+      this(document, theme, new double[0], new double[0], Map.of(), new double[0]);
+    }
+
+    /**
+     * With the heights of the first rows as they were, the others estimated, but no lower than
+     * {@code grown} gives by block index and list item, and {@code grownBlocks} by block index:
+     * what was measured of a row that goes on growing as the document streams.
+     */
+    Prepared(
+        MarkdownDocument document,
+        Theme theme,
+        double[] kept,
+        double[] keptBlocks,
+        Map<List<Integer>, Double> grown,
+        double[] grownBlocks) {
       this.document = document;
       List<Block> blocks = document.blocks();
       // By index, each block its own version: a selection scope keeps what it read of a block.
       this.blockHeights = new RowHeights(
           i -> i < keptBlocks.length
               ? keptBlocks[i]
-              : estimate(theme, blocks.get(i)) + theme.space().m(),
+              : Math.max(
+                  i < grownBlocks.length ? grownBlocks[i] : 0,
+                  estimate(theme, blocks.get(i)) + theme.space().m()),
           i -> i,
           blocks::get);
       List<Unit> units = units(document);
@@ -533,13 +582,16 @@ public final class Markdown {
           return kept[i];
         }
         Unit u = units.get(i);
-        return (u.item < 0
-                ? estimate(theme, u.block)
-                : ((MarkdownDocument.ListBlock) u.block)
-                    .items().get(u.item).blocks().stream()
-                        .mapToDouble(b -> estimate(theme, b))
-                        .sum())
-            + theme.space().l();
+        double floor = grown.getOrDefault(List.of(u.index, u.item), 0.0);
+        return Math.max(
+            floor,
+            (u.item < 0
+                    ? estimate(theme, u.block)
+                    : ((MarkdownDocument.ListBlock) u.block)
+                        .items().get(u.item).blocks().stream()
+                            .mapToDouble(b -> estimate(theme, b))
+                            .sum())
+                + theme.space().l());
       });
     }
   }
@@ -627,7 +679,8 @@ public final class Markdown {
         Math.ceil(MarkdownDocument.plainText(p.content()).length() / perLine) * line;
       case MarkdownDocument.CodeBlock code ->
         code.code().lines().count() * theme.prose().mono().size() * 1.35
-            + 2 * theme.space().l();
+            + 2 * theme.space().l()
+            + codeHeaderHeight(theme);
       case MarkdownDocument.Quote q ->
         q.blocks().stream().mapToDouble(b -> estimate(theme, b)).sum();
       case MarkdownDocument.ListBlock l ->
@@ -687,11 +740,43 @@ public final class Markdown {
     for (int i = 0; i < keptBlocks.length; i++) {
       keptBlocks[i] = old.blockHeights.height(i);
     }
-    Prepared p = new Prepared(document, theme, kept, keptBlocks);
+    // A row with a code block keeps what was measured of it as its least height while the
+    // document streams on: a wrapped block is far higher than its lines estimate, and the text
+    // around it moves little next to that.
+    Map<List<Integer>, Double> grown = new HashMap<>();
+    for (int i = rows; i < old.heights.count(); i++) {
+      Unit u = old.units.get(i);
+      List<Block> content = u.item < 0
+          ? List.of(u.block)
+          : ((MarkdownDocument.ListBlock) u.block).items().get(u.item).blocks();
+      if (u.index < blocks.size()
+          && blocks.get(u.index).getClass() == u.block.getClass()
+          && hasCode(content)) {
+        grown.put(List.of(u.index, u.item), old.heights.height(i));
+      }
+    }
+    double[] grownBlocks = new double[Math.min(old.blockHeights.count(), blocks.size())];
+    for (int i = keptBlocks.length; i < grownBlocks.length; i++) {
+      Block was = oldBlocks.get(i);
+      if (blocks.get(i).getClass() == was.getClass() && hasCode(List.of(was))) {
+        grownBlocks[i] = old.blockHeights.height(i);
+      }
+    }
+    Prepared p = new Prepared(document, theme, kept, keptBlocks, grown, grownBlocks);
     for (int i = 0; i < reused; i++) {
       takeOver(blocks.get(i), old, p);
     }
     return p;
+  }
+
+  /** Whether there is a code block among the blocks, or inside one of them. */
+  private static boolean hasCode(List<Block> blocks) {
+    return blocks.stream().anyMatch(b -> switch (b) {
+      case MarkdownDocument.CodeBlock _ -> true;
+      case MarkdownDocument.Quote q -> hasCode(q.blocks());
+      case MarkdownDocument.ListBlock l -> l.items().stream().anyMatch(i -> hasCode(i.blocks()));
+      default -> false;
+    });
   }
 
   /** A range of a piece's text that a highlighter gives: a font, a color or a line. */
@@ -1268,18 +1353,48 @@ public final class Markdown {
     return col().align(Style.Align.START).child(el);
   }
 
+  /**
+   * Numbers the code blocks from {@code next} in document order; a block that occurs twice keeps
+   * its first number. Returns the number after the last.
+   */
+  private static int indexCodeBlocks(
+      List<Block> blocks, Map<MarkdownDocument.CodeBlock, Integer> out, int next) {
+    for (Block b : blocks) {
+      switch (b) {
+        case MarkdownDocument.CodeBlock code -> out.putIfAbsent(code, next++);
+        case MarkdownDocument.Quote q -> next = indexCodeBlocks(q.blocks(), out, next);
+        case MarkdownDocument.ListBlock l -> {
+          for (MarkdownDocument.Item item : l.items()) {
+            next = indexCodeBlocks(item.blocks(), out, next);
+          }
+        }
+        default -> {}
+      }
+    }
+    return next;
+  }
+
+  private static float codeHeaderHeight(Theme theme) {
+    return theme.size().controlSmall() + 2 * theme.space().s() + theme.size().stroke();
+  }
+
   private static El codeBlock(Context c, MarkdownDocument.CodeBlock block) {
     Theme theme = c.theme;
     String code = block.code().endsWith("\n")
         ? block.code().substring(0, block.code().length() - 1)
         : block.code();
     String language = block.language();
+    State state = c.options.state;
+    int ordinal = state != null ? c.prepared.codeBlockIndex(block) : -1;
+    boolean hasWrap = state != null && ordinal >= 0;
+    boolean wraps = hasWrap && state.wraps(ordinal);
     Highlighter highlighter = c.options.languages.apply(language);
     Theme.TextStyle mono = theme.prose().mono();
     El field = El.text(code)
         .editable(text -> {})
         .readOnly()
         .multiline()
+        .wrapText(wraps)
         .fitLines()
         .skipTab()
         .role("code")
@@ -1296,7 +1411,6 @@ public final class Markdown {
     if (highlighter != null) {
       field.highlight(highlighter, highlighter);
     }
-    State state = c.options.state;
     if (state != null && state.all && !c.compact) {
       int selection = theme.accent().selection();
       field.decorate((line, start, text, out) -> out.background(0, text.length() + 1, selection));
@@ -1309,27 +1423,45 @@ public final class Markdown {
         .fill(theme.surface().raised())
         .border(theme.size().stroke(), theme.border().subtle())
         .radius(theme.radius().medium())
-        .clip()
-        .child(field);
+        .clip();
     Clipboard clipboard = c.options.clipboard;
-    if (clipboard != null) {
-      Button.Copied copied = c.options.copied();
-      String label = Texts.CURRENT.get().copyCode();
-      boolean shown = copied != null && copied.shows(label, code); // confirming: seen till it ends
-      El copy = Button.copy(clipboard, code, label, copied).key("copy");
-      El corner = el().fill(theme.surface().raised())
-          .radius(theme.radius().medium())
-          .opacity(shown ? 1 : 0)
-          .motion(theme.motion().feedback())
-          .child(copy);
-      corner.style().position = Style.Position.ABSOLUTE;
-      corner.style().top = Len.px(theme.space().s());
-      corner.style().right = Len.px(theme.space().s());
-      // A block of one short line is as high as the button, its line in the middle.
-      box.minSize(0, theme.size().control() + 2 * theme.space().s()).justify(Style.Content.CENTER);
-      box.child(corner).whenHovered(e -> corner.opacity(1)).whenFocusWithin(e -> corner.opacity(1));
+    boolean hasLanguage = !language.isEmpty();
+    boolean hasCopy = clipboard != null;
+    if (hasLanguage || hasWrap || hasCopy) {
+      Texts texts = Texts.CURRENT.get();
+      El header = row()
+          .fill(theme.surface().band())
+          .border(0, 0, theme.size().stroke(), 0, theme.border().subtle())
+          .padding(theme.space().s(), padX)
+          .gap(theme.space().s())
+          .align(Style.Align.CENTER);
+      header.style().minHeight = Len.px(codeHeaderHeight(theme));
+      if (hasLanguage) {
+        // A long info string shortens, so that the buttons stay in the block.
+        El badge = Badge.badge(language).shrink(1).minSize(0, 0);
+        badge.children().getLast().ellipsis().minSize(0, 0);
+        header.child(badge);
+      }
+      header.child(el().grow(1));
+      El buttons = row().shrink(0).gap(theme.space().s()).align(Style.Align.CENTER);
+      header.child(buttons);
+      if (hasWrap) {
+        buttons.child(Button.toggleIcon(
+                Symbol.TEXT_WRAP,
+                texts.wrapLines(),
+                wraps,
+                next -> state.wrap(ordinal, next),
+                Button.options().size(Button.Size.SMALL))
+            .key("wrap"));
+      }
+      if (hasCopy) {
+        buttons.child(
+            Button.copy(clipboard, code, texts.copyCode(), c.options.copied(), Button.Size.SMALL)
+                .key("copy"));
+      }
+      box.child(header);
     }
-    return box;
+    return box.child(field);
   }
 
   private static final String[] BULLETS = {"•", "◦", "▪"};

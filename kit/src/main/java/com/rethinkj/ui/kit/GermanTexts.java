@@ -117,6 +117,11 @@ public class GermanTexts implements Texts {
   }
 
   @Override
+  public String wrapLines() {
+    return "Zeilen umbrechen";
+  }
+
+  @Override
   public String paste() {
     return "Einfügen";
   }
