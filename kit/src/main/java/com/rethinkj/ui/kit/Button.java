@@ -703,7 +703,13 @@ public final class Button {
             onToggle == null ? null : () -> onToggle.accept(!on),
             options)
         .checked(on);
-    return on ? pressedIn(theme, button, onToggle != null) : button;
+    if (!on) {
+      return button;
+    }
+    // A busy toggle keeps the selection tint without adding press feedback to its indicator.
+    return options.state == State.BUSY
+        ? button.fill(theme.grid().selected())
+        : pressedIn(theme, button, onToggle != null && !options.off());
   }
 
   /**

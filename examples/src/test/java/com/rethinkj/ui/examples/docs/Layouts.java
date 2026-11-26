@@ -195,6 +195,10 @@ final class Layouts {
   }
   // docs:end rail-state
 
+  void settings() {
+    said = "settings";
+  }
+
   void tab(int index) {
     tab = index;
   }
@@ -809,7 +813,7 @@ final class Layouts {
                 Rail.item(Symbol.SEARCH, "Search").shortcut(Key.CONTROL, "2"),
                 Rail.separator(),
                 Rail.item(Symbol.WARNING, "Problems").dot(Badge.Kind.DANGER, "3 errors")),
-            List.of(Rail.item(Symbol.SETTINGS, "Settings")),
+            List.of(Rail.action(Symbol.SETTINGS, "Settings", state::settings)),
             state.tool,
             state::tool)
         .fill(Colors.TRANSPARENT);
@@ -896,14 +900,13 @@ final class Layouts {
             Rail.item(Symbol.SEARCH, "Search").shortcut(Key.CONTROL, "2"),
             Rail.separator(),
             Rail.item(Symbol.WARNING, "Problems").dot(Badge.Kind.DANGER, "3 errors")),
-        List.of(Rail.item(Symbol.SETTINGS, "Settings")),
+        List.of(Rail.action(Symbol.SETTINGS, "Settings", state::settings)),
         state.tool,
         state::tool);
     String title = switch (state.tool) {
       case 0 -> "Explorer";
       case 1 -> "Search";
       case 2 -> "Problems";
-      case 3 -> "Settings";
       default -> "";
     };
     El pane = Card.flush(

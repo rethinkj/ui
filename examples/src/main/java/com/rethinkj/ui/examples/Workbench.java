@@ -1250,7 +1250,6 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
         "Tool windows",
         Side.LEFT,
         List.of(Rail.item(Symbol.DATABASE, "Connections").shortcut(Key.CONTROL, "B")),
-        List.of(),
         state.sidebar.isCollapsed() ? -1 : 0,
         state::rail);
     El content = Split.cards(

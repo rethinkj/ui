@@ -1,15 +1,14 @@
 el 0,0 560x260
   el role=toolbar label="Tool windows" 0,0 41x260
-    el #item 0 role=button label="Explorer" 4,4 32x32 checked
+    el #item-0 role=button label="Explorer" 4,4 32x32 checked
       text label="folder" "\u{E643}" 12,12 16x16
-    el #item 1 role=button label="Search" 4,40 32x32 checked=false
+    el #item-1 role=button label="Search" 4,40 32x32 checked=false
       text label="search" "\u{EA7C}" 12,48 16x16
     el role=separator 8,78 24x1
-    el #item 2 role=button label="Problems" 4,85 32x32 checked=false value="3 errors"
+    el #item-2 role=button label="Problems" 4,85 32x32 checked=false value="3 errors"
       text label="warning" "\u{F868}" 12,93 16x16
-      el 23,90 8x8
-    el 20,121 0x99
-    el #item 3 role=button label="Settings" 4,224 32x32 checked=false
+      el 25,92 4x4
+    el #action-0 role=button label="Settings" 4,224 32x32
       text label="settings" "\u{F6A8}" 12,232 16x16
   el 41,0 519x260
     el #first 49,8 180x244

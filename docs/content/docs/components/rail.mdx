@@ -1,11 +1,13 @@
 ---
 title: Rail
-description: Vertical strip of icon buttons along a window edge for toggling tool windows.
+description: Vertical strip of icon buttons along a window edge for toggling tool windows and running commands.
 ---
 
-`Rail.rail` renders a narrow vertical band of icon-only toggle buttons along the left or right edge of a window (`Side.LEFT` or `Side.RIGHT`), with a top group, a bottom group pinned to the bottom, and optional separators. Pressing a closed item calls `onSelect` with its index; pressing the open item closes it by passing `-1`. The rail knows nothing about `Split` or `Drawer` — pair it with `Split.Position.collapse` / `restore` to collapse and restore a side pane.
+`Rail.rail` renders a narrow vertical band of icon-only buttons along the left or right edge of a window (`Side.LEFT` or `Side.RIGHT`), with a top group, an optional bottom group pinned to the bottom, and optional separators. Pressing a closed toggle item calls `onSelect` with its index; by default, pressing the open item closes it by passing `-1`. Command actions (`Rail.action`) run their own handler without affecting the active panel.
 
-Javadoc: [`Rail`](/api/com/rethinkj/ui/kit/Rail.html), [`Rail.Item`](/api/com/rethinkj/ui/kit/Rail.Item.html).
+Use `Rail` for edge-docked tool windows and compact icon selectors. For labeled sidebar navigation, use [NavList](/docs/components/nav-list); for document switching, use [Tabs](/docs/components/tabs); for a horizontal row of actions, use [Toolbar](/docs/components/toolbar).
+
+Javadoc: [`Rail`](/api/com/rethinkj/ui/kit/Rail.html), [`Rail.Item`](/api/com/rethinkj/ui/kit/Rail.Item.html), [`Rail.Action`](/api/com/rethinkj/ui/kit/Rail.Action.html), [`Rail.Options`](/api/com/rethinkj/ui/kit/Rail.Options.html), [`Rail.State`](/api/com/rethinkj/ui/kit/Rail.State.html), [`Rail.Dot`](/api/com/rethinkj/ui/kit/Rail.Dot.html).
 
 <Shot src="examples/docs/rail/view-{theme}" alt="A left rail with Explorer open, Search, a separator, Problems with a red dot, and Settings pinned to the bottom, beside a split showing the Explorer pane and an editor" />
 
@@ -14,27 +16,47 @@ Javadoc: [`Rail`](/api/com/rethinkj/ui/kit/Rail.html), [`Rail.Item`](/api/com/re
 ```java snippet="rail"
 ```
 
-The handlers keep the open item and the pane's `Split.Position` in step: closing the item collapses the pane, and collapsing the pane at its divider (double-click, or Enter while it has the focus) closes the item.
+The rail knows nothing about `Split` or `Drawer` — pair it with `Split.Position.collapse` and `restore` to collapse and restore a side pane (`Split.Part.FIRST` beside a `Side.LEFT` rail, `Split.Part.SECOND` beside `Side.RIGHT`). In this example, closing the active item collapses the pane, collapsing the pane at its divider closes the item, and the bottom **Settings** action runs independently:
 
 ```java snippet="rail-state"
 ```
 
-Store a `Rail.State` in your app state. Item indices count `top` followed by `bottom` (`Rail.separator()` is not counted). Tooltips open toward the inside of the window (right of a `LEFT` rail, left of a `RIGHT` rail), showing any shortcut on keycaps and any dot's text as a description. When the rail runs out of height, it scrolls with the wheel and as the arrow keys move, without a scrollbar.
+Store one `Rail.State` per rail in your app state. Item indexes count only toggle items (`Rail.Item`) across `top` followed by `bottom` — separators and actions are not counted. When you only need a top group, omit the `bottom` list (`Rail.rail(state, label, side, entries, open, onSelect)`). Passing `null` for `onSelect` disables all toggle items while leaving actions governed by their own handlers.
+
+## Entries
 
 | Helper | Description |
 | --- | --- |
-| `Rail.item(icon, label)` | Icon toggle button with a tooltip |
-| `.shortcut(modifiers, key)` | Shows a key combination as keycaps in the tooltip |
-| `.dot(kind, text)` | Colored dot (`Badge.Kind`) at the button's top right, with `text` in the tooltip and tree dump |
-| `Rail.separator()` | Horizontal hairline separating groups of items |
+| `Rail.item(icon, label)` | Icon toggle button that opens or closes a panel |
+| `Rail.action(icon, label, onPress)` | Icon command button independent of panel selection (`null` handler disables it) |
+| `Rail.separator()` | Horizontal hairline separating groups of entries |
+| `.shortcut(modifiers, key)` | Displays a key combination on keycaps in the tooltip (display only — bind the shortcut in your app) |
+| `.description(text)` | Secondary text below the label in the tooltip (followed by `— <dot text>` when both are set) |
+| `.dot(kind, text)` | Colored status dot (`Badge.Kind`) at the button's top right, dimmed when disabled; nonempty `text` appears in the tooltip and tree dump |
+| `.key(name)` | Stable key for scripts (`#<name>`) and for keeping the roving Tab stop on the same entry when entries are added or removed |
+| `.disabled(true)` | Disables a single entry and skips it during keyboard navigation |
+| `.busy(true)` | Shows a spinner on an enabled entry and ignores presses while keeping keyboard focus |
+| `.progress(fraction)` | Replaces the busy spinner with a determinate progress ring (`0`–`1`, clamped; `NaN` restores the spinner) |
+
+## Options and typed values
+
+Pass `Rail.options().closable(false)` when one item should always stay selected — pressing the open item then does nothing instead of calling `onSelect` with `-1`. The [AgentChat model picker](/docs/examples/agent-chat) uses this pattern inside a [Popover](/docs/components/popover) to filter models by provider.
+
+To select typed values instead of integer indexes (such as enum constants), use `Rail.rail(state, label, side, values, open, value -> item, onSelect)` (with an optional trailing `Rail.Options`). Equal values are deduplicated to their first occurrence, a `null` or missing `open` value leaves the rail closed, and closing the open item passes `null` to `onSelect`.
+
+## Placement and styling
+
+The inner hairline and tooltips always face inward — to the right of a `Side.LEFT` rail and to the left of a `Side.RIGHT` rail. `Rail.width()` returns the rail's total width in the current theme (button, padding, and hairline), useful when aligning other window chrome with the rail.
+
+To continue a project color wash from a [TitleBar](/docs/components/title-bar) down through the rail, attach `TitleBar.glow(...)` to the window root and clear both fills with `.fill(Colors.TRANSPARENT)`. See [Extending the tint across the title bar and rail](/docs/components/title-bar#extending-the-tint-across-the-title-bar-and-rail).
 
 ## Keyboard
 
-One Tab stop. **Up/Down** arrows move between items across separators and groups (wrapping around), **Home/End** jump to first/last, and **Enter/Space** toggle the focused item. Clicking leaves keyboard focus where it was.
+The rail is a single Tab stop that remembers the last focused button. **Up/Down** wrap through enabled buttons across separators and groups, **Home/End** jump to the first and last, and **Enter/Space** activate the focused button. Pointer clicks leave keyboard focus where it was. When a rail runs out of height, it scrolls with the wheel and follows keyboard focus without a scrollbar.
 
 ## In a tree dump
 
-`role=toolbar` with its `label`, separators as `role=separator`, and items as `role=button` with `checked` / `checked=false`, their label, and any dot's text as `value`:
+`role=toolbar` with its `label` (and `disabled` when no buttons are enabled), separators as `role=separator`, toggle items as `role=button` with key `#item-<index>` and `checked` / `checked=false`, and actions as `role=button` with key `#action-<index>` without `checked`. Custom keys override the default `#item-` / `#action-` keys; entries may also report `disabled`, `busy`, and a nonempty dot description as `value`:
 
-```text file="examples/src/test/resources/golden/docs/rail/view.tree.txt" start="role=toolbar" count="12"
+```text file="examples/src/test/resources/golden/docs/rail/view.tree.txt" start="role=toolbar" count="11"
 ```

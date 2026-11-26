@@ -404,10 +404,8 @@ public final class AgentChat {
   }
 
   void selectProvider(int index) {
-    if (index >= 0) { // -1: the open item pressed again
-      provider = index;
-      modelEntries = null;
-    }
+    provider = index;
+    modelEntries = null;
   }
 
   void selectModel(Model chosen) {
@@ -841,9 +839,9 @@ public final class AgentChat {
         "Providers",
         Side.LEFT,
         railEntries,
-        List.of(),
         state.provider,
-        state::selectProvider);
+        state::selectProvider,
+        Rail.options().closable(false));
 
     El models = col()
         .padding(theme.space().m())
