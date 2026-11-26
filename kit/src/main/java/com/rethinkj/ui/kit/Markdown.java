@@ -867,23 +867,21 @@ public final class Markdown {
     }
     // A row with a code block keeps what was measured of it as its least height while the
     // document streams on: a wrapped block is far higher than its lines estimate, and the text
-    // around it moves little next to that.
+    // around it moves little next to that. Not once text was replaced rather than appended.
     Map<List<Integer>, Double> grown = new HashMap<>();
     for (int i = rows; i < old.heights.count(); i++) {
       Unit u = old.units.get(i);
-      List<Block> content = u.item < 0
-          ? List.of(u.block)
-          : ((MarkdownDocument.ListBlock) u.block).items().get(u.item).blocks();
       if (u.index < blocks.size()
           && blocks.get(u.index).getClass() == u.block.getClass()
-          && hasCode(content)) {
+          && grows(theme, rowContent(u.block, u.item), rowContent(blocks.get(u.index), u.item))) {
         grown.put(List.of(u.index, u.item), old.heights.height(i));
       }
     }
     double[] grownBlocks = new double[Math.min(old.blockHeights.count(), blocks.size())];
     for (int i = keptBlocks.length; i < grownBlocks.length; i++) {
       Block was = oldBlocks.get(i);
-      if (blocks.get(i).getClass() == was.getClass() && hasCode(List.of(was))) {
+      if (blocks.get(i).getClass() == was.getClass()
+          && grows(theme, List.of(was), List.of(blocks.get(i)))) {
         grownBlocks[i] = old.blockHeights.height(i);
       }
     }
@@ -892,6 +890,34 @@ public final class Markdown {
       takeOver(blocks.get(i), old, p);
     }
     return p;
+  }
+
+  /** The blocks of a row: the block itself, or one item of a list; none past its items. */
+  private static List<Block> rowContent(Block block, int item) {
+    if (item < 0) {
+      return List.of(block);
+    }
+    List<MarkdownDocument.Item> items = ((MarkdownDocument.ListBlock) block).items();
+    return item < items.size() ? items.get(item).blocks() : List.of();
+  }
+
+  /** Whether blocks with code became blocks with code whose text goes on from theirs. */
+  private static boolean grows(Theme theme, List<Block> was, List<Block> now) {
+    if (!hasCode(was) || !hasCode(now)) {
+      return false;
+    }
+    StringBuilder before = new StringBuilder();
+    StringBuilder after = new StringBuilder();
+    text(was, "", before);
+    text(now, "", after);
+    // Their text ends in line breaks that also separate blocks, and drops a code block's last
+    // blank lines: compare without them, and count those lines by the estimate.
+    return after.toString().startsWith(before.toString().stripTrailing())
+        && estimate(theme, now) >= estimate(theme, was);
+  }
+
+  private static double estimate(Theme theme, List<Block> blocks) {
+    return blocks.stream().mapToDouble(b -> estimate(theme, b)).sum();
   }
 
   /** Whether there is a code block among the blocks, or inside one of them. */

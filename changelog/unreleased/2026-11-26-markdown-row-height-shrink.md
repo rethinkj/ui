@@ -1,0 +1,1 @@
+- When `MarkdownDocument#next` replaces text rather than appending it, an out-of-view row with a code block that got shorter no longer keeps its old height in the scroll range of `Markdown.markdown` or a virtual `Markdown.fragment` until it comes into view.

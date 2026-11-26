@@ -656,6 +656,61 @@ class MarkdownTest {
   }
 
   @Test
+  void anOffscreenRowWithCodeThatGetsShorterDropsItsOldHeight() throws IOException {
+    String tail = "Paragraph.\n\n".repeat(40);
+    String code = "```sql\n" + "SELECT 1;\n".repeat(40) + "```\n\n" + tail;
+    String shortCode = "```sql\nSELECT 1;\n```\n\n" + tail;
+    String linked = "- See [ref] " + "and more words ".repeat(30)
+        + "\n\n  ```sql\n  SELECT 1;\n  ```\n\n" + tail;
+    // The code block shortened, its lines joined or its blank lines in a list removed, and a
+    // definition appended that turns "[ref]" into a link; in a view and in a virtual fragment.
+    String[][] replacements = {
+      {"view", code, shortCode},
+      {
+        "fragment",
+        "- Item\n\n  ```sql\n  SELECT 1;\n" + "\n".repeat(39) + "  ```\n\n" + tail,
+        "- Item\n\n  ```sql\n  SELECT 1;\n  ```\n\n" + tail
+      },
+      {"view", code, code.replace("SELECT 1;\n".repeat(40), "SELECT 1; ".repeat(40) + "\n")},
+      {"view", linked, linked + "[ref]: https://example.com\n"},
+      {"fragment", code, shortCode}
+    };
+    for (String[] replacement : replacements) {
+      boolean fragment = replacement[0].equals("fragment");
+      MarkdownDocument[] document = {Markdown.parse(replacement[1])};
+      App<Object> app = new App<>(
+              new Object(),
+              ignored -> fragment
+                  ? col()
+                      .key("outer")
+                      .wFull()
+                      .hFull()
+                      .scroll()
+                      .child(Markdown.fragment(document[0], Markdown.options().virtual())
+                          .key("markdown"))
+                  : col()
+                      .wFull()
+                      .hFull()
+                      .child(Markdown.markdown(document[0], Markdown.options()).grow(1)))
+          .provide(Theme.CURRENT, ignored -> Theme.DARK);
+      run(
+          app,
+          "size 420 320\nframe\nwheel #" + (fragment ? "outer" : "markdown")
+              + " 0 10000\nframe\nframe");
+      El before = CellEditorTest.find(app, "markdown");
+      assertTrue(before.firstRow() > 0, "the row is out of view");
+      // At the bottom, the scroll offset is the height of the content less the view's.
+      double height = fragment ? before.height() : before.scrollY();
+      document[0] = document[0].next(replacement[2]);
+      run(app, "size 420 320\nframe");
+      El after = CellEditorTest.find(app, "markdown");
+      assertTrue(after.firstRow() > 0, "the row stays out of view");
+      double shorter = fragment ? after.height() : after.scrollY();
+      assertTrue(shorter < height - 20, replacement[2] + ": " + height + " -> " + shorter);
+    }
+  }
+
+  @Test
   void aCodeBlockInAChatMessageConfirmsItsCopyWithoutAState() throws IOException {
     Button.Copied copied = new Button.Copied();
     Clipboard clipboard = Clipboard.inMemory();
