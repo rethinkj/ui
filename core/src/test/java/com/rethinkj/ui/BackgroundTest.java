@@ -3,6 +3,7 @@ package com.rethinkj.ui;
 import static com.rethinkj.ui.El.el;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.render.Pixels;
@@ -288,6 +289,67 @@ class BackgroundTest {
     float imageShare = firstGlyphLightShare(withImage.scene());
     assertEquals(0f, flatShare, "on flat white, gray text is dark");
     assertTrue(imageShare > 0.5f, "over image background, gray text uses unknown-backdrop share");
+  }
+
+  @Test
+  void stripesRejectANonPositiveWidthOrGapAndANonFiniteAngle() {
+    assertThrows(IllegalArgumentException.class, () -> Background.stripes(0xFFFFFFFF, 0, 5, 0));
+    assertThrows(IllegalArgumentException.class, () -> Background.stripes(0xFFFFFFFF, 1, -2, 0));
+    assertThrows(
+        IllegalArgumentException.class, () -> Background.stripes(0xFFFFFFFF, 1, 5, Float.NaN));
+  }
+
+  @Test
+  void stripesAnchorToPaddingBoxAndDrawCrispAcrossScales() {
+    int fill = 0xFF1E293B;
+    int stripe = 0xFFFFFFFF;
+    // Horizontal 0-degree 1px stripes with 5px gap (period 6) at 1x and 2x: row 0 inside the
+    // padding box is pure stripe, rows 1..5 are pure fill, row 6 is pure stripe again.
+    El shifted = el().size(40, 40)
+        .fill(0xFF000000)
+        .child(el().absolute(7, 9)
+            .size(26, 22)
+            .border(2, 0xFF22C55E)
+            .fill(fill)
+            .background(Background.stripes(stripe, 1, 5, 0)));
+    Pixels at1x = Headless.render(shifted, 40, 40, 1).pixels();
+    // Padding box top is y = 9 + 2 = 11.
+    assertEquals(stripe, at1x.argb(15, 11), "row 0 of padding box is a full stripe at 1x");
+    assertEquals(fill, at1x.argb(15, 12), "row 1 is gap at 1x");
+    assertEquals(fill, at1x.argb(15, 16), "row 5 is gap at 1x");
+    assertEquals(stripe, at1x.argb(15, 17), "row 6 starts the next stripe at 1x");
+
+    Pixels at2x = Headless.render(shifted, 40, 40, 2).pixels();
+    // At 2x, physical rows 22 and 23 cover logical [11, 12) -> both pure stripe; 24..33 -> pure
+    // fill.
+    assertEquals(stripe, at2x.argb(30, 22), "first physical row of stripe at 2x");
+    assertEquals(stripe, at2x.argb(30, 23), "second physical row of stripe at 2x");
+    assertEquals(fill, at2x.argb(30, 24), "first physical row of gap at 2x");
+    assertEquals(stripe, at2x.argb(30, 34), "next stripe at 2x");
+
+    // Golden images at 1x and 1.25x: a rounded, bordered track with -45 degree stripes and a
+    // rounded, bordered box with horizontal 0 degree stripes.
+    El sample = el().size(200, 92)
+        .fill(0xFF0F172A)
+        .children(
+            el().key("diagonal")
+                .absolute(12, 12)
+                .size(176, 26)
+                .radius(13)
+                .fill(0xFF1E293B)
+                .border(2, 0xFF64748B)
+                .background(Background.stripes(0xFF94A3B8, 1, 5, -45)),
+            el().key("horizontal")
+                .absolute(12, 48)
+                .size(176, 32)
+                .radius(8)
+                .fill(0xFF1E293B)
+                .border(2, 0xFF64748B)
+                .background(Background.stripes(0xFF94A3B8, 1, 5, 0)));
+    Headless.Frame frame1x = Headless.render(sample, 200, 92, 1);
+    Golden.assertMatches("striped-background-1x", frame1x.pixels(), frame1x.tree());
+    Headless.Frame frame125x = Headless.render(sample, 200, 92, 1.25f);
+    Golden.assertMatches("striped-background-1.25x", frame125x.pixels(), frame125x.tree());
   }
 
   private static float firstGlyphLightShare(Scene scene) {

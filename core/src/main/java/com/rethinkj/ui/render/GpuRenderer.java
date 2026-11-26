@@ -102,8 +102,9 @@ public final class GpuRenderer implements AutoCloseable {
       // in shape.x), a squiggle (x, mid y, width, amplitude in rect, wavelength and stroke in
       // shape, phase in more.x), a color glyph (a glyph whose page lies in color_atlas and whose
       // fill holds its opacity), a rectangle with a gradient, or that gradient's stops (the ends
-      // in rect, linear or radial in shape.x, opacity in shape.y, from in fill and to in more). The
-      // slots in which they differ are declared as u32
+      // or anchor and stripe normal in rect, linear, radial or stripes in shape.x, opacity in
+      // shape.y, from in fill, to in more, and stripe width and period in radii.xy). The slots in
+      // which they differ are declared as u32
       // and bitcast to f32 where they hold floats: the bits of a float survive that, while a small
       // integer read as a float is a subnormal, which a GPU may flush to zero.
       struct Instance {
@@ -134,6 +135,7 @@ public final class GpuRenderer implements AutoCloseable {
       const GRADIENT: u32 = 7u;
       const STOPS: u32 = 8u;
       const RADIAL: u32 = 1u;
+      const STRIPES: u32 = 2u;
 
       struct Clip {
         rect: vec4f,
@@ -320,23 +322,40 @@ public final class GpuRenderer implements AutoCloseable {
         return max(coverage(-near) + coverage(-far) - 1.0, 0.0);
       }
 
-      // The color of a gradient's stops at a point, before the fill under it: t along the line,
-      // or the elliptical distance from the center, eased with smoothstep.
+      // How much of the line across stripes w wide every p lies in them up to v.
+      fn stripe_length(v: f32, w: f32, p: f32) -> f32 {
+        let k = floor(v / p);
+        return k * w + clamp(v - k * p, 0.0, w);
+      }
+
+      // The color of a gradient's stops at a point, before the fill under it: t along the line or
+      // the elliptical distance from the center eased with smoothstep, or analytic box-filtered
+      // coverage across parallel stripes.
       fn gradient(stops: Instance, point: vec2f) -> vec4f {
         let a = stops.rect.xy;
         let b = stops.rect.zw;
-        var t = 0.0;
-        if stops.shape.x == RADIAL {
-          let u = (point - a) / b;
-          t = min(sqrt(dot(u, u)), 1.0);
+        var s: f32;
+        if stops.shape.x == STRIPES {
+          let w = stops.radii.x;
+          let p = stops.radii.y;
+          let u = dot(point - a, b);
+          let h = 0.5 / globals.scale;
+          let cover = (stripe_length(u + h, w, p) - stripe_length(u - h, w, p)) / (2.0 * h);
+          s = 1.0 - clamp(cover, 0.0, 1.0);
         } else {
-          let d = b - a;
-          let span = dot(d, d);
-          if span > 0.0 {
-            t = clamp(dot(point - a, d) / span, 0.0, 1.0);
+          var t = 0.0;
+          if stops.shape.x == RADIAL {
+            let u = (point - a) / b;
+            t = min(sqrt(dot(u, u)), 1.0);
+          } else {
+            let d = b - a;
+            let span = dot(d, d);
+            if span > 0.0 {
+              t = clamp(dot(point - a, d) / span, 0.0, 1.0);
+            }
           }
+          s = t * t * (3.0 - 2.0 * t);
         }
-        let s = t * t * (3.0 - 2.0 * t);
         return stops.fill + (bitcast<vec4f>(stops.more) - stops.fill) * s;
       }
 

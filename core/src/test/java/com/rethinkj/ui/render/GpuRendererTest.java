@@ -155,6 +155,7 @@ class GpuRendererTest {
     cases.add(scene("transparent", transparent(), 160, 100, s));
     cases.add(view("arcs", arcs(), 300, 200, s));
     cases.add(view("backgrounds", backgrounds(), 240, 140, 1.25f));
+    cases.add(view("striped-backgrounds", stripedBackgrounds(), 200, 96, 1.25f));
     cases.add(view("image-backgrounds", imageBackgrounds(), 200, 80, 1.25f));
     cases.add(view("lines", Examples.lines(), 240, 120, s));
     // A line from a billion pixels out, as an edge of a diagram zoomed far in.
@@ -1460,6 +1461,39 @@ class GpuRendererTest {
                         Len.percent(0.9f),
                         0xB322C55E,
                         0x33F97316))));
+  }
+
+  /**
+   * Rounded, bordered, translucent elements with diagonal, horizontal and clipped striped
+   * backgrounds at a fractional scale.
+   */
+  private static El stripedBackgrounds() {
+    return el().size(200, 96)
+        .fill(BACKGROUND)
+        .children(
+            el().absolute(10.25f, 10.5f)
+                .size(180, 28)
+                .radius(14)
+                .fill(0xCC1E293B)
+                .border(2, 0xCC94A3B8)
+                .opacity(0.9f)
+                .background(Background.stripes(0xB394A3B8, 1, 5, -45)),
+            el().absolute(10.5f, 48.25f)
+                .size(84, 38)
+                .radius(8)
+                .fill(0xFF1E293B)
+                .border(1.5f, 0xFF64748B)
+                .background(Background.stripes(0xFF94A3B8, 1, 5, 0)),
+            el().absolute(106, 48.25f)
+                .size(84, 38)
+                .radius(10)
+                .clip()
+                .fill(0xFF181920)
+                .child(el().absolute(-8, -6)
+                    .size(100, 50)
+                    .radius(12)
+                    .border(2, 0x80F8FAFC)
+                    .background(Background.stripes(0xCC38BDF8, 1.5f, 4.5f, 90))));
   }
 
   /**

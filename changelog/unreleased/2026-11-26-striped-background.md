@@ -1,0 +1,1 @@
+- Added: `Background.stripes(color, width, gap, angle)`, thin parallel stripes over an element's `fill`, for areas that are empty, reserved or disabled. They are anchored to the padding box and antialiased at any scale.

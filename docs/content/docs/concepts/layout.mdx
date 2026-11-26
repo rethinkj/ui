@@ -40,7 +40,7 @@ Note: `Len.pixelsOrZero()` returns a fixed pixel value, or `0` for percentages, 
 | Method | Description |
 | --- | --- |
 | `fill(argb)` | Background color (`0xAARRGGBB`) |
-| `background(Background)` | Gradient or image painted over `fill`, inside the border (see [Backgrounds](#backgrounds) and [Image backgrounds](/docs/concepts/images#image-backgrounds)) |
+| `background(Background)` | Gradient, stripes, or image painted over `fill`, inside the border (see [Backgrounds](#backgrounds) and [Image backgrounds](/docs/concepts/images#image-backgrounds)) |
 | `radius(px)`, `radius(tl, tr, br, bl)` | Rounded corner radius |
 | `border(width, argb)`, `border(top, right, bottom, left, argb)` | Border width and color |
 | `borderColors(top, right, bottom, left)` | Sets a separate color for each border side (call after `border(...)`) |
@@ -64,6 +64,7 @@ Prefer theme tokens (`theme.surface().panel()`, `theme.text().muted()`) over raw
 <Shot src="examples/docs/backgrounds/view-{theme}" alt="Two rounded bordered cards side by side: the left tinted with a diagonal linear gradient labeled Linear, the right with a soft radial glow labeled Radial" />
 
 - Painted over `fill` where the fill shows: inside the border and its rounded corners, under the element's image, lines, text, and children.
+- `Background.stripes(color, width, gap, angle)` paints repeating parallel stripes of `color` over `fill` (the gaps show `fill`), with `width` and `gap` in logical pixels and `angle` in degrees clockwise from horizontal (`0` horizontal, `90` vertical, `-45` rising from bottom left to top right), anchored to the padding box so they move with the element.
 - Opacity and ancestor clips apply as for `fill`; pass `null` to clear it.
 - Takes no room in layout, does not affect hit testing, and does not animate with `motion`.
 

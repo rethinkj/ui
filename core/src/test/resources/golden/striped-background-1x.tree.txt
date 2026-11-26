@@ -1,0 +1,3 @@
+el 0,0 200x92
+  el #diagonal 12,12 176x26
+  el #horizontal 12,48 176x32
