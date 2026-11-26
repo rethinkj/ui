@@ -1137,7 +1137,11 @@ class TabGroupsTest {
         tree("b-cross-split-zone"));
     assertEquals(2, d.groups.frames().size(), "following window closed on cross-window split");
     assertEquals(List.of(List.of("a"), List.of("b", "c"), List.of("d")), order(d));
+  }
 
+  @Test
+  void aDirectDropOnAnotherWindowsPanelRaisesItAndMainsEmptyPanelTakesATabBack()
+      throws IOException {
     // Direct cross-window panel drop (without leaving the touching windows) raises the receiving
     // window for both center and edge releases.
     App<Docs> direct = start();
