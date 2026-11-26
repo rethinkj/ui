@@ -281,7 +281,8 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
       .splits(true)
       .onAdd(this::addTab)
       .onClosed(this::closed)
-      .onCloseTab(this::closeTab);
+      .onCloseTab(this::closeTab)
+      .onCloseTabs(this::closeTabs);
   // docs:end workbench-groups
   Position sidebar = SIDEBAR;
   final Rail.State rail = new Rail.State();
@@ -849,6 +850,18 @@ public final class Workbench implements Tree.Model<Workbench.Node> {
       TabGroups.Group<Opened> now = groups.groupOf(opened); // where it is once the answer comes
       if (now != null) {
         groups.close(now, now.tabs().indexOf(opened));
+      }
+    });
+  }
+
+  /** The user closes several tabs from the tab menu: asks once for all modified tabs. */
+  void closeTabs(TabGroups.Group<Opened> group, List<Opened> tabs) {
+    unsaved(group.frame(), tabs, "close the tabs", () -> {
+      for (Opened opened : tabs) {
+        TabGroups.Group<Opened> now = groups.groupOf(opened);
+        if (now != null) {
+          groups.close(now, now.tabs().indexOf(opened));
+        }
       }
     });
   }

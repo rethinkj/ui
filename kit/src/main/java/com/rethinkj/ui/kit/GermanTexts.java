@@ -307,6 +307,16 @@ public class GermanTexts implements Texts {
   }
 
   @Override
+  public String closeOthers() {
+    return "Andere schließen";
+  }
+
+  @Override
+  public String closeToTheRight() {
+    return "Tabs rechts schließen";
+  }
+
+  @Override
   public String newTab() {
     return "Neuer Tab";
   }
