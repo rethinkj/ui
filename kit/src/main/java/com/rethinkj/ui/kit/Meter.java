@@ -180,7 +180,7 @@ public final class Meter {
     El lastText = null;
     for (int i = 0; i < segments.size(); i++) {
       Segment segment = Objects.requireNonNull(segments.get(i), "segment");
-      double share = Math.min(clamp(segment.fraction()), Math.max(0.0, 1.0 - used));
+      double share = Math.clamp(clamp(segment.fraction()), 0.0, Math.max(0.0, 1.0 - used));
       double start = used;
       used += share;
 

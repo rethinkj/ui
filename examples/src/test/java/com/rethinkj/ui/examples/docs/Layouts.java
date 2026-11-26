@@ -599,7 +599,7 @@ final class Layouts {
         row().gap(Theme.CURRENT.get().space().m()).children(spinner, ring));
   }
 
-  static El meter(Layouts state) {
+  static El meter() {
     // docs:start meter
     El usage = Meter.bar(
             List.of(new Meter.Segment("Compute", 0.42, 0), new Meter.Segment("Storage", 0.24, 1)),
