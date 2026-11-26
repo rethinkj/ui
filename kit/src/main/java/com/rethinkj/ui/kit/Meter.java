@@ -1,5 +1,6 @@
 package com.rethinkj.ui.kit;
 
+import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
 
@@ -7,7 +8,9 @@ import com.rethinkj.ui.Background;
 import com.rethinkj.ui.Colors;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Len;
+import com.rethinkj.ui.Measure;
 import com.rethinkj.ui.Style;
+import com.rethinkj.ui.Text;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -175,9 +178,7 @@ public final class Meter {
     }
 
     double used = 0;
-    double lastStart = 0;
-    double lastShare = 0;
-    El lastText = null;
+    List<Slice> slices = options.trailing.isEmpty() ? List.of() : new ArrayList<>(segments.size());
     for (int i = 0; i < segments.size(); i++) {
       Segment segment = Objects.requireNonNull(segments.get(i), "segment");
       double share = Math.clamp(clamp(segment.fraction()), 0.0, Math.max(0.0, 1.0 - used));
@@ -217,10 +218,8 @@ public final class Meter {
       bar.style().width = Len.percent((float) share);
       track.child(bar);
 
-      if (share > 0) {
-        lastStart = start;
-        lastShare = share;
-        lastText = text;
+      if (!options.trailing.isEmpty() && share > 0) {
+        slices.add(new Slice(start, share, text));
       }
     }
 
@@ -253,36 +252,28 @@ public final class Meter {
     }
 
     if (!options.trailing.isEmpty()) {
-      track.child(trailingLayer(theme, options.trailing, lastStart, lastShare, lastText, pad));
+      track.child(trailingLayer(theme, options.trailing, slices, pad));
     }
 
     return track;
   }
 
+  /** One non-empty segment's span and text element, for sizing the room reserved ahead of badges. */
+  private record Slice(double start, double share, El text) {}
+
   /**
    * Places trailing badges at the right end of the track in a wrapping overlay clipped to the track
-   * height: when the badges do not fit beside the last visible segment's text, Flexbox wraps the
-   * entire badge row onto the second line below the clip box so no partial badge shows.
+   * height: when the badges do not fit beside the rightmost segment text that actually draws
+   * glyphs, Flexbox wraps the entire badge row onto the second line below the clip box so no
+   * partial badge shows.
+   *
+   * <p>The outer column places a zero-height full-width leaf ahead of the wrapping row so layout
+   * hands the track's pixel width to the row's reserve element, since CSS flexbox measures
+   * auto-width items in a row against {@link Measure#MAX_CONTENT}. Because the track lays out its
+   * in-flow segments before its absolute overlays, each segment's {@link Text#lines()} already
+   * reflects whether any glyph fit inside the segment.
    */
-  private static El trailingLayer(
-      Theme theme, List<El> badges, double lastStart, double lastShare, El lastText, float pad) {
-    El layer = row().key("trailing-layer").absolute(0, 0).wFull().hFull().wrap().clip();
-    layer.style().alignContent = Style.Content.FLEX_START;
-    boolean hasSegment = lastText != null;
-    if (hasSegment) {
-      if (lastStart > 0) {
-        El lead = el().hFull().shrink(0).minSize(0, 0);
-        lead.style().width = Len.percent((float) lastStart);
-        layer.child(lead);
-      }
-      El textRoom = el().hFull()
-          .shrink(0)
-          .minSize(0, 0)
-          .maxSize(TextSizing.natural(lastText) + 2 * pad, Float.POSITIVE_INFINITY);
-      textRoom.style().width = Len.percent((float) lastShare);
-      layer.child(textRoom);
-    }
-    layer.child(el().w(0).hFull().grow(1));
+  private static El trailingLayer(Theme theme, List<El> badges, List<Slice> slices, float pad) {
     El trailing = row()
         .key("trailing")
         .hFull()
@@ -297,8 +288,73 @@ public final class Meter {
           .fill(theme.surface().window())
           .child(badge));
     }
-    layer.child(trailing);
-    return layer;
+    if (slices.isEmpty()) {
+      El layer =
+          row().key("trailing-layer").absolute(0, 0).wFull().hFull().wrap().clip();
+      layer.style().alignContent = Style.Content.FLEX_START;
+      return layer.child(el().w(0).hFull().grow(1)).child(trailing);
+    }
+
+    float[] trackWidth = {Float.NaN};
+    El probe = el().wFull().shrink(0).minSize(0, 0).measure((knownW, knownH, availW, availH) -> {
+      float width = Float.isNaN(knownW) ? availW : knownW;
+      if (Float.isFinite(width)) {
+        trackWidth[0] = width;
+      }
+      return new Measure.Size(0, 0);
+    });
+    El reserve = el().hFull().shrink(0).minSize(0, 0).measure((knownW, knownH, availW, availH) -> {
+      if (availW == Measure.MIN_CONTENT) {
+        return new Measure.Size(0, 0);
+      }
+      return new Measure.Size(reservedWidth(slices, trackWidth[0], pad), 0);
+    });
+    El row = row().wFull().hFull().shrink(0).minSize(0, 0).wrap();
+    row.style().alignContent = Style.Content.FLEX_START;
+    row.child(reserve).child(el().w(0).hFull().grow(1)).child(trailing);
+
+    return col()
+        .key("trailing-layer")
+        .absolute(0, 0)
+        .wFull()
+        .hFull()
+        .clip()
+        .child(probe)
+        .child(row);
+  }
+
+  /**
+   * Width to keep clear of trailing badges: up to the end of the rightmost segment label that
+   * actually draws glyphs, or 0 when none does.
+   */
+  private static float reservedWidth(List<Slice> slices, float width, float pad) {
+    for (int i = slices.size() - 1; i >= 0; i--) {
+      Slice slice = slices.get(i);
+      if (!draws(slice.text)) {
+        continue;
+      }
+      double natural = TextSizing.measured(slice.text) + 2.0 * pad;
+      if (!Float.isFinite(width)) {
+        return (float) natural;
+      }
+      double reserved = slice.start * width + Math.min(slice.share * width, natural);
+      return (float) Math.min(width, reserved);
+    }
+    return 0;
+  }
+
+  /** Whether a laid-out segment text drew at least one glyph; true while not yet laid out. */
+  private static boolean draws(El text) {
+    List<Text.Line> lines = text.text().lines();
+    if (lines.isEmpty()) {
+      return true;
+    }
+    for (Text.Line line : lines) {
+      if (line.glyphs().count() > 0) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**

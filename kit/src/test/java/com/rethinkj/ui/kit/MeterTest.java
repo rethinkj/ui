@@ -205,6 +205,66 @@ class MeterTest {
     assertEquals(280f, findByKey(app.tree(), "segment-0").width(), 1f);
   }
 
+  @Test
+  void tinyLastSegmentDoesNotHideFittingTrailingBadge() throws IOException {
+    App<Object> app = new App<>(
+        new Object(),
+        ignored -> col()
+            .wFull()
+            .children(
+                Meter.bar(
+                        List.of(
+                            new Meter.Segment("Requests", 0.99, 0),
+                            new Meter.Segment("Errors", 0.01, 1)),
+                        Meter.options().trailing(Badge.badge("5d 23h")))
+                    .key("tiny-400")
+                    .w(400),
+                Meter.bar(
+                        List.of(
+                            new Meter.Segment("Requests", 0.80, 0),
+                            new Meter.Segment("Errors", 0.05, 1)),
+                        Meter.options().trailing(Badge.badge("Near limit")))
+                    .key("tiny-320")
+                    .w(320),
+                Meter.bar(
+                        List.of(
+                            new Meter.Segment("Compute", 0.25, 0),
+                            new Meter.Segment("Storage", 0.74, 1),
+                            new Meter.Segment("Errors", 0.01, 2)),
+                        Meter.options().trailing(Badge.badge("5d 23h")))
+                    .key("three-segments")
+                    .w(400),
+                Meter.bar(
+                        List.of(
+                            new Meter.Segment("Compute", 0.70, 0),
+                            new Meter.Segment("Storage", 0.25, 1),
+                            new Meter.Segment("Errors", 0.01, 2)),
+                        Meter.options().trailing(Badge.badge("Near limit")))
+                    .key("drawing-middle-hides")
+                    .w(240)));
+    Script.run("size 420 200\nframe", app, out);
+
+    // Tiny last segments draw no glyphs, so their trailing badges stay inside the track.
+    for (String key : List.of("tiny-400", "tiny-320", "three-segments")) {
+      El meter = findByKey(app.tree(), key);
+      El trailing = findByKey(meter, "trailing");
+      assertTrue(
+          trailing.y() >= 0 && trailing.y() < meter.height(),
+          key + " keeps trailing badge inside track: y=" + trailing.y() + ", h=" + meter.height());
+    }
+
+    // When the rightmost drawing segment leaves too little room, the badge hides.
+    El crowded = findByKey(app.tree(), "drawing-middle-hides");
+    El drawingText = findByKey(crowded, "segment-1").children().getFirst();
+    assertTrue(
+        drawingText.text().lines().stream().anyMatch(line -> line.glyphs().count() > 0),
+        "segment-1 draws glyphs");
+    El crowdedTrailing = findByKey(crowded, "trailing");
+    assertTrue(
+        crowdedTrailing.y() >= crowded.height(),
+        "hides trailing badge: y=" + crowdedTrailing.y() + ", h=" + crowded.height());
+  }
+
   private static El findByKey(El root, String key) {
     if (key.equals(root.key())) {
       return root;

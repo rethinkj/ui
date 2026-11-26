@@ -1,0 +1,1 @@
+- `Meter` decides whether its trailing badges fit from the rightmost segment whose label actually draws glyphs, so a tiny last segment too narrow to show even an ellipsis no longer hides badges that fit.
