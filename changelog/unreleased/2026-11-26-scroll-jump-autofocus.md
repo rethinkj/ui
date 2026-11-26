@@ -1,0 +1,1 @@
+- An `El.autofocus` in the rows that a `scrollToRow` jump brings into view no longer takes the input queued after the jump in the same frame when the view reads the list's `ScrollState`: that input goes to the element that had the focus, and the autofocus takes the focus at the end of the frame.

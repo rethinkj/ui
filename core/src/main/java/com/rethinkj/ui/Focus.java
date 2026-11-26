@@ -38,6 +38,8 @@ final class Focus {
   private Place beforeAsked; // where an El#autofocus took the focus from, until refocus finds it
   private List<Object> askedNext = List.of(); // the others that asked with it, in tree order
   private boolean claimed; // an El#takeFocus element took the focus in this build: none else asks
+  private boolean holding; // asks wait in held until askHeld, after the input of the frame
+  private final List<List<Object>> held = new ArrayList<>();
   // The identity of the element that last had the focus in a virtual list, by the list's identity.
   // shortcut: lists that are gone stay in it, one small entry each; drop them in update() when
   // apps create lists by the thousand.
@@ -520,6 +522,32 @@ final class Focus {
     return took;
   }
 
+  /** Whether {@link #ask} keeps what it is asked for until {@link #askHeld}, not moving the focus. */
+  void holdAsks(boolean hold) {
+    holding = hold;
+  }
+
+  /**
+   * Asks again, in their order, for what {@link #ask} kept while it held, as the build that asked
+   * would have: also an {@link El#takeFocus} element whose claim of that build counts again.
+   *
+   * @return whether anything was held
+   */
+  boolean askHeld(double time) {
+    if (held.isEmpty()) {
+      return false;
+    }
+    boolean wasClaimed = claimed;
+    claimed = false;
+    List<List<Object>> asks = List.copyOf(held);
+    held.clear();
+    for (List<Object> asked : asks) {
+      ask(asked, time);
+    }
+    claimed |= wasClaimed;
+    return true;
+  }
+
   /**
    * Moves the focus to the first of these elements that ask for it with {@link El#autofocus}, in
    * tree order; where that one cannot take it once laid out, {@link #refocus} takes the next that
@@ -527,6 +555,10 @@ final class Focus {
    */
   void ask(List<Object> asked, double time) {
     if (asked.isEmpty() || claimed) {
+      return;
+    }
+    if (holding) {
+      held.add(asked);
       return;
     }
     List<Object> next = new ArrayList<>(asked.subList(1, asked.size()));
