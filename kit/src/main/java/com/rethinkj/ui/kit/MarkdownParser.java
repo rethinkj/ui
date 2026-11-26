@@ -21,9 +21,10 @@ import java.util.regex.Pattern;
  * delimiters and one of brackets, so that the time grows with the length of the text.
  *
  * <p>Left out on purpose: HTML blocks and inline HTML (both stay text, which is what the component
- * shows), tabs inside a line's text after a container's marker other than right after it, bare
- * e-mail addresses as links, and containers or inline parts nested deeper than {@link #MAX_DEPTH},
- * which become text, so that nothing recurses without bound.
+ * shows, except {@code <br>}, {@code <br/>} and {@code <br />} without attributes, case-insensitive,
+ * which become hard line breaks), tabs inside a line's text after a container's marker other than
+ * right after it, bare e-mail addresses as links, and containers or inline parts nested deeper than
+ * {@link #MAX_DEPTH}, which become text, so that nothing recurses without bound.
  */
 final class MarkdownParser {
 
@@ -1340,6 +1341,16 @@ final class MarkdownParser {
       parseInline(root);
     }
     processEmphasis(null);
+    // A <br> at the end shows nothing, as in HTML, also inside emphasis or a link there.
+    for (N n = root.last; n != null; ) {
+      if (n.kind == HARD && n.text != null) {
+        N parent = n.parent;
+        n.unlink();
+        n = parent.last;
+      } else {
+        n = n.last;
+      }
+    }
     List<Inline> out = new ArrayList<>();
     collect(root, out, 0, false);
     return merge(out);
@@ -1937,8 +1948,60 @@ final class MarkdownParser {
       pos = m.end();
       return;
     }
+    if (lineBreakTag(block)) {
+      return;
+    }
     block.append(text("<"));
     pos++;
+  }
+
+  /**
+   * Reads {@code <br>}, {@code <br/>} or {@code <br />} (case-insensitive, without attributes) as a
+   * hard line break.
+   */
+  private boolean lineBreakTag(N block) {
+    int n = subject.length();
+    if (pos + 3 >= n) {
+      return false;
+    }
+    char b = subject.charAt(pos + 1);
+    char r = subject.charAt(pos + 2);
+    if ((b != 'b' && b != 'B') || (r != 'r' && r != 'R')) {
+      return false;
+    }
+    int p = pos + 3;
+    while (p < n && isSpaceOrTab(subject.charAt(p))) {
+      p++;
+    }
+    if (p < n && subject.charAt(p) == '/') {
+      p++;
+    }
+    if (p >= n || subject.charAt(p) != '>') {
+      return false;
+    }
+    // As in HTML, spaces and line ends around the break do not show.
+    N last = block.last;
+    if (last != null && last.kind == SOFT) {
+      last.unlink();
+      last = block.last;
+    }
+    if (last != null && last.kind == TEXT) {
+      last.text = last.text.stripTrailing();
+    }
+    pos = p + 1;
+    skipSpaces();
+    if (pos < n && subject.charAt(pos) == '\n') {
+      pos++;
+      skipSpaces();
+    }
+    block.append(new N(HARD, "<br>")); // the text marks it as a tag for the end of inlines()
+    return true;
+  }
+
+  private void skipSpaces() {
+    while (pos < subject.length() && isSpaceOrTab(subject.charAt(pos))) {
+      pos++;
+    }
   }
 
   /** GitHub's autolinks without angle brackets: {@code www.}, {@code http://}, {@code https://}. */

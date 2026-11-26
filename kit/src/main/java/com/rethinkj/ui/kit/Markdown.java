@@ -2155,17 +2155,21 @@ public final class Markdown {
         case MarkdownDocument.Table table -> {
           out.append(indent)
               .append(String.join(
-                  "\t", table.header().stream().map(MarkdownDocument::plainText).toList()))
+                  "\t", table.header().stream().map(Markdown::cellText).toList()))
               .append('\n');
           for (List<List<Inline>> row : table.rows()) {
             out.append(indent)
-                .append(String.join(
-                    "\t", row.stream().map(MarkdownDocument::plainText).toList()))
+                .append(String.join("\t", row.stream().map(Markdown::cellText).toList()))
                 .append('\n');
           }
           out.append('\n');
         }
       }
     }
+  }
+
+  /** Plain text of a table cell on one line, turning line breaks into spaces. */
+  private static String cellText(List<Inline> cell) {
+    return MarkdownDocument.plainText(cell).replace('\n', ' ');
   }
 }

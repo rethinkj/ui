@@ -280,6 +280,61 @@ class MarkdownTest {
     assertEquals(edge[0].horizontalBar() != null, edge[0].height() > edge[1].height());
   }
 
+  @Test
+  void tableCellWithBrGrowsToMultipleLinesMeasuresByLongestLineAndCopiesOnOneRow()
+      throws IOException {
+    String source = """
+        | Item | Notes<br>Details |
+        | --- | --- |
+        | one | first line<br>second line<br />third |
+        | two | single line |
+
+        para one<br>para two
+        """;
+    MarkdownDocument document = Markdown.parse(source);
+    assertEquals(
+        "Item\tNotes Details\none\tfirst line second line third\ntwo\tsingle line\n\n"
+            + "para one\npara two",
+        Markdown.text(document));
+
+    App<Doc> app = app(source);
+    app.textRendering(TextRendering.LINUX);
+    Script.run("size 800 400 scale 2\nframe", app, out);
+    El[] table = tableAndArea(app.tree(), null);
+    assertNotNull(table);
+    List<El> rows = tableRows(table[1]);
+    assertEquals(3, rows.size());
+    El headerNotes = rows.get(0).children().get(1).children().getFirst();
+    El multiCell = rows.get(1).children().get(1).children().getFirst();
+    El singleCell = rows.get(2).children().get(1).children().getFirst();
+    assertEquals(2, headerNotes.text().lines().size(), "header cell breaks into two lines");
+    assertEquals(3, multiCell.text().lines().size(), "body cell breaks into three lines");
+    assertEquals(1, singleCell.text().lines().size(), "plain cell stays on one line");
+    assertTrue(
+        multiCell.height() > singleCell.height(),
+        "multi-line cell grows taller: " + multiCell.height() + " vs " + singleCell.height());
+    float brokenWidth = rows.get(1).children().get(1).width();
+
+    // Without breaks the same text sits on one line and needs a wider column.
+    App<Doc> flat = app("""
+        | Item | Notes Details |
+        | --- | --- |
+        | one | first line second line third |
+        | two | single line |
+        """);
+    flat.textRendering(TextRendering.LINUX);
+    Script.run("size 800 400 scale 2\nframe", flat, out);
+    El[] flatTable = tableAndArea(flat.tree(), null);
+    assertNotNull(flatTable);
+    float flatWidth = tableRows(flatTable[1]).get(1).children().get(1).width();
+    assertTrue(
+        brokenWidth < flatWidth,
+        "column measures by longest line rather than joined text: "
+            + brokenWidth
+            + " vs "
+            + flatWidth);
+  }
+
   private static El[] tableAndArea(El el, El parent) {
     if ("table".equals(el.role())) {
       return new El[] {parent, el};
