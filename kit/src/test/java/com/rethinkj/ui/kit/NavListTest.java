@@ -300,6 +300,64 @@ class NavListTest {
         StructureTest.line(virtualDump, "label=\"Session 1\"").contains("x44 "), virtualDump);
   }
 
+  @Test
+  void aRowMenuOpensOnThatRowWithoutSelectingIt() throws IOException {
+    List<String> chosen = new ArrayList<>();
+    selected = 0;
+    App<NavListTest> app = new App<>(
+        this,
+        state -> col()
+            .wFull()
+            .hFull()
+            .child(NavList.navList(
+                    List.of(
+                        NavList.item("General")
+                            .contextMenu(
+                                state.menu,
+                                List.of(Menu.item("Open General", () -> chosen.add("general")))),
+                        NavList.item("Plain").key("plain"),
+                        NavList.item("Connections")
+                            .contextMenu(
+                                state.menu,
+                                List.of(Menu.item("Open to side", () -> chosen.add("side")))),
+                        NavList.item("Offline")
+                            .key("offline")
+                            .disabled(true)
+                            .contextMenu(
+                                state.menu,
+                                List.of(Menu.item("Never", () -> chosen.add("offline"))))),
+                    state.selected,
+                    i -> state.selected = i)
+                .key("list")
+                .grow(1)));
+    app.textRendering(TextRendering.LINUX);
+
+    // Right-clicking an unselected row opens its menu on that row without changing selection.
+    Script.run("size 240 220\nframe\npress #item-2 right\nframe\nadvance 1\nframe\n", app, out);
+    String dump = app.tree().dump();
+    assertEquals(0, selected, "right-click must not change selection");
+    assertTrue(dump.contains("on #item-2 role=option label=\"Connections\""), dump);
+    assertTrue(dump.contains("role=menuitem label=\"Open to side\""), dump);
+    Script.run("press label=\"Open to side\"\nframe\n", app, out);
+    assertEquals(List.of("side"), chosen);
+    assertEquals(0, selected);
+
+    // Rows without a menu, disabled rows and the room below the rows open no row's menu.
+    Script.run(
+        "press #plain right\nframe\npress #offline right\nframe\npress #list at bottom-2 right\nframe\n",
+        app,
+        out);
+    assertFalse(menu.isOpen());
+
+    // Shift+F10 with the list focused opens the selected row's menu.
+    Script.run("focus #list\nframe\nkey F10 shift\nframe\nadvance 1\nframe\n", app, out);
+    dump = app.tree().dump();
+    assertTrue(dump.contains("on #list role=listbox"), dump);
+    assertTrue(dump.contains("role=menuitem label=\"Open General\""), dump);
+    Script.run("press label=\"Open General\"\nframe\n", app, out);
+    assertEquals(List.of("side", "general"), chosen);
+  }
+
   private static El trailing(Theme theme, String time, Symbol symbol, Icon.Variant variant) {
     return row()
         .gap(theme.space().xs())

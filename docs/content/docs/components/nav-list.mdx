@@ -23,7 +23,7 @@ Javadoc: [`NavList`](/api/com/rethinkj/ui/kit/NavList.html).
 | `navList(entries, selected, onSelect)` | List of `NavList.Entry` items and headings (`selected` index includes headings) |
 | `navList(count, index -> entry, selected, onSelect)` | Virtualized list for large navigation lists |
 | `outline(entries, current, onPress)` | Table of contents that marks the `current` heading and tells every press, also one on the current item or Enter or Space on it, so a press goes back to its heading |
-| `NavList.item([icon,] label)` | Navigation item with optional `.detail(text)`, `.count(text)`, `.trailing(element)`, `.actions(buttons...)`, `.indent(levels)`, `.key(name)`, and `.disabled(true)` |
+| `NavList.item([icon,] label)` | Navigation item with optional `.detail(text)`, `.count(text)`, `.trailing(element)`, `.actions(buttons...)`, `.contextMenu(state, items)`, `.indent(levels)`, `.key(name)`, and `.disabled(true)` |
 | `NavList.heading(label)` | Non-selectable section heading with optional `.count(text)` and `.open(open, onToggle)` |
 
 Inside a card, wrap the list with `Card.inset(list)`.
@@ -55,13 +55,20 @@ Use `navList(values, selected, value -> item, onSelect)` (or with an extra `valu
 ```text file="examples/src/test/resources/golden/docs/navigation-typed/view.tree.txt" start="role=listbox" count="5"
 ```
 
+## Context menus
+
+Items can carry a per-row context menu with `.contextMenu(state, items)`. One `Menu.State` can be shared across all items of a list. Right-clicking a row opens that row's menu without changing the selection; **Shift+F10** or the **Menu** key while the list has focus opens the selected row's menu. Disabled items and disabled lists (`onSelect` is `null`) open no menu.
+
+```java snippet="nav-list-context-menu"
+```
+
 ## Keyboard
 
-The list is one Tab stop: **Up**, **Down**, **Home**, **End**, **Page Up**, and **Page Down** move selection, skipping headings and disabled items. Collapsible headings are focusable buttons; **Enter** or **Space** while focused runs `onToggle`.
+The list is one Tab stop: **Up**, **Down**, **Home**, **End**, **Page Up**, and **Page Down** move selection, skipping headings and disabled items, and **Shift+F10** or the **Menu** key opens the selected row's context menu. Collapsible headings are focusable buttons; **Enter** or **Space** while focused runs `onToggle`.
 
 ## In a tree dump
 
-`role=listbox` (`disabled` if `onSelect` is `null`). Items are `role=option` with `selected`/`disabled`, `pos`, and key `#item-<index>` (unless `.key(...)` is set), with any detail text, trailing element, and action buttons as children. Plain headings have no role; collapsible headings are `role=button` with `expanded` or `expanded=false`:
+`role=listbox` (`disabled` if `onSelect` is `null`). Items are `role=option` with `selected`/`disabled`, `pos`, and key `#item-<index>` (unless `.key(...)` is set), with any detail text, trailing element, and action buttons as children, and an open row context menu attached as an overlay on that row (so scripts can open it with `press <row> right`), or on the list when a key opened it. Plain headings have no role; collapsible headings are `role=button` with `expanded` or `expanded=false`:
 
 ```text file="examples/src/test/resources/golden/docs/navigation/view.tree.txt" start="role=listbox" count="5"
 ```

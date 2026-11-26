@@ -392,6 +392,7 @@ public final class Menu {
     private int opening; // a key opens the menu: 1 highlights its first item, -1 its last
     private int keyed = -1; // the level whose highlight a key moved last, until the pointer does
     private Side opens = Side.BOTTOM;
+    Object anchor; // identifies which owner opened a shared state, such as a row of a NavList
 
     public boolean isOpen() {
       return open;
@@ -421,6 +422,7 @@ public final class Menu {
 
     public void close() {
       open = false;
+      anchor = null;
       Arrays.fill(lit, -1);
       Arrays.fill(sub, -1);
     }

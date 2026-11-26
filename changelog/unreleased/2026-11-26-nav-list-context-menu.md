@@ -1,0 +1,1 @@
+- `NavList.Item` gained `.contextMenu(Menu.State, List<Menu.Item>)` to attach a per-row context menu (one `Menu.State` may be shared across a list): right-clicking a row opens that row's menu without changing the selection, and Shift+F10 or the Menu key while the list is focused opens the selected row's menu, in both the list and virtual forms.

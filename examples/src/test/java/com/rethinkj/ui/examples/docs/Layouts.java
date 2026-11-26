@@ -418,6 +418,7 @@ final class Layouts {
               new Session("Theme page", "main", "3d"))));
   final Set<String> closed = new HashSet<>(Set.of("docs"));
   Session session = projects.getFirst().sessions().getFirst();
+  final Menu.State sessionMenu = new Menu.State();
 
   void area(Area value) {
     area = value;
@@ -435,6 +436,14 @@ final class Layouts {
 
   void pin(Session value) {
     said = "pin " + value.title();
+  }
+
+  void openInNewTab(Session value) {
+    said = "tab " + value.title();
+  }
+
+  void openToSide(Session value) {
+    said = "side " + value.title();
   }
 
   static El typedNavigation(Layouts state) {
@@ -475,6 +484,25 @@ final class Layouts {
     El list = NavList.navList(entries, selected, index -> state.select(rows.get(index)))
         .label("Sessions");
     // docs:end nav-list-sessions
+    return Frame.of(Card.flush(Card.inset(list)).w(280).grow(1));
+  }
+
+  static El navigationContextMenu(Layouts state) {
+    List<Session> sessions = state.projects.getFirst().sessions();
+    // docs:start nav-list-context-menu
+    El list = NavList.navList(
+            sessions,
+            state.session,
+            session -> NavList.item(session.title())
+                .detail(session.place())
+                .contextMenu(
+                    state.sessionMenu,
+                    List.of(
+                        Menu.item("Open in new tab", () -> state.openInNewTab(session)),
+                        Menu.item("Open to the side", () -> state.openToSide(session)))),
+            state::select)
+        .label("Sessions");
+    // docs:end nav-list-context-menu
     return Frame.of(Card.flush(Card.inset(list)).w(280).grow(1));
   }
 

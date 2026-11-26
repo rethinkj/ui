@@ -58,15 +58,20 @@ import java.util.function.IntFunction;
  * scroll area, the list needs a height of its own, room to grow, or no more items than fit.
  *
  * <p>An item can stand in by steps, as the headings of an outline under the one above them ({@link
- * Item#indent}), and can be disabled ({@link Item#disabled}): drawn in the disabled colors, passed
- * by the keys and deaf to presses.
+ * Item#indent}), can carry a context menu ({@link Item#contextMenu(Menu.State, List)}), and can be
+ * disabled ({@link Item#disabled}): drawn in the disabled colors, passed by the keys and deaf to
+ * presses. A secondary press on a row opens that row's context menu without changing the selection,
+ * and Shift+F10 or the Menu key while the list has the focus opens the selected row's menu; one
+ * {@link Menu.State} may be shared by all items of a list, and disabled items and a disabled list
+ * open no menu.
  *
  * <p>In a tree dump the list is {@code role=listbox}, its items {@code role=option} with their text
  * as the label, {@code selected} or {@code disabled}, and their position among all rows, headings
  * counted, and the keys {@code item-<index>} or the item's own ({@link Item#key}), with detail
- * text, trailing element and actions as children. A plain heading has no role; a collapsible
- * heading is {@code role=button} with its text as the label and {@code expanded} or {@code
- * expanded=false}.
+ * text, trailing element and actions as children. An item's open context menu is an overlay on that
+ * row, so scripts can open it with {@code press <row> right}, or on the list when a key opened it. A plain
+ * heading has no role; a collapsible heading is {@code role=button} with its text as the label and
+ * {@code expanded} or {@code expanded=false}.
  */
 public final class NavList {
 
@@ -92,6 +97,11 @@ public final class NavList {
    *     item-<index>}, which changes when entries come or go above it; one of its own in the list,
    *     not of that form; null for that
    * @param disabled whether it cannot be selected
+   * @param menu the state of the item's context menu, which may be shared by all items of a list;
+   *     null for none
+   * @param contextMenu the items of the context menu shown on a secondary press, or with Shift+F10
+   *     or the Menu key while selected and the list has the focus, not at all while disabled; empty
+   *     for none
    */
   public record Item(
       String label,
@@ -102,7 +112,9 @@ public final class NavList {
       List<El> actions,
       int indent,
       String key,
-      boolean disabled)
+      boolean disabled,
+      Menu.State menu,
+      List<Menu.Item> contextMenu)
       implements Entry {
 
     public Item {
@@ -110,21 +122,25 @@ public final class NavList {
         throw new IllegalArgumentException("indent " + indent + " is below 0");
       }
       actions = actions == null ? List.of() : List.copyOf(actions);
+      contextMenu = contextMenu == null ? List.of() : List.copyOf(contextMenu);
     }
 
     /** This item with a second line in muted small type under its label. */
     public Item detail(String text) {
-      return new Item(label, icon, text, count, trailing, actions, indent, key, disabled);
+      return new Item(
+          label, icon, text, count, trailing, actions, indent, key, disabled, menu, contextMenu);
     }
 
     /** This item with a count at its right. */
     public Item count(String text) {
-      return new Item(label, icon, detail, text, trailing, actions, indent, key, disabled);
+      return new Item(
+          label, icon, detail, text, trailing, actions, indent, key, disabled, menu, contextMenu);
     }
 
     /** This item with a trailing element placed at its right after the count. */
     public Item trailing(El element) {
-      return new Item(label, icon, detail, count, element, actions, indent, key, disabled);
+      return new Item(
+          label, icon, detail, count, element, actions, indent, key, disabled, menu, contextMenu);
     }
 
     /**
@@ -140,22 +156,38 @@ public final class NavList {
           buttons == null ? List.of() : List.of(buttons),
           indent,
           key,
-          disabled);
+          disabled,
+          menu,
+          contextMenu);
     }
 
     /** This item standing in by {@code levels} steps, as a heading of an outline under another. */
     public Item indent(int levels) {
-      return new Item(label, icon, detail, count, trailing, actions, levels, key, disabled);
+      return new Item(
+          label, icon, detail, count, trailing, actions, levels, key, disabled, menu, contextMenu);
     }
 
     /** This item with its own key in place of {@code item-<index>}. */
     public Item key(String name) {
-      return new Item(label, icon, detail, count, trailing, actions, indent, name, disabled);
+      return new Item(
+          label, icon, detail, count, trailing, actions, indent, name, disabled, menu, contextMenu);
     }
 
     /** This item, disabled or not. */
     public Item disabled(boolean off) {
-      return new Item(label, icon, detail, count, trailing, actions, indent, key, off);
+      return new Item(
+          label, icon, detail, count, trailing, actions, indent, key, off, menu, contextMenu);
+    }
+
+    /**
+     * This item with a context menu shown on a secondary press, or with Shift+F10 or the Menu key
+     * while selected and the list has the focus; not while disabled. One {@link Menu.State} may be
+     * shared by all items of a list. Pass null for {@code state} or null or an empty list for
+     * {@code items} for none.
+     */
+    public Item contextMenu(Menu.State state, List<Menu.Item> items) {
+      return new Item(
+          label, icon, detail, count, trailing, actions, indent, key, disabled, state, items);
     }
   }
 
@@ -195,11 +227,11 @@ public final class NavList {
   private NavList() {}
 
   public static Item item(String label) {
-    return new Item(label, null, null, null, null, List.of(), 0, null, false);
+    return new Item(label, null, null, null, null, List.of(), 0, null, false, null, List.of());
   }
 
   public static Item item(Icon icon, String label) {
-    return new Item(label, icon, null, null, null, List.of(), 0, null, false);
+    return new Item(label, icon, null, null, null, List.of(), 0, null, false, null, List.of());
   }
 
   /** A heading over the items that follow it. */
@@ -324,6 +356,12 @@ public final class NavList {
     return rows.list(col().rows(count, rows.height, rows::build));
   }
 
+  /**
+   * Identifies the row a shared {@link Menu.State} is open for, and whether a key opened it, in
+   * which case the menu hangs from the list, also while the row is out of view.
+   */
+  private record MenuAnchor(String key, String labelAtIndex, boolean byKey) {}
+
   /** What one rebuild of the list needs to build its rows and to take its keys. */
   private static final class Rows {
     final Theme theme;
@@ -333,9 +371,12 @@ public final class NavList {
     final IntConsumer onSelect;
     final float height;
     final boolean twoLine;
+    final Item selectedMenu; // the selected item when it is enabled and has a context menu
+    final MenuAnchor keyAnchor; // of the selected item's menu when a key opens it
     final boolean[] focused = {false}; // set by the list's focus look, read by the rows
     El selectedPill; // of a list built at once, which the focus look reaches after the rows
     boolean again; // a press on the selected item tells it again, as in an outline
+    boolean menuKey; // the Menu key or Shift+F10 came, which the list's secondary press answers
 
     Rows(
         Theme theme,
@@ -353,6 +394,17 @@ public final class NavList {
       float single = theme.size().control() + 2 * theme.space().xs();
       this.height =
           twoLine ? single + theme.type().small().size() + theme.space().s() : single;
+      Item menuItem = null;
+      if (onSelect != null
+          && selected >= 0
+          && selected < count
+          && entries.apply(selected) instanceof Item item
+          && !item.disabled()
+          && hasMenu(item)) {
+        menuItem = item;
+      }
+      this.selectedMenu = menuItem;
+      this.keyAnchor = menuItem == null ? null : anchor(rowKey(selected, menuItem), menuItem, true);
     }
 
     El list(El list) {
@@ -363,6 +415,20 @@ public final class NavList {
           .revealRow(selected);
       if (onSelect == null) {
         return list.disabled(true);
+      }
+      if (selectedMenu != null) {
+        Menu.State menu = selectedMenu.menu();
+        // Only for the keys: a secondary press on the list's own room opens no row's menu.
+        list.onSecondaryPress((x, y) -> {
+          if (menuKey) {
+            menuKey = false;
+            menu.openAt(x, y);
+            menu.anchor = keyAnchor;
+          }
+        });
+        if (menu.isOpen() && keyAnchor.equals(menu.anchor)) {
+          Menu.contextMenu(list, menu, selectedMenu.contextMenu());
+        }
       }
       return list.focusable()
           .focusRing(theme.accent().edge())
@@ -503,15 +569,36 @@ public final class NavList {
         actions.style().display = on || opened ? Style.Display.FLEX : Style.Display.NONE;
         pill.child(actions);
       }
+      String rowKey = rowKey(i, entry);
       El r = row()
-          .key(entry.key() != null ? entry.key() : "item-" + i)
+          .key(rowKey)
           .role("option")
           .label(entry.label())
           .selected(on)
           .padding(theme.space().xs(), 0)
           .child(pill);
       if (!enabled) {
+        closeAnchored(rowKey, entry);
         return entry.disabled() ? r.disabled(true) : r;
+      }
+      if (hasMenu(entry)) {
+        MenuAnchor anchor = anchor(rowKey, entry, false);
+        Menu.State menu = entry.menu();
+        if (menu.isOpen()
+            && menu.anchor instanceof MenuAnchor open
+            && open.byKey()
+            && !open.equals(keyAnchor)) {
+          menu.close(); // a key opened it for a row the selection has left
+        }
+        r.onSecondaryPress((x, y) -> {
+          menu.openAt(x, y);
+          menu.anchor = anchor;
+        });
+        if (menu.isOpen() && anchor.equals(menu.anchor)) {
+          Menu.contextMenu(r, menu, entry.contextMenu());
+        }
+      } else {
+        closeAnchored(rowKey, entry);
       }
       r.cursor(Cursor.POINTER).onPress(() -> {
         if (!on || again) {
@@ -542,8 +629,40 @@ public final class NavList {
       return !element.overlays().isEmpty() || element.children().stream().anyMatch(Rows::opened);
     }
 
+    private static boolean hasMenu(Item item) {
+      return item.menu() != null && !item.contextMenu().isEmpty();
+    }
+
+    private static String rowKey(int index, Item item) {
+      return item.key() != null ? item.key() : "item-" + index;
+    }
+
+    private static MenuAnchor anchor(String rowKey, Item item, boolean byKey) {
+      return new MenuAnchor(rowKey, item.key() == null ? item.label() : null, byKey);
+    }
+
+    private static void closeAnchored(String rowKey, Item entry) {
+      if (entry.menu() != null
+          && entry.menu().isOpen()
+          && entry.menu().anchor instanceof MenuAnchor open
+          && open.key().equals(rowKey)
+          && Objects.equals(open.labelAtIndex(), anchor(rowKey, entry, false).labelAtIndex())) {
+        entry.menu().close();
+      }
+    }
+
     /** What a key does to the list with the focus; whether the list took it. */
     boolean key(Key k, El list) {
+      if (selectedMenu != null
+          && selectedMenu.menu().isOpen()
+          && keyAnchor.equals(selectedMenu.menu().anchor)) {
+        return false; // the menu the keys opened keeps them, and the row it hangs from
+      }
+      // Left to the App, which answers them with the list's secondary press at the selected row.
+      menuKey = selectedMenu != null
+          && list.isFocused()
+          && (k.name().equals("ContextMenu") && k.modifiers() == 0
+              || k.name().equals("F10") && k.modifiers() == Key.SHIFT);
       if (k.modifiers() != 0 || count == 0) {
         return false;
       }
