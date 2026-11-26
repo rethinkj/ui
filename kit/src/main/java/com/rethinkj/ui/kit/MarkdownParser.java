@@ -1342,13 +1342,10 @@ final class MarkdownParser {
     }
     processEmphasis(null);
     // A <br> at the end shows nothing, as in HTML, also inside emphasis or a link there.
-    for (N n = root.last; n != null; ) {
+    for (N n = root.last; n != null; n = n.last) {
       if (n.kind == HARD && n.text != null) {
-        N parent = n.parent;
         n.unlink();
-        n = parent.last;
-      } else {
-        n = n.last;
+        break;
       }
     }
     List<Inline> out = new ArrayList<>();

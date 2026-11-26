@@ -292,10 +292,13 @@ class MarkdownTest {
         para one<br>para two
         """;
     MarkdownDocument document = Markdown.parse(source);
-    assertEquals(
-        "Item\tNotes Details\none\tfirst line second line third\ntwo\tsingle line\n\n"
-            + "para one\npara two",
-        Markdown.text(document));
+    assertEquals("""
+        Item\tNotes Details
+        one\tfirst line second line third
+        two\tsingle line
+
+        para one
+        para two""", Markdown.text(document));
 
     App<Doc> app = app(source);
     app.textRendering(TextRendering.LINUX);

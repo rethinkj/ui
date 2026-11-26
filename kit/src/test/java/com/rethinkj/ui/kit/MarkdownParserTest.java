@@ -170,6 +170,10 @@ class MarkdownParserTest {
                 text "last"
         """, tree("| *last<br>* |\n| - |"), "a break at the end of emphasis drops");
     assertEquals(
+        "paragraph\n  text \"a\"\n  hardbreak\n",
+        tree("a<br><br>"),
+        "of two breaks at the end, the one before the last stays, as in HTML");
+    assertEquals(
         "paragraph\n  link \"/x\"\n    text \"one\"\n    hardbreak\n",
         tree("[one  \n](/x)"),
         "a break of spaces at the end of a link stays");
