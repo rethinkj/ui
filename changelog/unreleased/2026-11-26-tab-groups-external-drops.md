@@ -1,0 +1,1 @@
+- `TabGroups.accept(payload -> tab)` opens what a drag from elsewhere in the app carries, such as a sidebar row, as a tab: in a tab bar at the pointer or, with `splits(true)`, on a group's center or split edge. A tab that is already open moves there instead.

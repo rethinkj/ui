@@ -85,6 +85,11 @@ import java.util.function.Predicate;
  *       frame's window, by a close request ({@link Windows.Handle#onCloseRequest}) or by the
  *       app's {@link Windows.Handle#close()}, runs {@link #onWindowClose} for a frame still in
  *       {@link #frames()}: {@link #dockAll(Frame)} unless set, or {@link #closeAll(Frame)}.
+ *   <li>With {@link #accept(Function)}, drags from elsewhere in the app (such as a sidebar row
+ *       with {@link El#dragPayload}) drop into any group's bar (showing the insertion marker) or,
+ *       with {@link #splits(boolean)} on, onto a group's panel center or edge (showing the same
+ *       {@code #zone} preview without intercepting {@link El#onDrop} targets inside the tab's own
+ *       content). Returning an already-open tab moves it there instead of adding it twice.
  * </ul>
  *
  * <p>A frame with one group renders as {@link Tabs#tabs} alone; a split frame renders its tree
@@ -356,6 +361,7 @@ public final class TabGroups<T> {
   private BiConsumer<Group<T>, List<T>> onCloseTabs;
   private Consumer<Group<T>> onAdd;
   private BiFunction<Group<T>, T, List<Menu.Item>> tabMenu;
+  private Function<Object, T> accept;
   private boolean splits;
 
   private enum Zone {
@@ -391,6 +397,7 @@ public final class TabGroups<T> {
   private int startY;
   private Group<T> zoneGroup; // group whose panel shows a drop-zone preview, or null
   private Zone zone;
+  private Object externalDrag; // payload of an external drag currently over a panel, or null
   // Tabs being handed to opener.open, also nested ones, to reject re-adding them.
   private final Set<T> opening = Collections.newSetFromMap(new IdentityHashMap<>());
 
@@ -501,6 +508,24 @@ public final class TabGroups<T> {
     return this;
   }
 
+  /**
+   * Lets drags from elsewhere in the app (any drag carrying a payload other than a tab of these
+   * groups, such as a sidebar row with {@link El#dragPayload}) drop into a group's tab bar or,
+   * with {@link #splits(boolean)} on, onto its panel's center or split edges to open a tab there.
+   * The handler receives the drag's payload and returns the tab to open, or null to refuse it.
+   *
+   * <p>The handler is called on each drag step over a group (to decide whether to show drop zones
+   * or the bar's insertion marker) and once on the drop itself, so it must be cheap and free of
+   * side effects until the drop; only the drop's result is opened. If it returns a tab that is
+   * already open in some group (by identity, {@link #groupOf}), that tab is moved to the drop
+   * target instead of added again; otherwise the returned tab must be new. Passing null clears the
+   * handler (the default).
+   */
+  public TabGroups<T> accept(Function<Object, T> handler) {
+    this.accept = handler;
+    return this;
+  }
+
   /** The frame of the app's first window. */
   public Frame<T> main() {
     return main;
@@ -552,7 +577,7 @@ public final class TabGroups<T> {
    */
   public El tabs(Frame<T> frame, Function<T, Tabs.Tab> tab, Function<T, El> content) {
     Objects.requireNonNull(frame, "frame");
-    if (!dragging.isActive()) {
+    if (!dragging.isActive() && (externalDrag == null || !hasGroup(zoneGroup))) {
       clearZone();
     }
     Theme theme = Theme.CURRENT.get();
@@ -727,6 +752,11 @@ public final class TabGroups<T> {
             }
           }
         });
+    if (accept != null) {
+      options.onExternalDrop(
+          payload -> accept != null && hasGroup(group) && accept.apply(payload) != null,
+          (payload, slot) -> dropOnBar(group, payload, slot));
+    }
     if (!group.tabs.isEmpty()) {
       options.contextMenu(group.menu, items);
     }
@@ -737,6 +767,11 @@ public final class TabGroups<T> {
         layer.child(zonePreview(zone, theme));
       }
       options.panelOverlay(layer);
+    } else if (accept != null && splits) {
+      options.onPanelDrop((panel, d) -> overExternalZone(group, panel, theme, d));
+      if (externalDrag != null && zoneGroup == group && zone != null) {
+        options.panelOverlay(zonePreview(zone, theme).inert());
+      }
     }
     if (group.tabs.isEmpty() && group.frame.focusGroup == group) {
       group.frame.focusGroup = null;
@@ -964,6 +999,99 @@ public final class TabGroups<T> {
   private void clearZone() {
     zoneGroup = null;
     zone = null;
+    externalDrag = null;
+  }
+
+  private void dropOnBar(Group<T> group, Object payload, int slot) {
+    if (accept == null || !hasGroup(group)) {
+      return;
+    }
+    T tab = accept.apply(payload);
+    if (tab == null) {
+      return;
+    }
+    Group<T> from = groupOf(tab);
+    Windows.Handle hint = from != null ? from.frame.window : null;
+    int at = Math.clamp(slot, 0, group.tabs.size());
+    if (from != null) {
+      int fromIndex = indexOf(from, tab);
+      if (fromIndex < 0) {
+        return;
+      }
+      dock(from, fromIndex, group, at);
+      group.active = indexOf(group, tab); // dock keeps the active tab within one group
+    } else {
+      add(group, at, tab);
+    }
+    focusGroup(group);
+    raiseFrame(group.frame, hint);
+  }
+
+  private void overExternalZone(Group<T> group, El panel, Theme theme, Drop d) {
+    if (d.payload() == dragging) {
+      return;
+    }
+    if (d.phase() == Drop.Phase.LEAVE) {
+      if (zoneGroup == group) {
+        clearZone();
+      }
+      return;
+    }
+    if (accept == null || !splits || !hasGroup(group)) {
+      if (zoneGroup == group) {
+        clearZone();
+      }
+      return;
+    }
+    T tab = accept.apply(d.payload());
+    if (tab == null) {
+      if (zoneGroup == group) {
+        clearZone();
+      }
+      return;
+    }
+    Group<T> from = groupOf(tab);
+    boolean allowCenter = from != group;
+    boolean allowSplit = !group.tabs.isEmpty() && (from != group || from.tabs.size() > 1);
+    Zone picked =
+        zoneAt(group, panel.width(), panel.height(), d.x(), d.y(), theme, allowCenter, allowSplit);
+    if (d.phase() == Drop.Phase.OVER) {
+      if (picked == null) {
+        if (zoneGroup == group) {
+          clearZone();
+        }
+      } else {
+        zoneGroup = group;
+        zone = picked;
+        externalDrag = d.payload();
+      }
+      return;
+    }
+    clearZone();
+    if (picked == null) {
+      return;
+    }
+    Windows.Handle hint = from != null ? from.frame.window : null;
+    if (from != null) {
+      int fromIndex = indexOf(from, tab);
+      if (fromIndex < 0) {
+        return;
+      }
+      if (picked.side != null) {
+        split(from, fromIndex, group, picked.side);
+      } else {
+        dock(from, fromIndex, group, group.tabs.size());
+        focusGroup(group);
+      }
+    } else {
+      if (picked.side != null) {
+        splitNew(tab, group, picked.side);
+      } else {
+        add(group, group.tabs.size(), tab);
+        focusGroup(group);
+      }
+    }
+    raiseFrame(group.frame, hint);
   }
 
   private void overZone(Group<T> group, El layer, Theme theme, Drop d) {
@@ -1014,12 +1142,27 @@ public final class TabGroups<T> {
   }
 
   private void raiseFrame(Frame<T> frame) {
+    raiseFrame(frame, null);
+  }
+
+  private void raiseFrame(Frame<T> frame, Windows.Handle hint) {
     if (frame.window != null) {
       frame.window.raise();
-    } else if (frame == main && dragging.window != null) {
-      List<Windows.Handle> all = dragging.window.app().windows().all();
-      if (!all.isEmpty()) {
-        all.getFirst().raise();
+    } else if (frame == main) {
+      Windows.Handle known = hint != null ? hint : dragging.window;
+      if (known == null) {
+        for (Frame<T> other : frames) {
+          if (other.window != null) {
+            known = other.window;
+            break;
+          }
+        }
+      }
+      if (known != null) {
+        List<Windows.Handle> all = known.app().windows().all();
+        if (!all.isEmpty()) {
+          all.getFirst().raise();
+        }
       }
     }
   }
@@ -1256,6 +1399,15 @@ public final class TabGroups<T> {
     }
     T d = dragged();
     T tab = remove(from, index);
+    Group<T> made = splitNew(tab, beside, side);
+    follow(d);
+    return made;
+  }
+
+  private Group<T> splitNew(T tab, Group<T> beside, Side side) {
+    if (opening.contains(tab) || groupOf(tab) != null) {
+      throw new IllegalArgumentException("Tab is already open: " + tab);
+    }
     Group<T> made = new Group<>(groupsMade++);
     made.frame = beside.frame;
     made.tabs.add(tab);
@@ -1263,7 +1415,6 @@ public final class TabGroups<T> {
     beside.frame.split(beside, made, side);
     beside.frame.active = made;
     requestFocus(made);
-    follow(d);
     return made;
   }
 
