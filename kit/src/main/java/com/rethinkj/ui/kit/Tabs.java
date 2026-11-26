@@ -17,8 +17,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
+import java.util.function.ObjIntConsumer;
+import java.util.function.Predicate;
 
 /**
  * A card whose first row is a bar of tabs over the content of the active one, as the open queries
@@ -369,6 +372,9 @@ public final class Tabs {
     private Object focusBar;
     private El panelOverlay;
     private Consumer<El> onTablist;
+    private Predicate<Object> acceptsExternal;
+    private ObjIntConsumer<Object> onExternalDrop;
+    private BiConsumer<El, Drop> onPanelDrop;
     private Dock onDock;
     private Menu.State menu;
     private List<Menu.Item> menuItems = List.of();
@@ -503,6 +509,26 @@ public final class Tabs {
       return this;
     }
 
+    /**
+     * Takes non-tab drags dropped on the bar: {@code accepts} decides on {@link Drop.Phase#OVER}
+     * whether to show the insertion marker, and {@code drop} receives the payload and slot on
+     * {@link Drop.Phase#DROP}; used by {@link TabGroups}.
+     */
+    Options onExternalDrop(Predicate<Object> accepts, ObjIntConsumer<Object> drop) {
+      this.acceptsExternal = accepts;
+      this.onExternalDrop = drop;
+      return this;
+    }
+
+    /**
+     * Handles drops that reach the panel itself (not taken by its content); used by {@link
+     * TabGroups}.
+     */
+    Options onPanelDrop(BiConsumer<El, Drop> handler) {
+      this.onPanelDrop = handler;
+      return this;
+    }
+
     /** Lets the bar take a tab dragged from another bar that shares its {@link Dragging} state. */
     public Options onDock(Dock handler) {
       this.onDock = handler;
@@ -605,7 +631,36 @@ public final class Tabs {
   /** What a drag of a tab does over a bar: the marker, scrolling the list along, the drop. */
   private static void over(Theme theme, Options o, El list, List<El> built, Drop d) {
     Dragging g = o.dragging;
-    if (d.payload() != g || !g.isActive()) {
+    if (d.payload() != g) {
+      if (d.phase() == Drop.Phase.LEAVE || o.acceptsExternal == null || o.onExternalDrop == null) {
+        if (Objects.equals(g.overBar, o.id)) {
+          g.overBar = null;
+          g.slot = -1;
+          g.reveal = null;
+        }
+        return;
+      }
+      float x = (float) d.x() - list.x(); // the pointer in the list as shown
+      if (d.phase() == Drop.Phase.OVER) {
+        if (o.acceptsExternal.test(d.payload())) {
+          mark(theme, o, list, built, x);
+        } else if (Objects.equals(g.overBar, o.id)) {
+          g.overBar = null;
+          g.slot = -1;
+          g.reveal = null;
+        }
+        return;
+      }
+      int slot = slot(built, x); // the drop
+      if (Objects.equals(g.overBar, o.id)) {
+        g.overBar = null;
+        g.slot = -1;
+        g.reveal = null;
+      }
+      o.onExternalDrop.accept(d.payload(), slot);
+      return;
+    }
+    if (!g.isActive()) {
       return;
     }
     boolean own = Objects.equals(g.bar, o.id);
@@ -917,6 +972,9 @@ public final class Tabs {
     }
     if (options.panelOverlay != null) {
       panel.child(options.panelOverlay);
+    }
+    if (enabled && options.onPanelDrop != null) {
+      panel.onDrop(d -> options.onPanelDrop.accept(panel, d));
     }
     El root = (line ? col() : Card.surface(theme, Card.Variant.OUTLINED)).children(bar, panel);
     // It fills the room it is given: a list of rows in the content is no minimum.

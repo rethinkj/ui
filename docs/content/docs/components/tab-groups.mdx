@@ -45,6 +45,17 @@ Splits are opt-in: call `.splits(true)` on your `TabGroups` instance to enable t
 - `frame.active()` tracks the active group of a window (updated on `onFocusIn` or any press in a group, including pressing its already-active tab without moving focus). Only the active group shows the full accent line under its active tab; inactive groups show `Theme.Accent.edgeMuted`.
 - Programmatically split with `groups.split(from, index, beside, side)` (`Side.LEFT`, `RIGHT`, `TOP`, `BOTTOM`), focus a group with `groups.focusGroup(group)`, inspect `frame.groups()` (top-left first) and `group.frame()`.
 
+## Opening drags from elsewhere
+
+Call `.accept(payload -> …)` so users can drag items from elsewhere in the app — such as a sidebar row with `El.dragPayload` and `El.onDrag` — into any group's tab bar or, with `.splits(true)`, onto a group's center or split edges, in any open window (on Wayland only in the window the drag began in):
+
+```java snippet="tab-groups-accept"
+```
+
+- The handler receives any drag payload that is not a tab of these groups and returns the tab to open, or `null` to refuse it. Because it runs on each drag step over a group (to decide whether to show the bar's insertion marker or panel drop zones) and once on the drop, keep it cheap and free of side effects until the drop.
+- If the handler returns a tab that is already open in some group (by identity, `groupOf(tab) != null`), `TabGroups` moves that tab to the drop spot instead of opening it twice; otherwise the returned tab is added there, made active, and its group is focused.
+- Panel drop zones for external drags listen on the panel itself rather than an intercepting overlay, so drop targets inside a tab's content (such as a `Tree`) still take precedence. Pressing **Escape** or dropping outside leaves the groups unchanged.
+
 ## Callbacks and programmatic control
 
 ```java snippet="tab-groups-options"
@@ -53,6 +64,7 @@ Splits are opt-in: call `.splits(true)` on your `TabGroups` instance to enable t
 | Method | Description |
 | --- | --- |
 | `splits(boolean)` | Enables splitting within windows (off by default) |
+| `accept(payload -> …)` | Opens or moves a tab when a non-tab drag drops on a bar, center, or split edge (returns `null` to refuse) |
 | `onWindowClose(frame -> …)` | Action when a detached window closes, by a close request or the app's `Handle.close()`: `dockAll` (default) or `closeAll` |
 | `onCloseTab((group, index) -> …)` | Custom close handler (e.g., to confirm unsaved changes before calling `close`) |
 | `onCloseTabs((group, tabs) -> …)` | Optional batch close handler for **Close others** and **Close to the right** (defaults to `onCloseTab` per tab, stopping if a tab stays open) |

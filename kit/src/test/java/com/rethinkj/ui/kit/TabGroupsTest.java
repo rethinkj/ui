@@ -1,6 +1,7 @@
 package com.rethinkj.ui.kit;
 
 import static com.rethinkj.ui.El.col;
+import static com.rethinkj.ui.El.row;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -1969,5 +1970,280 @@ class TabGroupsTest {
     withEmpty.invalidate();
     Script.run("size 400 160\nframe\nkey F6 shift\nframe", withEmpty, out);
     assertSame(leftOfEmpty, wd.groups.main().active());
+  }
+
+  @Test
+  void externalDragOpensInSplitEdgeBarMovesExistingAndCancelsOnEscape() throws IOException {
+    record SidebarItem(String id) {}
+    String a = new String("a");
+    String b = new String("b");
+    String e = new String("e");
+    String f = new String("f");
+    String g = new String("g");
+    java.util.Map<String, String> byId = java.util.Map.of("a", a, "b", b, "e", e, "f", f, "g", g);
+    TabGroups<String> groups = new TabGroups<>(List.of(a, b))
+        .splits(true)
+        .accept(payload -> payload instanceof SidebarItem item ? byId.get(item.id()) : null);
+    App<Object> app = new App<>(new Object(), s -> {
+      El sidebar = col()
+          .w(80)
+          .hFull()
+          .shrink(0)
+          .children(
+              El.el()
+                  .key("item-e")
+                  .size(80, 24)
+                  .dragPayload(new SidebarItem("e"))
+                  .onDrag(drag -> {}),
+              El.el()
+                  .key("item-f")
+                  .size(80, 24)
+                  .dragPayload(new SidebarItem("f"))
+                  .onDrag(drag -> {}),
+              El.el()
+                  .key("item-a")
+                  .size(80, 24)
+                  .dragPayload(new SidebarItem("a"))
+                  .onDrag(drag -> {}),
+              El.el()
+                  .key("item-g")
+                  .size(80, 24)
+                  .dragPayload(new SidebarItem("g"))
+                  .onDrag(drag -> {}),
+              El.el()
+                  .key("item-b")
+                  .size(80, 24)
+                  .dragPayload(new SidebarItem("b"))
+                  .onDrag(drag -> {}),
+              El.el().key("item-bad").size(80, 24).dragPayload("ignored").onDrag(drag -> {}));
+      El tabs = groups.tabs(groups.main(), Tab::new, t -> t == null ? null : Label.label(t));
+      return row().wFull().hFull().onKey(tabs.onKey()).children(sidebar, tabs.grow(1));
+    });
+
+    // (a) Dragging a new item onto the right edge previews #zone value="right" and splits.
+    Script.run("""
+        size 480 160
+        frame
+        down #item-e
+        move 440,100
+        frame
+        snap ext-right
+        up 440,100
+        frame""", app, out);
+    assertTrue(line(tree("ext-right"), "#zone").contains("value=\"right\""), tree("ext-right"));
+    assertFalse(app.tree().dump().contains("#zone"));
+    Group<String> left = groups.main().groups().get(0);
+    Group<String> right = groups.main().groups().get(1);
+    assertEquals(List.of("a", "b"), left.tabs());
+    assertSame(a, left.activeTab(), "target group's active tab stays undisturbed");
+    assertEquals(List.of("e"), right.tabs());
+    assertSame(e, right.activeTab());
+    assertSame(right, groups.main().active());
+    assertSame(find(find(app.tree(), "group-1"), "tablist"), app.focused());
+
+    // (b) Dragging a new item onto the left group's tab bar between a and b inserts at slot 1.
+    Script.run("""
+        size 480 160
+        down #item-f
+        move 130,17
+        frame
+        snap ext-bar
+        up 130,17
+        frame""", app, out);
+    assertTrue(tree("ext-bar").contains("#marker"), tree("ext-bar"));
+    assertFalse(app.tree().dump().contains("#marker"));
+    assertEquals(List.of("a", "f", "b"), left.tabs());
+    assertSame(f, left.activeTab());
+    assertSame(left, groups.main().active());
+    assertSame(find(find(app.tree(), "group-0"), "tablist"), app.focused());
+
+    // (c) Dragging an already-open tab (a): no center zone on its own group, center zone on right
+    // group moves it there instead of duplicating it.
+    Script.run("""
+        size 480 160
+        down #item-a
+        move 180,100
+        frame
+        snap ext-own-center
+        move 380,100
+        frame
+        snap ext-other-center
+        up 380,100
+        frame""", app, out);
+    assertFalse(tree("ext-own-center").contains("#zone"), tree("ext-own-center"));
+    assertTrue(
+        line(tree("ext-other-center"), "#zone").contains("value=\"center\""),
+        tree("ext-other-center"));
+    assertEquals(List.of("f", "b"), left.tabs());
+    assertEquals(List.of("e", "a"), right.tabs());
+    assertSame(a, right.activeTab());
+    assertSame(right, groups.main().active());
+    assertSame(find(find(app.tree(), "group-1"), "tablist"), app.focused());
+
+    // (d) Refused payload shows neither marker nor zone and changes nothing.
+    Script.run("""
+        size 480 160
+        down #item-bad
+        move 130,17
+        frame
+        snap ext-bad-bar
+        move 180,100
+        frame
+        snap ext-bad-panel
+        up 180,100
+        frame""", app, out);
+    assertFalse(tree("ext-bad-bar").contains("#marker"), tree("ext-bad-bar"));
+    assertFalse(tree("ext-bad-panel").contains("#zone"), tree("ext-bad-panel"));
+    assertEquals(List.of("f", "b"), left.tabs());
+    assertEquals(List.of("e", "a"), right.tabs());
+
+    // An open, inactive tab dropped on its own bar moves there and becomes active.
+    assertSame(f, left.activeTab());
+    Script.run("""
+        size 480 160
+        down #item-b
+        move 90,17
+        frame
+        up 90,17
+        frame""", app, out);
+    assertEquals(List.of("b", "f"), left.tabs());
+    assertSame(b, left.activeTab());
+
+    // (e) Escape mid-drag over a panel or over a bar leaves groups unchanged and clears previews.
+    Script.run("""
+        size 480 160
+        down #item-g
+        move 180,100
+        frame
+        snap ext-esc-zone
+        key Escape
+        frame
+        snap ext-esc-zone-after
+        up 180,100
+        frame
+        down #item-g
+        move 130,17
+        frame
+        snap ext-esc-bar
+        key Escape
+        frame
+        snap ext-esc-bar-after
+        up 130,17
+        frame""", app, out);
+    assertTrue(tree("ext-esc-zone").contains("#zone"), tree("ext-esc-zone"));
+    assertFalse(tree("ext-esc-zone-after").contains("#zone"), tree("ext-esc-zone-after"));
+    assertTrue(tree("ext-esc-bar").contains("#marker"), tree("ext-esc-bar"));
+    assertFalse(tree("ext-esc-bar-after").contains("#marker"), tree("ext-esc-bar-after"));
+    assertEquals(List.of("b", "f"), left.tabs());
+    assertEquals(List.of("e", "a"), right.tabs());
+  }
+
+  @Test
+  void externalDragYieldsToContentOnDropAndWorksAcrossDetachedWindows() throws IOException {
+    List<Drop> contentDrops = new ArrayList<>();
+    String a = new String("a");
+    String b = new String("b");
+    String e = new String("e");
+    String f = new String("f");
+    record State(TabGroups<String> groups, List<Drop> contentDrops) {}
+    final App<?>[] holder = new App<?>[1];
+    TabGroups<String> shared = new TabGroups<>(List.of(a, b), (frame, options) -> {
+          @SuppressWarnings("unchecked")
+          App<State> mainApp = (App<State>) holder[0];
+          return mainApp
+              .windows()
+              .open(
+                  frame.active().activeTab(), 300, 160, options, new App<>(mainApp.state(), st -> {
+                    El tabs =
+                        st.groups().tabs(frame, Tab::new, t -> t == null ? null : Label.label(t));
+                    return col().wFull().hFull().onKey(tabs.onKey()).child(tabs.grow(1));
+                  }));
+        })
+        .splits(true)
+        .accept(payload -> "drop-e".equals(payload) ? e : "drop-f".equals(payload) ? f : null);
+    State state = new State(shared, contentDrops);
+    App<State> app = new App<>(state, st -> {
+      El sidebar = col()
+          .w(80)
+          .hFull()
+          .shrink(0)
+          .children(
+              El.el().key("drag-e").size(80, 24).dragPayload("drop-e").onDrag(drag -> {}),
+              El.el().key("drag-f").size(80, 24).dragPayload("drop-f").onDrag(drag -> {}));
+      El tabs = st.groups()
+          .tabs(
+              st.groups().main(),
+              Tab::new,
+              t -> t == null
+                  ? null
+                  : row()
+                      .wFull()
+                      .hFull()
+                      .children(
+                          El.el().key("inner-drop").w(150).hFull().onDrop(st.contentDrops()::add),
+                          Label.label(t).grow(1)));
+      return row().wFull().hFull().onKey(tabs.onKey()).children(sidebar, tabs.grow(1));
+    });
+    holder[0] = app;
+
+    // Hover non-onDrop panel area first (showing #zone), then move onto content's own #inner-drop
+    // and drop there: content's onDrop wins and TabGroups does not open a tab.
+    Script.run("""
+        size 480 160 at 100,100
+        frame
+        down #drag-e
+        move 430,100
+        frame
+        snap over-panel
+        move 140,100
+        frame
+        snap over-inner
+        up 140,100
+        frame""", app, out);
+    assertTrue(tree("over-panel").contains("#zone"), tree("over-panel"));
+    assertFalse(tree("over-inner").contains("#zone"), "moving onto inner onDrop clears #zone");
+    assertTrue(
+        contentDrops.stream().anyMatch(drop -> drop.phase() == Drop.Phase.DROP),
+        "content's own onDrop received the external drop");
+    assertEquals(List.of("a", "b"), shared.main().active().tabs());
+
+    // Detach b to a second window beside main; drag external items from main's sidebar onto the
+    // detached window's right edge (split) and bar (insert), raising the detached window.
+    Group<String> bGroup = shared.toNewWindow(shared.main().active(), 1);
+    Script.run("""
+        window b
+        size 300 160 at 520,100
+        frame
+        window main""", app, out);
+    app.windows().of(app).raise();
+    Script.run("""
+        window main
+        down #drag-e
+        move screen 780,180
+        frame
+        snap detached-zone
+        up screen 780,180
+        frame""", app, out);
+    assertTrue(
+        line(tree("b-detached-zone"), "#zone").contains("value=\"right\""),
+        tree("b-detached-zone"));
+    assertEquals(2, bGroup.frame().groups().size());
+    assertEquals(List.of("e"), bGroup.frame().groups().get(1).tabs());
+    assertSame(bGroup.frame().groups().get(1), bGroup.frame().active());
+    assertSame(
+        bGroup.window(),
+        app.windows().place(app, 430, 80).window(),
+        "external drop into detached window raises it");
+
+    // External drop onto the detached window's first group's bar inserts there.
+    Script.run("""
+        window main
+        down #drag-f
+        move screen 530,117
+        frame
+        up screen 530,117
+        frame""", app, out);
+    assertEquals(List.of("f", "b"), bGroup.tabs());
+    assertSame(f, bGroup.activeTab());
   }
 }

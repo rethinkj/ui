@@ -116,6 +116,26 @@ final class Notebook {
   }
   // docs:end tab-groups-options
 
+  // docs:start tab-groups-accept
+  /** Sidebar rows that drag into any group's bar, center, or split edge to open a note. */
+  static final class Library {
+    final List<Note> catalog = List.of(
+        new Note("Groceries", "Milk, bread"),
+        new Note("Ideas", "Split panes and tear-off windows"),
+        new Note("Todos", "Review pull requests"));
+    final TabGroups<Note> groups =
+        new TabGroups<>(List.of(catalog.getFirst())).splits(true).accept(this::noteForPayload);
+
+    Note noteForPayload(Object payload) {
+      return payload instanceof Note note ? note : null;
+    }
+
+    El sidebarRow(Note note) {
+      return Label.label(note.title).dragPayload(note).onDrag(drag -> {});
+    }
+  }
+  // docs:end tab-groups-accept
+
   // docs:start window-closed
   final Map<Windows.Handle, String> searches = new HashMap<>(); // what each window searches for
 
