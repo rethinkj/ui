@@ -535,23 +535,26 @@ public record Theme(
   /**
    * The colors of a {@link Callout} of one kind.
    *
-   * @param fill opaque, the callout's background, a tint of the kind over the raised surface
+   * @param fill opaque, the callout's background, a tint of the kind
    * @param mark the bar at the callout's leading edge and its icon, 3:1 on {@code fill}
    */
   public record CalloutTone(int fill, int mark) {}
 
   /**
    * How {@link Callout}s look: a tinted fill per kind with a bar and an icon in the kind's
-   * color. The fills are tints laid over the raised surface ({@link Colors#over}): in the light
-   * theme the badges' quiet tints, in the dark theme each kind's status color at 10 %, so that the
-   * four are about as light as each other. {@code info} is the theme's blue, as links and the grid's selection are: it does
-   * not follow {@link #withAccent}.
+   * color. The fills are tints mixed with {@link Colors#over}: in the light theme the badges' quiet
+   * tints over the raised surface, in the dark theme each kind's darker shade over the window
+   * surface (6 % blue, 9 % amber, red and green), so that the four are about as light as each
+   * other, prose links and inline code keep 4.5:1, and secondary buttons keep their outline. {@code
+   * info} is the theme's blue, as links and the grid's selection are: it does not follow {@link
+   * #withAccent}.
    *
    * @param info something to know
    * @param warning something that needs attention
    * @param danger a failure
    * @param success something that went well
-   * @param text the text below the title, 4.5:1 on every fill; the title is the primary text
+   * @param text the text below the title, 4.5:1 on every fill and on inline code over it; the
+   *     title is the primary text
    * @param bar the width of the bar at the leading edge, whose ends are round
    */
   public record Callouts(
@@ -562,12 +565,12 @@ public record Theme(
       int text,
       float bar) {
 
-    /** For a dark raised surface. */
+    /** For dark surfaces. */
     public static final Callouts DARK = new Callouts(
-        new CalloutTone(Colors.over(GRAY_122, alpha(BLUE_694, 0.1f)), BLUE_694),
-        new CalloutTone(Colors.over(GRAY_122, alpha(AMBER_745, 0.1f)), AMBER_745),
-        new CalloutTone(Colors.over(GRAY_122, alpha(RED_649, 0.1f)), RED_649),
-        new CalloutTone(Colors.over(GRAY_122, alpha(GREEN_735, 0.1f)), GREEN_735),
+        new CalloutTone(Colors.over(GRAY_047, alpha(BLUE_447, 0.06f)), BLUE_694),
+        new CalloutTone(Colors.over(GRAY_047, alpha(AMBER_384, 0.09f)), AMBER_745),
+        new CalloutTone(Colors.over(GRAY_047, alpha(RED_395, 0.09f)), RED_649),
+        new CalloutTone(Colors.over(GRAY_047, alpha(GREEN_389, 0.09f)), GREEN_735),
         GRAY_747,
         3);
 
