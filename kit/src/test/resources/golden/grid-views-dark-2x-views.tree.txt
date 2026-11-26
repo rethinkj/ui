@@ -69,7 +69,7 @@ el 0,0 520x200
           el 495,57 1x23
         el #row-2 role=row 8,81 504x24 pos=3/6
           el #cell-2-0 role=gridcell 8,81 179x23 pos=1/4
-            text "search-idx" 12,85 66x15
+            text "search-idx" 12,85 65x15
             el #actions 139,81 48x23
               el 143,83 42x20
                 el #copy-2 role=button label="Copy search-idx" 143,83 20x20

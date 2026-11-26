@@ -5,7 +5,7 @@ el 0,0 640x240
         el 8,8 16x16
           el 9,9 14x14
             text "\u{F0D7}" 11,11 10x10
-      text "shop — staging" 32,8 95x16
+      text "shop — staging" 32,8 96x16
     el 478,16 24x0
     el role=button label="Minimize" window=minimize 502,0 46x32
       text label="subtract" "\u{EBCE}" 519,10 12x12
@@ -29,16 +29,16 @@ el 0,0 640x240
       el #first 49,32 180x200
         el 49,32 180x200
           el 50,33 178x40
-            text role=heading "Explorer" 66,45 57x17 level=3
-            el 131,53 81x0
+            text role=heading "Explorer" 66,45 56x17 level=3
+            el 130,53 82x0
           el 50,73 178x158
             text "Explorer content" 62,85 154x16
       el #rest 229,32 403x200
         el #second 237,32 395x200
           el 237,32 395x200
             el 238,33 393x40
-              text role=heading "orders.sql" 254,45 70x17 level=3
-              el 332,53 283x0
+              text role=heading "orders.sql" 254,45 68x17 level=3
+              el 330,53 285x0
             el 238,73 393x158
               text "select * from orders where total > 100" 250,85 369x16
         el #divider role=separator label="Resize" 229,32 8x200 value="first 180"

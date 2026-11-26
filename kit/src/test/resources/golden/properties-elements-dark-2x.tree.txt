@@ -23,7 +23,7 @@ el 0,0 360x180
         el 29,101 42x24
           text "Owner" 29,105 42x16
         el 77,99 224x28
-          text role=link "shop_admin" 79,105 74x16
+          text role=link "shop_admin" 79,105 73x16
         el #copy role=button label="Copy Owner" 307,101 24x24
           text label="copy" "\u{F32A}" 311,105 16x16
       el role=listitem label="Status" 25,125 310x24

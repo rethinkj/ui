@@ -6,17 +6,17 @@ el 0,0 440x260
           text role=heading "Server" 29,29 366x17 level=3
       el 29,58 366x24
         el 29,58 366x24
-          el 29,58 68x24
-            text "Host" 29,62 29x16
-          el 105,58 290x24
-            text role=textbox label="Host" "localhost" 105,58 200x24
+          el 29,58 66x24
+            text "Host" 29,62 28x16
+          el 103,58 292x24
+            text role=textbox label="Host" "localhost" 103,58 200x24
     el 12,107 400x87
       el 29,124 366x17
         el 29,124 366x17
           text role=heading "Login" 29,124 366x17 level=3
       el 29,153 366x24
         el 29,153 366x24
-          el 29,153 68x24
-            text "User name" 29,157 68x16
-          el 105,153 290x24
-            text role=textbox label="User name" "" 105,153 200x24
+          el 29,153 66x24
+            text "User name" 29,157 66x16
+          el 103,153 292x24
+            text role=textbox label="User name" "" 103,153 200x24

@@ -8,22 +8,22 @@ el 0,0 720x420
             text "localhost" 53,33 55x16
           el 114,29 16x24
             text label="chevron_right" "\u{F2AE}" 116,35 12x12
-        el #crumb-1 132,29 77x24
-          el role=link label="shop" 132,29 59x24
+        el #crumb-1 132,29 76x24
+          el role=link label="shop" 132,29 58x24
             text label="database" "\u{F0D7}" 136,33 16x16
-            text "shop" 156,33 31x16
-          el 193,29 16x24
-            text label="chevron_right" "\u{F2AE}" 195,35 12x12
-        el #crumb-2 211,29 83x24
-          el role=link label="public" 211,29 65x24
-            text label="folder" "\u{E643}" 215,33 16x16
-            text "public" 235,33 37x16
-          el role=button label="Inside public" 278,29 16x24 expanded=false
-            text label="chevron_right" "\u{F2AE}" 280,35 12x12
-        el #crumb-3 296,29 229x24
-          el role=link label="orders_by_customer_and_month" 296,29 229x24 current
-            text label="table" "\u{EBF4}" 300,33 16x16
-            text "orders_by_customer_and_month" 320,33 201x16
+            text "shop" 156,33 30x16
+          el 192,29 16x24
+            text label="chevron_right" "\u{F2AE}" 194,35 12x12
+        el #crumb-2 210,29 83x24
+          el role=link label="public" 210,29 65x24
+            text label="folder" "\u{E643}" 214,33 16x16
+            text "public" 234,33 37x16
+          el role=button label="Inside public" 277,29 16x24 expanded=false
+            text label="chevron_right" "\u{F2AE}" 279,35 12x12
+        el #crumb-3 295,29 228x24
+          el role=link label="orders_by_customer_and_month" 295,29 228x24 current
+            text label="table" "\u{EBF4}" 299,33 16x16
+            text "orders_by_customer_and_month" 319,33 200x16
       el 29,57 662x24
         el #tools role=toolbar label="Table" 29,57 581x24
           el role=button label="Refresh" 29,57 24x24
@@ -40,10 +40,10 @@ el 0,0 720x420
               text label="text_t" "\u{ECAE}" 160,61 16x16
             el role=button label="Copy" 182,59 24x20
               text label="copy" "\u{F32A}" 186,61 16x16
-          el 214,69 307x0
-          el role=button label="Export" 523,57 87x24
-            text label="arrow_export_ltr" "\u{E0C6}" 536,61 16x16
-            text "Export" 556,61 41x16
+          el 214,69 308x0
+          el role=button label="Export" 524,57 86x24
+            text label="arrow_export_ltr" "\u{E0C6}" 537,61 16x16
+            text "Export" 557,61 40x16
         el #filter role=button label="Filter" 614,57 77x24 expanded
           text label="filter" "\u{E60A}" 627,61 16x16
           text "Filter" 647,61 31x16

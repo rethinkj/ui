@@ -3,7 +3,7 @@ el 0,0 480x250
     el #fragment 29,29 422x42
       text role=paragraph "Finds orders placed in a date range, newest first." 29,29 422x17 readonly lines 1-1/1
       text role=paragraph "Uses the orders_placed_at index; see indexes." 29,54 422x17 readonly lines 1-1/1
-        el #link-0 role=link label="indexes" 304.88,54 51x17 value="#indexes"
+        el #link-0 role=link label="indexes" 303,54 50.25x17 value="#indexes"
     el #definitions role=list 29,83 422x130
       el role=group label="Params:" 29,83 422x55
         el 29,83 49x17
@@ -19,7 +19,7 @@ el 0,0 480x250
               text "to" 94,105 15x16
             el 121,104 330x34
               text role=paragraph "End of the range, exclusive; must lie after from and match bounds." 121,104 330x34 readonly lines 1-1/1
-                el #link-0 role=link label="bounds" 194.63,121 49.5x17 value="#bounds"
+                el #link-0 role=link label="bounds" 193.5,121 48.88x17 value="#bounds"
       el role=group label="Returns:" 29,146 422x17
         el 29,146 49x17
           text "Returns:" 29,147 47x15

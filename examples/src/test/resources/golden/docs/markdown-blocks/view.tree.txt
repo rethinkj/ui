@@ -6,51 +6,51 @@ el 0,0 520x238
       el 37,66 446x132 pos=2/2
         el 37,66 446x132
           text #diff-unified role=textbox label="Modified" "SELECT\n  id,\n  tax,\n  total\nFROM orders\nWHERE status = 'paid';" 37,66 446x132 readonly lines 1-6/6
-            el #rail 38,67 67x130
-            el #gutter 38,71 66x114
-              el #line-0 38,71 66x16
+            el #rail 38,67 69x130
+            el #gutter 38,71 68x114
+              el #line-0 38,71 68x16
                 el 44,79 12x0
-                text "1" 60,71 7x16
-                text "1" 71,71 7x16
-                el 82,79 2x0
-                el 88,79 12x0
-              el #line-1 38,87 66x16
+                text "1" 60,71 8x16
+                text "1" 72,71 8x16
+                el 84,79 2x0
+                el 90,79 12x0
+              el #line-1 38,87 68x16
                 el 44,95 12x0
-                text "2" 60,87 7x16
-                text "2" 71,87 7x16
-                el 82,95 2x0
-                el 88,95 12x0
-              el #line-2 38,103 66x16
+                text "2" 60,87 8x16
+                text "2" 72,87 8x16
+                el 84,95 2x0
+                el 90,95 12x0
+              el #line-2 38,103 68x16
                 el 44,111 12x0
-                text "" 60,103 7x16
-                text "3" 71,103 7x16
-                el #change 82,103 2x16
-                el 88,111 12x0
-              el #line-3 38,119 66x16
+                text "" 60,103 8x16
+                text "3" 72,103 8x16
+                el #change 84,103 2x16
+                el 90,111 12x0
+              el #line-3 38,119 68x16
                 el 44,127 12x0
-                text "3" 60,119 7x16
-                text "4" 71,119 7x16
-                el 82,127 2x0
-                el 88,127 12x0
-              el #line-4 38,135 66x16
+                text "3" 60,119 8x16
+                text "4" 72,119 8x16
+                el 84,127 2x0
+                el 90,127 12x0
+              el #line-4 38,135 68x16
                 el 44,143 12x0
-                text "4" 60,135 7x16
-                text "5" 71,135 7x16
-                el 82,143 2x0
-                el 88,143 12x0
-              el #line-5 38,167 66x16
+                text "4" 60,135 8x16
+                text "5" 72,135 8x16
+                el 84,143 2x0
+                el 90,143 12x0
+              el #line-5 38,167 68x16
                 el 44,175 12x0
-                text "" 60,167 7x16
-                text "6" 71,167 7x16
-                el #change 82,167 2x16
-                el 88,175 12x0
-              el #deleted-gutter-4 38,151 66x16
-                el #old-line-4 38,151 66x16
+                text "" 60,167 8x16
+                text "6" 72,167 8x16
+                el #change 84,167 2x16
+                el 90,175 12x0
+              el #deleted-gutter-4 38,151 68x16
+                el #old-line-4 38,151 68x16
                   el 44,159 12x0
-                  text "5" 60,151 7x16
-                  el 71,159 7x0
-                  el #change 82,151 2x16
-                  el 88,159 12x0
-            el #deleted-4 113,151 361x16
-              el 113,151 361x16
-                text "WHERE status = 'pending';" 113,151 175x16
+                  text "5" 60,151 8x16
+                  el 72,159 8x0
+                  el #change 84,151 2x16
+                  el 90,159 12x0
+            el #deleted-4 115,151 359x16
+              el 115,151 359x16
+                text "WHERE status = 'pending';" 115,151 181x16

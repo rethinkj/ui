@@ -3,7 +3,7 @@ el 0,0 360x240
     el 12,12 185x24
       el 12,12 57x24
         text "Amount" 12,16 48x16
-        text "*" 62,16 7x16
+        text "*" 62,16 6x16
       el 77,12 120x24
         text #amount role=textbox label="Amount" "12.50" 77,12 120x24
     el 12,44 185x42

@@ -15,11 +15,11 @@ el 0,0 440x220
           el 17,75 210x24
             el 19,79 2x16
             text label="code" "\u{F339}" 25,79 16x16
-            text "Views" 45,79 150x16
-            el label="3" 199,78 20x18
-              text "3" 205,80 8x15
+            text "Views" 45,79 151x16
+            el label="3" 200,78 19x18
+              text "3" 206,80 7x15
         el #item-3 17,101 210x28
-          text "Server" 25,112 39x15
+          text "Server" 25,112 38x15
         el #item-4 role=option label="Roles" 17,129 210x28 pos=5/5
           el 17,131 210x24
             el 19,135 2x16

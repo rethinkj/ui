@@ -14,7 +14,7 @@ el 0,0 360x240
       el #table-0 role=listitem label="accounts" 17,49 208x24
         text "accounts" 25,53 56x16
       el #table-1 role=listitem label="customers" 17,73 208x24
-        text "customers" 25,77 65x16
+        text "customers" 25,77 64x16
       el #table-2 role=listitem label="invoices" 17,97 208x24
         text "invoices" 25,101 50x16
       el #table-3 role=listitem label="orders" 17,121 208x24
@@ -50,4 +50,4 @@ overlay center modal scrim on 0,0 360x240
         el #ok role=button label="Rename" 204,142 76x24
           text "Rename" 217,146 50x15
     el 80,74 200x20
-      text role=heading label="Rename table" "Rename table" 80,74 105x20 level=2
+      text role=heading label="Rename table" "Rename table" 80,74 103x20 level=2

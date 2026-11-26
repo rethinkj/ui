@@ -1,6 +1,6 @@
 el 0,0 640x300
   el 0,0 640x29
-    text "Notes" 12,12 41x17
+    text "Notes" 12,12 40x17
   el #row 0,29 640x271
     el #card-Groceries 12,41 180x247
       text "Groceries" 29,58 146x16

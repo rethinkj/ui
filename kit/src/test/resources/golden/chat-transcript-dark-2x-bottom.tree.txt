@@ -3,32 +3,32 @@ el 0,0 820x320
     el #list role=log label="Transcript" 0,0 820x320 rows 0-7/8 scroll 0,196 thumb-y 812,122.03 6x195.97
       el 16,-188 788x51 pos=1/8
         el #msg-6 role=article label="User message" 50,-180 720x35
-          el 439,-180 331x35
-            text role=paragraph "Question 6: check query plan for orders table." 452,-171 305x17 readonly lines 1-1/1
+          el 443,-180 327x35
+            text role=paragraph "Question 6: check query plan for orders table." 456,-171 301x17 readonly lines 1-1/1
       el 16,-137 788x50 pos=2/8
         el #msg-7 role=article label="Agent message" 50,-129 720x34
           el 50,-129 720x34
             text role=paragraph "Answer 7: the planner scanned orders sequentially because no composite index covers status and created_at." 50,-129 720x34 readonly lines 1-1/1
       el 16,-87 788x51 pos=3/8
         el #msg-8 role=article label="User message" 50,-79 720x35
-          el 439,-79 331x35
-            text role=paragraph "Question 8: check query plan for orders table." 452,-70 305x17 readonly lines 1-1/1
+          el 443,-79 327x35
+            text role=paragraph "Question 8: check query plan for orders table." 456,-70 301x17 readonly lines 1-1/1
       el 16,-36 788x50 pos=4/8
         el #msg-9 role=article label="Agent message" 50,-28 720x34
           el 50,-28 720x34
             text role=paragraph "Answer 9: the planner scanned orders sequentially because no composite index covers status and created_at." 50,-28 720x34 readonly lines 1-1/1
       el 16,14 788x51 pos=5/8
         el #msg-10 role=article label="User message" 50,22 720x35
-          el 433,22 337x35
-            text role=paragraph "Question 10: check query plan for orders table." 446,31 311x17 readonly lines 1-1/1
+          el 437,22 333x35
+            text role=paragraph "Question 10: check query plan for orders table." 450,31 307x17 readonly lines 1-1/1
       el 16,65 788x50 pos=6/8
         el #msg-11 role=article label="Agent message" 50,73 720x34
           el 50,73 720x34
             text role=paragraph "Answer 11: the planner scanned orders sequentially because no composite index covers status and created_at." 50,73 720x34 readonly lines 1-1/1
       el 16,115 788x51 pos=7/8
         el #msg-12 role=article label="User message" 50,123 720x35
-          el 433,123 337x35
-            text role=paragraph "Question 12: check query plan for orders table." 446,132 311x17 readonly lines 1-1/1
+          el 438,123 332x35
+            text role=paragraph "Question 12: check query plan for orders table." 451,132 306x17 readonly lines 1-1/1
       el 16,166 788x146 pos=8/8
         el #msg-13 role=article label="Agent message" 50,174 720x130
           el 50,174 720x130

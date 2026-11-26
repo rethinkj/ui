@@ -5,7 +5,7 @@ el 0,0 440x472
         el 8,8 16x16
           el 9,9 14x14
             text "\u{F0393}" 11,11 10x10
-      text "New connection" 32,8 102x16
+      text "New connection" 32,8 101x16
     el 278,16 24x0
     el role=button label="Minimize" window=minimize 302,0 46x32
       text label="subtract" "\u{EBCE}" 319,10 12x12
@@ -26,22 +26,22 @@ el 0,0 440x472
           el 25,124 390x56
             el 25,124 390x24
               el 25,124 66x24
-                text "Host" 25,128 29x16
-                text "*" 56,128 7x16
+                text "Host" 25,128 28x16
+                text "*" 55,128 7x16
               el 99,124 316x24
                 el 99,124 316x24
                   el 99,124 194x24
                     text #host role=textbox label="Host" placeholder="Name or address" "localhost" 99,124 194x24
                   el 301,124 114x24
                     el 301,124 34x24
-                      text "Port" 301,128 25x16
-                      text "*" 328,128 7x16
+                      text "Port" 301,128 26x16
+                      text "*" 329,128 6x16
                     el 343,124 72x24
                       text #port role=textbox label="Port" placeholder="5432" "5432" 343,124 72x24 focused caret 4
             el 25,156 390x24
               el 25,156 66x24
-                text "Database" 25,160 57x16
-                text "*" 84,160 7x16
+                text "Database" 25,160 58x16
+                text "*" 85,160 6x16
               el 99,156 316x24
                 el #database role=combobox label="inventory" 99,156 316x24 expanded=false
                   text #field-0 role=textbox "inventory" 99,156 316x24
@@ -53,8 +53,8 @@ el 0,0 440x472
           el 25,220 390x56
             el 25,220 390x24
               el 25,220 66x24
-                text "User" 25,224 30x16
-                text "*" 57,224 7x16
+                text "User" 25,224 29x16
+                text "*" 56,224 6x16
               el 99,220 316x24
                 text #user role=textbox label="User" placeholder="Role" "admin" 99,220 316x24
             el 25,252 390x24
@@ -65,18 +65,18 @@ el 0,0 440x472
                   text #password role=textbox label="Password" "•••••••" 99,252 316x24 password
                   el role=button label="Show password" 393,254 20x20
                     text label="eye" "\u{E5F1}" 395,256 16x16
-      el role=checkbox label="Require SSL" 21,290 107x20 checked
+      el role=checkbox label="Require SSL" 21,290 106x20 checked
         el 25,292 16x16
-          text "✓" 28,292 11x16
-        text "Require SSL" 49,292 75x16
-      el role=switch label="Dark theme" 21,318 115x20 checked
+          text "✓" 27,292 12x16
+        text "Require SSL" 49,292 74x16
+      el role=switch label="Dark theme" 21,318 114x20 checked
         el 25,320 28x16
           el 39,322 12x12
-        text "Dark theme" 61,320 71x16
+        text "Dark theme" 61,320 70x16
       el 25,348 390x35
       text "" 25,395 390x16
       el 25,423 390x24
-        el role=button label="Reset" 266,423 61x24
-          text "Reset" 279,427 35x16
-        el role=button label="Connect" 335,423 80x24
-          text "Connect" 348,427 54x16
+        el role=button label="Reset" 268,423 61x24
+          text "Reset" 281,427 35x16
+        el role=button label="Connect" 337,423 78x24
+          text "Connect" 350,427 52x16

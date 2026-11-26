@@ -4,18 +4,18 @@ el 0,0 520x320
       el 37,37 446x44 pos=1/3
         el 37,37 446x36
           text #heading-orders role=heading "Orders" 37,37 446x35 readonly level=1 lines 1-1/1
-            el #anchor role=link label="Orders" 122,37 21x31 value="#orders"
-              text "#" 126,37 17x31
+            el #anchor role=link label="Orders" 119.75,37 20x31 value="#orders"
+              text "#" 123.75,37 16x31
           el role=separator 37,72 446x1
       el 37,81 446x29 pos=2/3
         text role=paragraph "Each order belongs to a customer. See customers." 37,81 446x17 readonly lines 1-1/1
-          el #link-0 role=link label="customers" 294,81 67x17 value="#customers"
+          el #link-0 role=link label="customers" 293.5,81 68.75x17 value="#customers"
       el 37,110 446x63 pos=3/3
         el role=group 37,110 446x63
           el 38,111 444x29
-            el label="sql" 50,116 28x18
-              text "sql" 56,118 16x15
-            el 82,125 364x0
+            el label="sql" 50,116 29x18
+              text "sql" 56,118 17x15
+            el 83,125 363x0
             el 450,115 20x20
               el #copy role=button label="Copy code" 450,115 20x20
                 text label="copy" "\u{F32A}" 452,117 16x16

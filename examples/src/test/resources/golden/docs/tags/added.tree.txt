@@ -1,16 +1,16 @@
 el 0,0 320x140
   el #tags role=group label="Tags" 12,12 200x44 value="orders, daily, billing"
-    el #tag-orders label="orders" 15,15 60x18
-      text "orders" 21,17 36x15
-      el #remove role=button label="Remove orders" 59,17 14x14
-        text label="dismiss" "\u{F367}" 60,18 12x12
-    el #tag-daily label="daily" 77,15 51x18
-      text "daily" 83,17 27x15
-      el #remove role=button label="Remove daily" 112,17 14x14
-        text label="dismiss" "\u{F367}" 113,18 12x12
-    el #tag-billing label="billing" 130,15 57x18
-      text "billing" 136,17 33x15
-      el #remove role=button label="Remove billing" 171,17 14x14
-        text label="dismiss" "\u{F367}" 172,18 12x12
+    el #tag-orders label="orders" 15,15 62x18
+      text "orders" 21,17 38x15
+      el #remove role=button label="Remove orders" 61,17 14x14
+        text label="dismiss" "\u{F367}" 62,18 12x12
+    el #tag-daily label="daily" 79,15 51x18
+      text "daily" 85,17 27x15
+      el #remove role=button label="Remove daily" 114,17 14x14
+        text label="dismiss" "\u{F367}" 115,18 12x12
+    el #tag-billing label="billing" 132,15 58x18
+      text "billing" 138,17 34x15
+      el #remove role=button label="Remove billing" 174,17 14x14
+        text label="dismiss" "\u{F367}" 175,18 12x12
     text #draft role=textbox label="Add tag" "" 15,35 194x18 focused caret 0
-  text "orders · daily · billing" 12,64 129x16
+  text "orders · daily · billing" 12,64 126x16

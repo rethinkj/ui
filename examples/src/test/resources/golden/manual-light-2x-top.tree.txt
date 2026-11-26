@@ -5,7 +5,7 @@ el 0,0 960x640
         el 8,8 16x16
           el 9,9 14x14
             text "\u{E4D7}" 11,11 10x10
-      text "Manual" 32,8 46x16
+      text "Manual" 32,8 45x16
     el 758,16 24x0
     el 782,0 40x32
       el 782,4 24x24
@@ -77,19 +77,19 @@ el 0,0 960x640
         el 281,57 646x45 pos=1/39
           el 281,57 646x37
             text #heading-writing-documents role=heading "Writing documents" 281,57 646x36 readonly level=1 lines 1-1/1
-              el #anchor role=link label="Writing documents" 519.38,56.75 21x32 value="#writing-documents"
-                text "#" 523.38,56.75 17x32
+              el #anchor role=link label="Writing documents" 510.63,56.75 20x32 value="#writing-documents"
+                text "#" 514.63,56.75 16x32
             el role=separator 281,93 646x1
         el 281,102 646x63 pos=2/39
           text role=paragraph "A document of the kit is written in Markdown and shown by Markdown.markdown. This manual uses every " … "r jump to tables, code or the checklist." length 237 281,102 646x51 readonly lines 1-1/1
-            el #link-0 role=link label="tables" 441.25,136 40x17 value="#tables"
-            el #link-1 role=link label="code" 489.25,136 33.13x17 value="#code-blocks"
-            el #link-2 role=link label="checklist" 569,136 58.75x17 value="#a-checklist"
+            el #link-0 role=link label="tables" 404.5,136 39.38x17 value="#tables"
+            el #link-1 role=link label="code" 451.75,136 32.75x17 value="#code-blocks"
+            el #link-2 role=link label="checklist" 530.38,136 58x17 value="#a-checklist"
         el 281,165 646x61 pos=3/39
           el 281,189 646x29
             text #heading-text role=heading "Text" 281,189 646x28 readonly level=2 lines 1-1/1
-              el #anchor role=link label="Text" 322.75,189 17x24 value="#text"
-                text "#" 326.75,189 13x24
+              el #anchor role=link label="Text" 321.5,189 17x24 value="#text"
+                text "#" 325.5,189 13x24
             el role=separator 281,217 646x1
         el 281,226 646x80 pos=4/39
           text role=paragraph "A paragraph is lines of text with no blank line between them. They flow together and wrap at the wid" … "eps a character literal: *not emphasis*." length 324 281,226 646x68 readonly lines 1-1/1 hovered
@@ -97,20 +97,20 @@ el 0,0 960x640
           text role=paragraph "Two spaces at the end of a line\nbreak it without starting a new paragraph. Entities such as ©, — and € turn into their characters, and raw HTML such as <kbd>Ctrl</kbd> stays text." 281,306 646x51 readonly lines 1-2/2
         el 281,369 646x41 pos=6/39
           text #heading-links role=heading "Links" 281,381 646x21 readonly level=3 lines 1-1/1
-            el #anchor role=link label="Links" 324.5,380.75 15x21 value="#links"
-              text "#" 328.5,380.75 11x21
+            el #anchor role=link label="Links" 323.38,380.75 15x21 value="#links"
+              text "#" 327.38,380.75 11x21
         el 281,410 646x63 pos=7/39
           text role=paragraph "Links come inline, by reference, as autolinks such as https://spec.commonmark.org and as bare addres" … " there; any other one shows its address." length 219 281,410 646x51 readonly lines 1-1/1
-            el #link-0 role=link label="inline" 360.25,410 34.75x17 value="https://commonmark.org"
-            el #link-1 role=link label="reference" 423.13,410 63.5x17 value="https://spec.commonmark.org/0.31.2/"
-            el #link-2 role=link label="https://spec.commonmark.org" 632,410 200.38x17 value="https://spec.commonmark.org"
-            el #link-3 role=link label="www.example.com" 379.75,427 125.75x17 value="http://www.example.com"
-            el #link-4 role=link label="back to the top" 698.88,427 99.63x17 value="#writing-documents"
+            el #link-0 role=link label="inline" 359.25,410 34.13x17 value="https://commonmark.org"
+            el #link-1 role=link label="reference" 421.13,410 63.13x17 value="https://spec.commonmark.org/0.31.2/"
+            el #link-2 role=link label="https://spec.commonmark.org" 627.38,410 198.13x17 value="https://spec.commonmark.org"
+            el #link-3 role=link label="www.example.com" 378.38,427 124.38x17 value="http://www.example.com"
+            el #link-4 role=link label="back to the top" 693.25,427 98.13x17 value="#writing-documents"
         el 281,473 646x61 pos=8/39
           el 281,497 646x29
             text #heading-lists role=heading "Lists" 281,497 646x28 readonly level=2 lines 1-1/1
-              el #anchor role=link label="Lists" 326.38,497 17x24 value="#lists"
-                text "#" 330.38,497 13x24
+              el #anchor role=link label="Lists" 324.63,497 17x24 value="#lists"
+                text "#" 328.63,497 13x24
             el role=separator 281,525 646x1
         el 281,534 646x19 pos=9/39
           el role=list 281,534 646x19

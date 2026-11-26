@@ -128,28 +128,28 @@ el 0,0 140x40
     text "Run query" 38,12 64x16
 # secondary, rest
 el 0,0 140x40
-  el #c role=button label="Cancel" 35,8 70x24
-    text "Cancel" 48,12 44x16
+  el #c role=button label="Cancel" 36,8 69x24
+    text "Cancel" 49,12 43x16
 # secondary, hover
 el 0,0 140x40
-  el #c role=button label="Cancel" 35,8 70x24 hovered
-    text "Cancel" 48,12 44x16
+  el #c role=button label="Cancel" 36,8 69x24 hovered
+    text "Cancel" 49,12 43x16
 # secondary, pressed
 el 0,0 140x40
-  el #c role=button label="Cancel" 35,8 70x24 hovered
-    text "Cancel" 48,13 44x16
+  el #c role=button label="Cancel" 36,8 69x24 hovered
+    text "Cancel" 49,13 43x16
 # secondary, focused
 el 0,0 140x40
-  el #c role=button label="Cancel" 35,8 70x24 focused
-    text "Cancel" 48,12 44x16
+  el #c role=button label="Cancel" 36,8 69x24 focused
+    text "Cancel" 49,12 43x16
 # secondary, disabled
 el 0,0 140x40
-  el #c role=button label="Cancel" 35,8 70x24 disabled
-    text "Cancel" 48,12 44x16
+  el #c role=button label="Cancel" 36,8 69x24 disabled
+    text "Cancel" 49,12 43x16
 # busy, rest
 el 0,0 140x40
-  el #c role=button label="Running" 31,8 78x24 busy
-    text "Running" 44,12 52x16
+  el #c role=button label="Running" 32,8 76x24 busy
+    text "Running" 45,12 50x16
     el role=progressbar label="Loading" 62,12 16x16
       el 62,12 16x16
       el 62,12 16x16
@@ -158,8 +158,8 @@ el 0,0 140x40
       el 62,12 16x16
 # busy, hover
 el 0,0 140x40
-  el #c role=button label="Running" 31,8 78x24 busy
-    text "Running" 44,12 52x16
+  el #c role=button label="Running" 32,8 76x24 busy
+    text "Running" 45,12 50x16
     el role=progressbar label="Loading" 62,12 16x16
       el 62,12 16x16
       el 62,12 16x16
@@ -168,8 +168,8 @@ el 0,0 140x40
       el 62,12 16x16
 # busy, pressed
 el 0,0 140x40
-  el #c role=button label="Running" 31,8 78x24 busy
-    text "Running" 44,12 52x16
+  el #c role=button label="Running" 32,8 76x24 busy
+    text "Running" 45,12 50x16
     el role=progressbar label="Loading" 62,12 16x16
       el 62,12 16x16
       el 62,12 16x16
@@ -178,8 +178,8 @@ el 0,0 140x40
       el 62,12 16x16
 # busy, focused
 el 0,0 140x40
-  el #c role=button label="Running" 31,8 78x24 busy focused
-    text "Running" 44,12 52x16
+  el #c role=button label="Running" 32,8 76x24 busy focused
+    text "Running" 45,12 50x16
     el role=progressbar label="Loading" 62,12 16x16
       el 62,12 16x16
       el 62,12 16x16
@@ -188,8 +188,8 @@ el 0,0 140x40
       el 62,12 16x16
 # busy, disabled
 el 0,0 140x40
-  el #c role=button label="Running" 31,8 78x24 disabled
-    text "Running" 44,12 52x16
+  el #c role=button label="Running" 32,8 76x24 disabled
+    text "Running" 45,12 50x16
 # busy text, rest
 el 0,0 140x40
   el #c role=button label="Save" 20,8 100x24 busy
@@ -541,67 +541,67 @@ el 0,0 140x40
 el 0,0 140x40
   el #c role=button label="Opus 5.5 High" 13,8 114x24
     el 26,12 88x16
-      text "Opus 5.5" 26,12 56x16
-      text "High" 86,12 28x16
+      text "Opus 5.5" 26,12 55x16
+      text "High" 85,12 29x16
 # subtitle, hover
 el 0,0 140x40
   el #c role=button label="Opus 5.5 High" 13,8 114x24 hovered
     el 26,12 88x16
-      text "Opus 5.5" 26,12 56x16
-      text "High" 86,12 28x16
+      text "Opus 5.5" 26,12 55x16
+      text "High" 85,12 29x16
 # subtitle, pressed
 el 0,0 140x40
   el #c role=button label="Opus 5.5 High" 13,8 114x24 hovered
     el 26,13 88x16
-      text "Opus 5.5" 26,13 56x16
-      text "High" 86,13 28x16
+      text "Opus 5.5" 26,13 55x16
+      text "High" 85,13 29x16
 # subtitle, focused
 el 0,0 140x40
   el #c role=button label="Opus 5.5 High" 13,8 114x24 focused
     el 26,12 88x16
-      text "Opus 5.5" 26,12 56x16
-      text "High" 86,12 28x16
+      text "Opus 5.5" 26,12 55x16
+      text "High" 85,12 29x16
 # subtitle, disabled
 el 0,0 140x40
   el #c role=button label="Opus 5.5 High" 13,8 114x24 disabled
     el 26,12 88x16
-      text "Opus 5.5" 26,12 56x16
-      text "High" 86,12 28x16
+      text "Opus 5.5" 26,12 55x16
+      text "High" 85,12 29x16
 # subtitle stacked, rest
 el 0,0 140x56
-  el #c role=button label="Opus 5.5 High" 19,7 102x42
-    text label="flash" "\u{E617}" 32,20 16x16
-    el 52,12 56x32
-      text "Opus 5.5" 52,12 56x16
-      text "High" 52,30 56x14
+  el #c role=button label="Opus 5.5 High" 20,7 101x42
+    text label="flash" "\u{E617}" 33,20 16x16
+    el 53,12 55x32
+      text "Opus 5.5" 53,12 55x16
+      text "High" 53,30 55x14
 # subtitle stacked, hover
 el 0,0 140x56
-  el #c role=button label="Opus 5.5 High" 19,7 102x42 hovered
-    text label="flash" "\u{E617}" 32,20 16x16
-    el 52,12 56x32
-      text "Opus 5.5" 52,12 56x16
-      text "High" 52,30 56x14
+  el #c role=button label="Opus 5.5 High" 20,7 101x42 hovered
+    text label="flash" "\u{E617}" 33,20 16x16
+    el 53,12 55x32
+      text "Opus 5.5" 53,12 55x16
+      text "High" 53,30 55x14
 # subtitle stacked, pressed
 el 0,0 140x56
-  el #c role=button label="Opus 5.5 High" 19,7 102x42 hovered
-    text label="flash" "\u{E617}" 32,21 16x16
-    el 52,13 56x32
-      text "Opus 5.5" 52,13 56x16
-      text "High" 52,31 56x14
+  el #c role=button label="Opus 5.5 High" 20,7 101x42 hovered
+    text label="flash" "\u{E617}" 33,21 16x16
+    el 53,13 55x32
+      text "Opus 5.5" 53,13 55x16
+      text "High" 53,31 55x14
 # subtitle stacked, focused
 el 0,0 140x56
-  el #c role=button label="Opus 5.5 High" 19,7 102x42 focused
-    text label="flash" "\u{E617}" 32,20 16x16
-    el 52,12 56x32
-      text "Opus 5.5" 52,12 56x16
-      text "High" 52,30 56x14
+  el #c role=button label="Opus 5.5 High" 20,7 101x42 focused
+    text label="flash" "\u{E617}" 33,20 16x16
+    el 53,12 55x32
+      text "Opus 5.5" 53,12 55x16
+      text "High" 53,30 55x14
 # subtitle stacked, disabled
 el 0,0 140x56
-  el #c role=button label="Opus 5.5 High" 19,7 102x42 disabled
-    text label="flash" "\u{E617}" 32,20 16x16
-    el 52,12 56x32
-      text "Opus 5.5" 52,12 56x16
-      text "High" 52,30 56x14
+  el #c role=button label="Opus 5.5 High" 20,7 101x42 disabled
+    text label="flash" "\u{E617}" 33,20 16x16
+    el 53,12 55x32
+      text "Opus 5.5" 53,12 55x16
+      text "High" 53,30 55x14
 # toggle off, rest
 el 0,0 140x40
   el #c role=switch label="Autocommit" 11,10 118x20 checked=false
@@ -691,31 +691,31 @@ el 0,0 140x40
 el 0,0 140x40
   el #c role=checkbox label="Read only" 24,10 92x20 checked
     el 28,12 16x16
-      text "✓" 30,12 11x16
+      text "✓" 30,12 12x16
     text "Read only" 52,12 60x16
 # checkbox on, hover
 el 0,0 140x40
   el #c role=checkbox label="Read only" 24,10 92x20 checked hovered
     el 28,12 16x16
-      text "✓" 30,12 11x16
+      text "✓" 30,12 12x16
     text "Read only" 52,12 60x16
 # checkbox on, pressed
 el 0,0 140x40
   el #c role=checkbox label="Read only" 24,10 92x20 checked hovered
     el 28,12 16x16
-      text "✓" 30,12 11x16
+      text "✓" 30,12 12x16
     text "Read only" 52,12 60x16
 # checkbox on, focused
 el 0,0 140x40
   el #c role=checkbox label="Read only" 24,10 92x20 checked focused
     el 28,12 16x16
-      text "✓" 30,12 11x16
+      text "✓" 30,12 12x16
     text "Read only" 52,12 60x16
 # checkbox on, disabled
 el 0,0 140x40
   el #c role=checkbox label="Read only" 24,10 92x20 disabled checked
     el 28,12 16x16
-      text "✓" 30,12 11x16
+      text "✓" 30,12 12x16
     text "Read only" 52,12 60x16
 # field empty, rest
 el 0,0 140x40
@@ -1063,43 +1063,43 @@ el 0,0 140x40
 # segmented, rest
 el 0,0 140x40
   el #c role=radiogroup label="Mode" 10,8 120x24
-    el #thumb 13,11 57x18
-    el #choice-0 role=radio label="Rows" 13,11 57x18 checked
-      text "Rows" 25,12 33x16
-    el #choice-1 role=radio label="Cells" 72,11 55x18 checked=false
-      text "Cells" 84,12 31x16
+    el #thumb 13,11 58x18
+    el #choice-0 role=radio label="Rows" 13,11 58x18 checked
+      text "Rows" 25,12 34x16
+    el #choice-1 role=radio label="Cells" 73,11 54x18 checked=false
+      text "Cells" 85,12 30x16
 # segmented, hover
 el 0,0 140x40
   el #c role=radiogroup label="Mode" 10,8 120x24
-    el #thumb 13,11 57x18
-    el #choice-0 role=radio label="Rows" 13,11 57x18 checked hovered
-      text "Rows" 25,12 33x16
-    el #choice-1 role=radio label="Cells" 72,11 55x18 checked=false
-      text "Cells" 84,12 31x16
+    el #thumb 13,11 58x18
+    el #choice-0 role=radio label="Rows" 13,11 58x18 checked hovered
+      text "Rows" 25,12 34x16
+    el #choice-1 role=radio label="Cells" 73,11 54x18 checked=false
+      text "Cells" 85,12 30x16
 # segmented, pressed
 el 0,0 140x40
   el #c role=radiogroup label="Mode" 10,8 120x24
-    el #thumb 13,11 57x18
-    el #choice-0 role=radio label="Rows" 13,11 57x18 checked hovered
-      text "Rows" 25,12 33x16
-    el #choice-1 role=radio label="Cells" 72,11 55x18 checked=false
-      text "Cells" 84,12 31x16
+    el #thumb 13,11 58x18
+    el #choice-0 role=radio label="Rows" 13,11 58x18 checked hovered
+      text "Rows" 25,12 34x16
+    el #choice-1 role=radio label="Cells" 73,11 54x18 checked=false
+      text "Cells" 85,12 30x16
 # segmented, focused
 el 0,0 140x40
   el #c role=radiogroup label="Mode" 10,8 120x24 focused
-    el #thumb 13,11 57x18
-    el #choice-0 role=radio label="Rows" 13,11 57x18 checked
-      text "Rows" 25,12 33x16
-    el #choice-1 role=radio label="Cells" 72,11 55x18 checked=false
-      text "Cells" 84,12 31x16
+    el #thumb 13,11 58x18
+    el #choice-0 role=radio label="Rows" 13,11 58x18 checked
+      text "Rows" 25,12 34x16
+    el #choice-1 role=radio label="Cells" 73,11 54x18 checked=false
+      text "Cells" 85,12 30x16
 # segmented, disabled
 el 0,0 140x40
   el #c role=radiogroup label="Mode" 10,8 120x24 disabled
-    el #thumb 13,11 57x18
-    el #choice-0 role=radio label="Rows" 13,11 57x18 checked
-      text "Rows" 25,12 33x16
-    el #choice-1 role=radio label="Cells" 72,11 55x18 checked=false
-      text "Cells" 84,12 31x16
+    el #thumb 13,11 58x18
+    el #choice-0 role=radio label="Rows" 13,11 58x18 checked
+      text "Rows" 25,12 34x16
+    el #choice-1 role=radio label="Cells" 73,11 54x18 checked=false
+      text "Cells" 85,12 30x16
 # select, rest
 el 0,0 140x40
   el #c role=combobox label="Rows" 10,8 120x24 expanded=false

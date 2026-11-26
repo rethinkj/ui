@@ -1,28 +1,28 @@
 el 0,0 360x150
   el role=list 8,12 320x96
     el role=listitem label="Name" 8,12 320x24 value="orders"
-      el 12,12 43x24
-        text "Name" 12,16 43x16
-      text role=textbox "orders" 63,12 229x24 readonly
+      el 12,12 42x24
+        text "Name" 12,16 42x16
+      text role=textbox "orders" 62,12 230x24 readonly
       el #copy role=button label="Copy Name" 300,12 24x24
         text label="copy" "\u{F32A}" 304,16 16x16
     el role=listitem label="Key" 8,36 320x24
-      el 12,36 43x24
-        text "Key" 12,40 43x16
-      el 61,34 265x28
-        el label="Primary key" 63,39 81x18
-          text "Primary key" 69,41 69x15
+      el 12,36 42x24
+        text "Key" 12,40 42x16
+      el 60,34 266x28
+        el label="Primary key" 62,39 80x18
+          text "Primary key" 68,41 68x15
     el role=listitem label="Owner" 8,60 320x24 value="shop_admin"
-      el 12,60 43x24
-        text "Owner" 12,64 43x16
-      el 61,58 233x28
-        text role=link "shop_admin" 63,64 74x16
+      el 12,60 42x24
+        text "Owner" 12,64 42x16
+      el 60,58 234x28
+        text role=link "shop_admin" 62,64 74x16
       el #copy role=button label="Copy Owner" 300,60 24x24
         text label="copy" "\u{F32A}" 304,64 16x16
     el role=listitem label="Status" 8,84 320x24
-      el 12,84 43x24
-        text "Status" 12,88 43x16
-      el 61,82 265x28
-        el 63,88 80x16
-          el 63,92 8x8
-          text "Connected" 75,88 68x16
+      el 12,84 42x24
+        text "Status" 12,88 42x16
+      el 60,82 266x28
+        el 62,88 79x16
+          el 62,92 8x8
+          text "Connected" 74,88 67x16

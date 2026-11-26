@@ -48,11 +48,11 @@ el 0,0 560x400
         el label="warning" 154,121 73x18
           text label="key" "\u{E740}" 160,124 12x12
           text "warning" 174,123 47x14
-        el label="warning" 231,119 62x22
-          text "warning" 239,123 46x14
-        el label="warning" 297,119 77x22
-          text label="checkmark" "\u{F293}" 305,124 12x12
-          text "warning" 319,123 47x14
+        el label="warning" 231,119 63x22
+          text "warning" 239,123 47x14
+        el label="warning" 298,119 76x22
+          text label="checkmark" "\u{F293}" 306,124 12x12
+          text "warning" 320,123 46x14
       el 29,149 502x22
         el label="danger" 29,151 53x18
           text "danger" 35,153 41x14
@@ -61,11 +61,11 @@ el 0,0 560x400
         el label="danger" 142,151 67x18
           text label="key" "\u{E740}" 148,154 12x12
           text "danger" 162,153 41x14
-        el label="danger" 213,149 56x22
-          text "danger" 221,153 40x14
-        el label="danger" 273,149 71x22
-          text label="checkmark" "\u{F293}" 281,154 12x12
-          text "danger" 295,153 41x14
+        el label="danger" 213,149 57x22
+          text "danger" 221,153 41x14
+        el label="danger" 274,149 70x22
+          text label="checkmark" "\u{F293}" 282,154 12x12
+          text "danger" 296,153 40x14
   el 12,200 536x184
     el 29,217 502x72
       el 29,217 502x24
@@ -122,7 +122,7 @@ el 0,0 560x400
       el role=img label="analytics" 113,339 24x24
         text "A" 121,345 8x12
       el role=img label="replica 2" 141,339 24x24
-        text "R2" 147,345 12x12
+        text "R2" 147,345 13x12
       el role=img label="localhost" 169,341 20x20
         text label="server" "\u{F0360}" 173,345 12x12
       el role=img label="prod-eu" 193,335 32x32

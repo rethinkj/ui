@@ -9,9 +9,9 @@ el 0,0 420x360
     text "postgres://localhost:5432/shop" 29,76 346x16
   el 12,117 380x180
     el 13,118 378x40
-      text role=heading "orders" 29,130 45x17 level=3
-      text "1 000 000 rows" 82,130 96x16
-      el 186,138 111x0
+      text role=heading "orders" 29,130 44x17 level=3
+      text "1 000 000 rows" 81,130 95x16
+      el 184,138 113x0
       el role=button label="Run" 305,126 70x24
         text label="play" "\u{E990}" 318,130 16x16
         text "Run" 338,130 24x16

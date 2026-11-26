@@ -99,28 +99,73 @@ class FontTest {
   }
 
   @Test
-  void glyphsSitOnWholePixelsBelowScaleOneAndAHalfAndOnQuartersFromThere() {
+  void glyphsSitOnQuarterPixelsAtEveryScale() {
     TextLibraries.assumeLoaded();
     String sample = "Kunde Müller, Köln: 1.234,56 € (AVATAR) Wäsche";
     for (Font font : new Font[] {Font.sans(), Font.mono(), Font.sansBold()}) {
       for (float size : new float[] {11, 12, 13, 14, 15.5f}) {
-        GlyphRun whole = font.shape(sample, size, 1);
-        GlyphRun finer = font.shape(sample, size, 2);
-        for (int i = 0; i < whole.count(); i++) {
-          assertEquals(Math.rint(whole.x(i)), whole.x(i), font + " " + size + " " + i);
-          assertEquals(Math.rint(whole.advance(i)), whole.advance(i));
-          assertEquals(Math.rint(finer.x(i) * 4), finer.x(i) * 4, font + " " + size + " " + i);
+        GlyphRun at1 = font.shape(sample, size, 1);
+        GlyphRun at2 = font.shape(sample, size, 2);
+        for (int i = 0; i < at1.count(); i++) {
+          assertEquals(Math.rint(at1.x(i) * 4), at1.x(i) * 4, font + " " + size + " " + i);
+          assertEquals(Math.rint(at1.advance(i) * 4), at1.advance(i) * 4);
+          assertEquals(Math.rint(at2.x(i) * 4), at2.x(i) * 4, font + " " + size + " " + i);
         }
-        assertEquals(Math.rint(whole.width()), whole.width());
-        assertEquals(size, whole.pixelSize());
-        assertEquals(2 * size, finer.pixelSize());
+        assertEquals(Math.rint(at1.width() * 4), at1.width() * 4);
+        assertEquals(size, at1.pixelSize());
+        assertEquals(2 * size, at2.pixelSize());
       }
     }
-    // At 1.25 still whole pixels, from 1.5 on quarters: Inter at 13 px has advances between.
+    // Even at scale 1 and 1.25, Inter has advances between whole pixels.
+    GlyphRun at100 = Font.sans().shape(sample, 13, 1);
     GlyphRun at125 = Font.sans().shape(sample, 13, 1.25f);
-    GlyphRun at150 = Font.sans().shape(sample, 13, 1.5f);
-    assertEquals(Math.rint(at125.width()), at125.width());
-    assertNotEquals(Math.rint(at150.width()), at150.width());
+    assertNotEquals(Math.rint(at100.width()), at100.width());
+    assertNotEquals(Math.rint(at125.width()), at125.width());
+  }
+
+  @Test
+  void bundledInterFacesApplySizeDependentTracking() throws IOException {
+    TextLibraries.assumeLoaded();
+    String sample = "Headings and body text";
+    try (Font plainInter = Font.of(defaultFontBytes("Inter-Regular.ttf"))) {
+      // Same pixel size (24 px), different logical sizes: 24 px at 1x tightens, 12 px at 2x
+      // loosens.
+      GlyphRun heading = Font.sans().shape(sample, 24, 1);
+      GlyphRun smallScaled = Font.sans().shape(sample, 12, 2);
+      GlyphRun untracked = plainInter.shape(sample, 24, 1);
+      assertTrue(heading.width() < untracked.width(), heading.width() + " vs " + untracked.width());
+      assertTrue(
+          smallScaled.width() > heading.width(), smallScaled.width() + " vs " + heading.width());
+      // A combining mark stays over its letter: the tracking comes after it.
+      GlyphRun marked = Font.sans().shape("\u0430\u0301", 48, 2);
+      GlyphRun plainMarked = plainInter.shape("\u0430\u0301", 48, 2);
+      assertEquals(2, marked.count());
+      assertEquals(plainMarked.x(1) - plainMarked.x(0), marked.x(1) - marked.x(0), "the accent");
+      assertEquals(
+          Font.sans().shape("\u043c\u043e\u0440\u0435", 14, 1).width(),
+          Font.sans().shape("\u043c\u043e\u0301\u0440\u0435", 14, 1).width(),
+          "the accent takes no room");
+      assertEquals(0, Font.sans().shape("\u043c\u043e\u0301\u0440\u0435", 32, 1).advance(2));
+      // A zero-width character of its own keeps no width.
+      GlyphRun spaced = Font.sans().shape("A\u200BB", 24, 1);
+      assertEquals(0, spaced.advance(1), "the zero-width space");
+      // Fallback chain: tracked only for runs shaped by a tracked face.
+      Font chain = Font.sans().withFallback(Examples.fallbackChain());
+      GlyphRun mixed = chain.shape("AB שלום", 24, 1);
+      GlyphRun hebrewAlone = Examples.fallbackChain().shape("שלום", 24, 1);
+      float hebrewWidth = 0;
+      for (int i = 0; i < mixed.count(); i++) {
+        if (mixed.font(i) != Font.sans()) {
+          hebrewWidth += mixed.advance(i);
+        }
+      }
+      assertEquals(hebrewAlone.width(), hebrewWidth, "fallback run is not tracked");
+    }
+    // Non-Inter bundled faces (JetBrains Mono) are not tracked: same pixelSize matches across
+    // scales.
+    assertEquals(
+        Font.mono().shape(sample, 24, 1).width(),
+        Font.mono().shape(sample, 12, 2).width());
   }
 
   @Test
@@ -243,9 +288,11 @@ class FontTest {
     int glyph = icons.shape(ARROW_LEFT, 16, 1).glyph(0);
     Font.Bitmap light = icons.rasterize(glyph, 16, TextRendering.Hinting.LIGHT, 0);
     Font.Bitmap nativeHints = icons.rasterize(glyph, 16, TextRendering.Hinting.NATIVE, 0);
+    Font.Bitmap none = icons.rasterize(glyph, 16, TextRendering.Hinting.NONE, 0);
     assertEquals(light.left(), nativeHints.left());
     assertEquals(light.top(), nativeHints.top());
     assertArrayEquals(light.pixels(), nativeHints.pixels(), "the same drawing under both");
+    assertArrayEquals(light.pixels(), none.pixels(), "the same drawing under NONE");
     // In the middle, the shaft is one row of whole pixels, and no row is half covered.
     int full = 0;
     int half = 0;

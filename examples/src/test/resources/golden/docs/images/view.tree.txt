@@ -1,4 +1,4 @@
 el 0,0 280x120
-  el role=button label="Open image…" 12,12 113x24
-    text "Open image…" 25,16 87x16
-  text "No image" 12,44 59x16
+  el role=button label="Open image…" 12,12 112x24
+    text "Open image…" 25,16 86x16
+  text "No image" 12,44 58x16

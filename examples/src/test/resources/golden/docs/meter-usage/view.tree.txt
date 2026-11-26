@@ -9,13 +9,13 @@ el 0,0 720x371
           el 29,53 168x69
             text "Weekly" 29,53 168x16
             el 29,71 168x34
-              text "83%" 29,71 64x34
-              el 97,85 33x16
-                text "left" 97,85 19x16
-                text label="arrow_trending_down" "\u{E119}" 118,87 12x12
+              text "83%" 29,71 63x34
+              el 96,85 33x16
+                text "left" 96,85 19x16
+                text label="arrow_trending_down" "\u{E119}" 117,87 12x12
             el 29,107 168x15
               text label="clock" "\u{F2DB}" 29,109 12x12
-              text "+3% in 6d 10h" 43,107 80x15
+              text "+3% in 6d 10h" 43,107 82x15
           el 209,72 482x32
             el role=meter label="Chat" 209,72 237x32 value="72%"
               el #segment-0 label="Chat" 209,72 171x32 value="72%"
@@ -26,15 +26,15 @@ el 0,0 720x371
                 el 209,72 237x0
                 el 209,72 237x32
                   el 209,72 74x32
-                  el 283,72 36x32
-                  el #trailing 327,72 111x32
-                    el 327,79 87x18
-                      el label="resets now" 327,79 87x18
-                        text label="arrow_clockwise" "\u{E0A9}" 333,82 12x12
-                        text "resets now" 347,80 61x15
-                    el 418,79 20x18
-                      el label="3" 418,79 20x18
-                        text "3" 424,80 8x15
+                  el 283,72 35x32
+                  el #trailing 326,72 112x32
+                    el 326,79 89x18
+                      el label="resets now" 326,79 89x18
+                        text label="arrow_clockwise" "\u{E0A9}" 332,82 12x12
+                        text "resets now" 346,80 63x15
+                    el 419,79 19x18
+                      el label="3" 419,79 19x18
+                        text "3" 425,80 7x15
             el role=meter label="Code" 454,72 237x32 value="94%"
               el #segment-0 label="Code" 454,72 223x32 value="94%"
                 text "Code 94%" 462,80 61x15
@@ -46,13 +46,13 @@ el 0,0 720x371
                   el 454,72 77x32
                   el 531,72 56x32
                   el #trailing 595,72 88x32
-                    el 595,79 64x18
-                      el label="6d 10h" 595,79 64x18
+                    el 595,79 65x18
+                      el label="6d 10h" 595,79 65x18
                         text label="arrow_clockwise" "\u{E0A9}" 601,82 12x12
-                        text "6d 10h" 615,80 38x15
-                    el 663,79 20x18
-                      el label="3" 663,79 20x18
-                        text "3" 669,80 8x15
+                        text "6d 10h" 615,80 39x15
+                    el 664,79 19x18
+                      el label="3" 664,79 19x18
+                        text "3" 670,80 7x15
     el 12,155 696x204
       el 12,155 696x16
         text label="person" "\u{F5BC}" 12,155 16x16
@@ -62,10 +62,10 @@ el 0,0 720x371
           el 29,196 168x52
             text "Weekly" 29,196 168x16
             el 29,214 168x34
-              text "86%" 29,214 64x34
-              el 97,228 33x16
-                text "left" 97,228 19x16
-                text label="arrow_trending_down" "\u{E119}" 118,230 12x12
+              text "86%" 29,214 63x34
+              el 96,228 33x16
+                text "left" 96,228 19x16
+                text label="arrow_trending_down" "\u{E119}" 117,230 12x12
           el role=meter label="Personal weekly" 209,206 482x32 value="86%"
             el #segment-0 label="" 209,206 415x32 value="86%"
               text "86%" 217,215 28x15
@@ -75,32 +75,32 @@ el 0,0 720x371
               el 209,206 482x0
               el 209,206 482x32
                 el 209,206 44x32
-                el 253,206 357x32
-                el #trailing 618,206 65x32
-                  el 618,213 65x18
-                    el label="5d 23h" 618,213 65x18
-                      text label="arrow_clockwise" "\u{E0A9}" 624,216 12x12
-                      text "5d 23h" 638,215 39x15
+                el 253,206 356x32
+                el #trailing 617,206 66x32
+                  el 617,213 66x18
+                    el label="5d 23h" 617,213 66x18
+                      text label="arrow_clockwise" "\u{E0A9}" 623,216 12x12
+                      text "5d 23h" 637,215 40x15
       el 12,273 696x86
         el 29,290 662x52
           el 29,290 168x52
             text "Weekly · Large model" 29,290 168x16
             el 29,308 168x34
-              text "100%" 29,308 82x34
-              el 115,322 33x16
-                text "left" 115,322 19x16
-                text label="arrow_trending_down" "\u{E119}" 136,324 12x12
+              text "100%" 29,308 80x34
+              el 113,322 33x16
+                text "left" 113,322 19x16
+                text label="arrow_trending_down" "\u{E119}" 134,324 12x12
           el role=meter label="Personal large model" 209,300 482x32 value="100%"
             el #segment-0 label="" 209,300 482x32 value="100%"
-              text "100%" 217,309 36x15
+              text "100%" 217,309 35x15
             el 209,300 482x32
             el #trailing-layer 209,300 482x32
               el 209,300 482x0
               el 209,300 482x32
-                el 209,300 52x32
-                el 261,300 349x32
-                el #trailing 618,300 65x32
-                  el 618,307 65x18
-                    el label="5d 23h" 618,307 65x18
-                      text label="arrow_clockwise" "\u{E0A9}" 624,310 12x12
-                      text "5d 23h" 638,309 39x15
+                el 209,300 51x32
+                el 260,300 349x32
+                el #trailing 617,300 66x32
+                  el 617,307 66x18
+                    el label="5d 23h" 617,307 66x18
+                      text label="arrow_clockwise" "\u{E0A9}" 623,310 12x12
+                      text "5d 23h" 637,309 40x15

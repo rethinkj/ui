@@ -25,7 +25,7 @@ import org.junit.jupiter.api.io.TempDir;
  * for what needs no shaping.
  *
  * <p>JetBrains Mono makes the numbers easy: at 14 pixels every character advances 8.4, rounded to
- * 8 at scale 1, and a line is (1.02 + 0.3) * 14 = 18.48, rounded to 18.
+ * 8.5 on the quarter grid at scale 1, and a line is (1.02 + 0.3) * 14 = 18.48, rounded to 18.
  */
 class TextTest {
 
@@ -54,27 +54,28 @@ class TextTest {
     TextLibraries.assumeLoaded();
     El text = mono("one two six ten").wrapText();
     El sibling = el().size(24, 10).shrink(0);
-    // 80 pixels: 56 for the text, seven characters, and the sibling.
-    Headless.render(row().w(80).children(text, sibling), 200, 100, 1);
+    // 84 pixels: 60 for the text, seven characters of 8.5 (59.5), and the sibling.
+    Headless.render(row().w(84).children(text, sibling), 200, 100, 1);
     assertEquals(List.of("one two ", "six ten"), lines(text));
-    assertEquals(56, text.width());
+    assertEquals(60, text.width());
     assertEquals(36, text.height());
-    assertEquals(56, sibling.x());
-    assertEquals(56, text.text().lines().getFirst().width(), "the space at the break takes none");
+    assertEquals(60, sibling.x());
+    assertEquals(
+        59.5f, text.text().lines().getFirst().width(), "the space at the break takes none");
     assertEquals(List.of(14f, 32f), baselines(text), "1.02 * 14 = 14.28");
 
     // Narrower than two words: one word a line, and the box keeps the width of the widest.
     El narrow = mono("one two six ten").wrapText();
     Headless.render(row().w(16).child(narrow), 200, 100, 1);
     assertEquals(List.of("one ", "two ", "six ", "ten"), lines(narrow));
-    assertEquals(24, narrow.width());
+    assertEquals(26, narrow.width());
     assertEquals(72, narrow.height());
 
     // Without wrapText it stays on one line, and is wider than its row.
     El wide = mono("one two six ten");
-    Headless.render(row().w(80).child(wide), 200, 100, 1);
+    Headless.render(row().w(84).child(wide), 200, 100, 1);
     assertEquals(List.of("one two six ten"), lines(wide));
-    assertEquals(120, wide.width());
+    assertEquals(128, wide.width());
     assertEquals(18, wide.height());
   }
 
@@ -84,7 +85,7 @@ class TextTest {
     El text = mono("one\ntwo three\n");
     Headless.render(row().child(text), 200, 100, 1);
     assertEquals(List.of("one", "two three", ""), lines(text));
-    assertEquals(72, text.width());
+    assertEquals(77, text.width());
     assertEquals(54, text.height());
 
     El wrapped = mono("one\ntwo three").wrapText();
@@ -135,18 +136,19 @@ class TextTest {
   @Test
   void aLongWordAfterShortWordsStartsARowOfItsOwnAndBreaksAsLateAsItFits() {
     TextLibraries.assumeLoaded();
+    // 80 pixels fits 9 characters of 8.5 (76.5).
     El text = mono("one two " + "x".repeat(20) + " end").wrapText().w(80);
     Headless.render(row().child(text), 200, 200, 1);
-    assertEquals(List.of("one two ", "x".repeat(10), "x".repeat(10) + " ", "end"), lines(text));
+    assertEquals(List.of("one two ", "x".repeat(9), "x".repeat(9), "xx end"), lines(text));
 
     El alone = mono("x".repeat(25)).wrapText().w(80);
     Headless.render(row().child(alone), 200, 200, 1);
-    assertEquals(List.of("x".repeat(10), "x".repeat(10), "x".repeat(5)), lines(alone));
+    assertEquals(List.of("x".repeat(9), "x".repeat(9), "x".repeat(7)), lines(alone));
 
     // What follows the end of a broken word shares its row while it fits.
-    El tail = mono("x".repeat(13) + " ab cd").wrapText().w(80);
+    El tail = mono("x".repeat(12) + " ab cd").wrapText().w(80);
     Headless.render(row().child(tail), 200, 200, 1);
-    assertEquals(List.of("x".repeat(10), "xxx ab cd"), lines(tail));
+    assertEquals(List.of("x".repeat(9), "xxx ab cd"), lines(tail));
   }
 
   @Test
@@ -155,11 +157,11 @@ class TextTest {
     El text = mono("one " + "x".repeat(20) + " end").wrapText();
     El sibling = el().size(24, 10).shrink(0);
     Headless.render(row().w(80).children(text, sibling), 200, 200, 1);
-    assertEquals(160, text.width(), "a row gives it room for the whole word");
+    assertEquals(170, text.width(), "a row gives it room for the whole word");
     assertEquals(List.of("one ", "x".repeat(20) + " ", "end"), lines(text));
     Measure.Size min =
         text.text().measure(Float.NaN, Float.NaN, Measure.MIN_CONTENT, Float.POSITIVE_INFINITY);
-    assertEquals(160, min.width());
+    assertEquals(170, min.width());
     assertEquals(54, min.height());
   }
 
@@ -219,13 +221,13 @@ class TextTest {
     assertEquals(25, sibling.x());
     assertEquals(19, text.height(), "37 physical pixels a line, 18.5, rounded by layout");
 
-    // At 1.5 a character is 12.6, 12.5 on the grid; at 1.25 it is 10.5, 11 on whole pixels.
+    // At 1.5 a character is 12.6, 12.5 on the grid; at 1.25 it is 10.5 on the quarter grid too.
     El finer = mono("abc");
     Headless.render(row().child(finer), 100, 50, 1.5f);
     assertEquals(37.5f, finer.text().lines().getFirst().width());
     El coarser = mono("abc");
     Headless.render(row().child(coarser), 100, 50, 1.25f);
-    assertEquals(33, coarser.text().lines().getFirst().width());
+    assertEquals(31.5f, coarser.text().lines().getFirst().width());
   }
 
   @Test
@@ -241,7 +243,7 @@ class TextTest {
     TextLibraries.assumeLoaded();
     El root = row().child(El.text("Save\nnow").font(Font.mono()));
     String tree = Headless.render(root, 200, 50, 1).tree();
-    assertEquals("el 0,0 32x36\n  text \"Save\\nnow\" 0,0 32x36\n", tree);
+    assertEquals("el 0,0 34x36\n  text \"Save\\nnow\" 0,0 34x36\n", tree);
   }
 
   /**

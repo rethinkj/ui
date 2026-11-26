@@ -60,17 +60,17 @@ el 0,0 520x640
           el 33,391 470x1
           el 35,394 466x91
             text "Line endings" 45,400 446x15
-            el role=radiogroup label="Line endings" 41,421 108x60
-              el role=radio label="LF" 45,423 100x16 checked
+            el role=radiogroup label="Line endings" 41,421 107x60
+              el role=radio label="LF" 45,423 99x16 checked
                 el 45,423 16x16
                   el 50,428 6x6
                 text "LF" 69,423 15x16
-              el role=radio label="CRLF" 45,443 100x16 checked=false
+              el role=radio label="CRLF" 45,443 99x16 checked=false
                 el 45,443 16x16
                 text "CRLF" 69,443 33x16
-              el role=radio label="As in the file" 45,463 100x16 checked=false
+              el role=radio label="As in the file" 45,463 99x16 checked=false
                 el 45,463 16x16
-                text "As in the file" 69,463 76x16
+                text "As in the file" 69,463 75x16
       el 17,487 486x1
       el role=switch label="Telemetry" 19,490 482x45 disabled checked=false
         el 29,496 422x33
@@ -84,6 +84,6 @@ el 0,0 520x640
     text "or" 254,563 12x16
     el 274,570 230x1
   el 16,591 488x24
-    text "Left" 16,595 24x15
-    el role=separator 48,591 1x24
-    text "Right" 57,595 31x15
+    text "Left" 16,595 23x15
+    el role=separator 47,591 1x24
+    text "Right" 56,595 32x15

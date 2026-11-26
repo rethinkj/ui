@@ -22,4 +22,4 @@ overlay center modal scrim on 0,0 360x300
         el #ok role=button label="OK" 235,243 45x24
           text "OK" 248,247 19x16
     el 80,33 200x20
-      text role=heading label="Columns" "Columns" 80,33 68x20 level=2
+      text role=heading label="Columns" "Columns" 80,33 67x20 level=2

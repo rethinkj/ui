@@ -11,13 +11,13 @@ el 0,0 280x300
       el #mark-301 48,-44 16x24
         text label="chevron_right" "\u{F2AF}" 48,-40 16x16
       text label="table" "\u{EBF4}" 68,-40 16x16
-      text "wishlists_002" 88,-40 82x16
+      text "wishlists_002" 88,-40 81x16
     el #row-302 role=treeitem label="wishlists_003" 8,-20 264x24 expanded=false level=4 pos=294/300
       el 20,-20 1x24
       el #mark-302 48,-20 16x24
         text label="chevron_right" "\u{F2AF}" 48,-16 16x16
       text label="table" "\u{EBF4}" 68,-16 16x16
-      text "wishlists_003" 88,-16 82x16
+      text "wishlists_003" 88,-16 81x16
     el #row-303 role=treeitem label="wishlists_004" 8,4 264x24 expanded=false level=4 pos=295/300
       el 20,4 1x24
       el #mark-303 48,4 16x24
@@ -29,36 +29,36 @@ el 0,0 280x300
       el #mark-304 48,28 16x24
         text label="chevron_right" "\u{F2AF}" 48,32 16x16
       text label="table" "\u{EBF4}" 68,32 16x16
-      text "wishlists_005" 88,32 82x16
+      text "wishlists_005" 88,32 81x16
     el #row-305 role=treeitem label="wishlists_006" 8,52 264x24 expanded=false level=4 pos=297/300
       el 20,52 1x24
       el #mark-305 48,52 16x24
         text label="chevron_right" "\u{F2AF}" 48,56 16x16
       text label="table" "\u{EBF4}" 68,56 16x16
-      text "wishlists_006" 88,56 82x16
+      text "wishlists_006" 88,56 81x16
     el #row-306 role=treeitem label="wishlists_007" 8,76 264x24 expanded=false level=4 pos=298/300
       el 20,76 1x24
       el #mark-306 48,76 16x24
         text label="chevron_right" "\u{F2AF}" 48,80 16x16
       text label="table" "\u{EBF4}" 68,80 16x16
-      text "wishlists_007" 88,80 81x16
+      text "wishlists_007" 88,80 80x16
     el #row-307 role=treeitem label="wishlists_008" 8,100 264x24 expanded=false level=4 pos=299/300
       el 20,100 1x24
       el #mark-307 48,100 16x24
         text label="chevron_right" "\u{F2AF}" 48,104 16x16
       text label="table" "\u{EBF4}" 68,104 16x16
-      text "wishlists_008" 88,104 82x16
+      text "wishlists_008" 88,104 81x16
     el #row-308 role=treeitem label="wishlists_009" 8,124 264x24 expanded=false level=4 pos=300/300
       el 20,124 1x24
       el #mark-308 48,124 16x24
         text label="chevron_right" "\u{F2AF}" 48,128 16x16
       text label="table" "\u{EBF4}" 68,128 16x16
-      text "wishlists_009" 88,128 82x16
+      text "wishlists_009" 88,128 81x16
     el #row-309 role=treeitem label="prod-eu" 8,148 264x24 expanded=false level=1 pos=2/4
       el #mark-309 12,148 16x24
         text label="chevron_right" "\u{F2AF}" 12,152 16x16
       text label="server" "\u{F1DC}" 32,152 16x16
-      text "prod-eu" 52,152 51x16
+      text "prod-eu" 52,152 50x16
     el #row-310 role=treeitem label="staging" 8,172 264x24 expanded level=1 pos=3/4
       el #mark-310 12,172 16x24
         text label="chevron_down" "\u{F2A2}" 12,176 16x16
@@ -69,23 +69,23 @@ el 0,0 280x300
       el #mark-311 24,196 16x24
         text label="chevron_right" "\u{F2AF}" 24,200 16x16
       text label="database" "\u{F0D7}" 44,200 16x16
-      text "scratch" 64,200 45x16
+      text "scratch" 64,200 46x16
     el #row-312 role=treeitem label="shop" 8,220 264x24 expanded=false level=2 pos=2/2
       el 20,220 1x24
       el #mark-312 24,220 16x24
         text label="chevron_right" "\u{F2AF}" 24,224 16x16
       text label="database" "\u{F0D7}" 44,224 16x16
-      text "shop" 64,224 31x16
+      text "shop" 64,224 30x16
     el #row-313 role=treeitem label="backup" 8,244 264x24 selected expanded level=1 pos=4/4
       el #mark-313 12,244 16x24
         text label="chevron_down" "\u{F2A2}" 12,248 16x16
       text label="server" "\u{F1DC}" 32,248 16x16
-      text "backup" 52,248 45x16
+      text "backup" 52,248 46x16
       el 10,248 2x16
     el #row-314 role=treeitem label="Cannot read the databases: connection refused" 8,268 264x24 invalid level=2 pos=1/1 error="Cannot read the databases: connection refused"
       el 20,268 1x24
       el 24,280 16x0
       text label="error_circle" "\u{F3F0}" 44,272 16x16
-      text "Cannot read the databases: connection refused" 64,272 129x16
-      el role=button label="Try again" 197,269 65x22
-        text "Try again" 201,272 57x16
+      text "Cannot read the databases: connection refused" 64,272 130x16
+      el role=button label="Try again" 198,269 64x22
+        text "Try again" 202,272 56x16

@@ -1,7 +1,7 @@
 el 0,0 400x400
-  el #open role=button label="Connection" 12,12 98x24
-    text "Connection" 25,16 72x16
-overlay bottom start gap 2 on #open role=button label="Connection" 12,12 98x24
+  el #open role=button label="Connection" 12,12 97x24
+    text "Connection" 25,16 71x16
+overlay bottom start gap 2 on #open role=button label="Connection" 12,12 97x24
   el #menu role=menu 12,38 111x82
     el #item-0 role=menuitem label="Rename…" 17,43 101x24
       el 17,43 101x24

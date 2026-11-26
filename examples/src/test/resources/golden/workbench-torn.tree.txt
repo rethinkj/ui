@@ -5,24 +5,24 @@ el 0,0 1000x600
         el 8,12 16x16
           el 9,13 14x14
             text "\u{F0D7}" 11,15 10x10
-      text "Workbench" 32,12 72x16
-      el #menubar role=menubar 112,8 177x24
-        el #title-0 role=menuitem label="File" 112,8 38x24 expanded=false
-          text "File" 120,12 22x16
-        el #title-1 role=menuitem label="Edit" 150,8 39x24 expanded=false
-          text "Edit" 158,12 23x16
-        el #title-2 role=menuitem label="View" 189,8 46x24 expanded=false
-          text "View" 197,12 30x16
-        el #title-3 role=menuitem label="Query" 235,8 54x24 expanded=false
-          text "Query" 243,12 38x16
-      el 289,20 125x0
-      el role=button label="Search commands" 414,8 259x24
-        text label="search" "\u{EA7C}" 423,12 16x16
-        text "Search commands" 447,12 114x16
-        el 569,8 95x24
+      text "Workbench" 32,12 71x16
+      el #menubar role=menubar 111,8 176x24
+        el #title-0 role=menuitem label="File" 111,8 37x24 expanded=false
+          text "File" 119,12 21x16
+        el #title-1 role=menuitem label="Edit" 148,8 39x24 expanded=false
+          text "Edit" 156,12 23x16
+        el #title-2 role=menuitem label="View" 187,8 46x24 expanded=false
+          text "View" 195,12 30x16
+        el #title-3 role=menuitem label="Query" 233,8 54x24 expanded=false
+          text "Query" 241,12 38x16
+      el 287,20 126x0
+      el role=button label="Search commands" 413,8 258x24
+        text label="search" "\u{EA7C}" 422,12 16x16
+        text "Search commands" 446,12 115x16
+        el 569,8 93x24
           el 569,8 0x24
-          text "Ctrl+Shift+P" 593,13 71x15
-      el 673,20 125x0
+          text "Ctrl+Shift+P" 593,13 69x15
+      el 671,20 127x0
     el 798,20 24x0
     el 822,0 40x40
       el 822,8 24x24
@@ -43,8 +43,8 @@ el 0,0 1000x600
       el #first 49,40 260x523
         el 49,40 260x523
           el 50,41 258x40
-            text role=heading "Connections" 66,53 88x17 level=3
-            el 162,61 98x0
+            text role=heading "Connections" 66,53 85x17 level=3
+            el 159,61 101x0
             el role=button label="Add connection" 268,49 24x24
               text label="add" "\u{F108}" 272,53 16x16
           el 50,81 258x481
@@ -53,7 +53,7 @@ el 0,0 1000x600
                 el #mark-0 58,85 16x24
                   text label="chevron_right" "\u{F2AF}" 58,89 16x16
                 text label="server" "\u{F1DC}" 78,89 16x16
-                text "localhost" 98,89 56x16
+                text "localhost" 98,89 55x16
               el #row-1 role=treeitem label="staging" 54,109 250x24 expanded level=1 pos=2/3
                 el #mark-1 58,109 16x24
                   text label="chevron_down" "\u{F2A2}" 58,113 16x16
@@ -64,31 +64,31 @@ el 0,0 1000x600
                 el #mark-2 70,133 16x24
                   text label="chevron_right" "\u{F2AF}" 70,137 16x16
                 text label="database" "\u{F0D7}" 90,137 16x16
-                text "scratch" 110,137 45x16
+                text "scratch" 110,137 46x16
               el #row-3 role=treeitem label="shop" 54,157 250x24 expanded=false level=2 pos=2/2
                 el 66,157 1x24
                 el #mark-3 70,157 16x24
                   text label="chevron_right" "\u{F2AF}" 70,161 16x16
                 text label="database" "\u{F0D7}" 90,161 16x16
-                text "shop" 110,161 31x16
+                text "shop" 110,161 30x16
               el #row-4 role=treeitem label="prod-eu" 54,181 250x24 selected expanded=false level=1 pos=3/3
                 el #mark-4 58,181 16x24
                   text label="chevron_right" "\u{F2AF}" 58,185 16x16
                 text label="server" "\u{F1DC}" 78,185 16x16
-                text "prod-eu" 98,185 51x16
+                text "prod-eu" 98,185 50x16
                 el 56,185 2x16
       el #rest 309,40 683x523
         el #second 317,40 675x523
           el #tabs 317,40 675x523
             el #bar 318,41 673x33
-              el #tablist role=tablist 320,41 44x32 focused
-                el #tab-0 role=tab label="Start" 320,41 44x32 selected
-                  el 320,71 44x2
-                  text "Start" 328,49 28x16
-              el 366,45 24x24
-                el #add role=button label="New tab" 366,45 24x24
-                  text label="add" "\u{F108}" 370,49 16x16
-              el #room 390,57 26x0
+              el #tablist role=tablist 320,41 45x32 focused
+                el #tab-0 role=tab label="Start" 320,41 45x32 selected
+                  el 320,71 45x2
+                  text "Start" 328,49 29x16
+              el 367,45 24x24
+                el #add role=button label="New tab" 367,45 24x24
+                  text label="add" "\u{F108}" 371,49 16x16
+              el #room 391,57 26x0
             el #panel role=tabpanel label="Start" 318,74 673x488
               el #content-0 318,74 673x488
                 el 318,74 673x488
@@ -100,28 +100,28 @@ el 0,0 1000x600
                     text "Edits of a table's rows wait for Commit, Control+S." 342,195 625x16
                     text "The servers refuse an amount below zero, and a paid order going back to pending." 342,219 625x16
                   el 318,533 673x29
-                    text #status "prod-eu" 334,540 51x16
-                    el 397,548 578x0
+                    text #status "prod-eu" 334,540 50x16
+                    el 396,548 579x0
         el #divider role=separator label="Resize" 309,40 8x523 value="first 260"
           el 309,40 8x523
             el 313,40 1x523
   el role=status label="Status bar" 0,571 1000x29
-    el 8,574 225x24
-      el role=group label="Servers" 8,574 225x24
-        el #server-localhost role=button label="localhost" 8,574 79x24 value="ok"
+    el 8,574 227x24
+      el role=group label="Servers" 8,574 227x24
+        el #server-localhost role=button label="localhost" 8,574 80x24 value="ok"
           el 12,578 16x16
             el 14,580 12x12
               el 16,582 8x8
-          text "localhost" 32,579 51x15
-        el #server-staging role=button label="staging" 89,574 69x24 value="ok"
-          el 93,578 16x16
-            el 95,580 12x12
-              el 97,582 8x8
-          text "staging" 113,579 41x15
-        el #server-prod-eu role=button label="prod-eu" 160,574 73x24 value="error"
-          text label="error_circle" "\u{F3F0}" 164,578 16x16
-          text "prod-eu" 184,579 45x15
-    el 235,586 727x0
+          text "localhost" 32,579 52x15
+        el #server-staging role=button label="staging" 90,574 69x24 value="ok"
+          el 94,578 16x16
+            el 96,580 12x12
+              el 98,582 8x8
+          text "staging" 114,579 41x15
+        el #server-prod-eu role=button label="prod-eu" 161,574 74x24 value="error"
+          text label="error_circle" "\u{F3F0}" 165,578 16x16
+          text "prod-eu" 185,579 46x15
+    el 237,586 725x0
     el 964,574 28x24
       el #running label="Idle" 964,574 28x24
         text "Idle" 968,579 20x15

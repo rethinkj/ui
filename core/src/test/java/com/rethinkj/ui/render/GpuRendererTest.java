@@ -346,7 +346,7 @@ class GpuRendererTest {
     assertEquals(0, compare(gpu, more).beyond());
     assertEquals(writes + 1, gpu.atlasWrites());
     assertEquals((long) changed.width() * changed.height(), gpu.atlasTexels() - texels);
-    assertTrue(gpu.atlasTexels() - texels < 64 * 64, changed + " is a few glyphs");
+    assertTrue(gpu.atlasTexels() - texels < 128 * 128, changed + " is a few glyphs");
   }
 
   @Test

@@ -7,8 +7,8 @@ el 0,0 340x340
       el 16,58 308x140
         el 16,58 308x108
           el 16,58 60x24
-            text "Host" 16,62 29x16
-            text "*" 47,62 7x16
+            text "Host" 16,62 28x16
+            text "*" 46,62 7x16
           el 84,58 240x108
             el 84,58 240x90
               el 84,58 240x58
@@ -23,7 +23,7 @@ el 0,0 340x340
               text "Digits only" 84,150 240x16
         el 16,174 308x24
           el 16,174 60x24
-            text "Database" 16,178 57x16
+            text "Database" 16,178 58x16
           el 84,174 240x24
             text #beside-database role=textbox label="Database" placeholder="Name" "" 84,174 200x24
     el role=separator 16,214 308x1
@@ -33,7 +33,7 @@ el 0,0 340x340
       el 16,255 308x56
         el 16,255 308x24
           el 16,255 60x24
-            text "User" 16,259 30x16
+            text "User" 16,259 29x16
           el 84,255 240x24
             text #beside-user role=textbox label="User" placeholder="Role" "" 84,255 200x24
         el 16,287 308x24

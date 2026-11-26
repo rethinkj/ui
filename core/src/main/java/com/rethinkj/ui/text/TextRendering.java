@@ -33,14 +33,22 @@ public record TextRendering(Hinting hinting, float darkGamma, float lightGamma) 
      * The font's own TrueType instructions, run by FreeType's v40 interpreter, which, like
      * DirectWrite, applies them vertically only. Fonts without instructions get the auto-hinter.
      */
-    NATIVE
+    NATIVE,
+    /** No hinting: outlines as designed, as Core Text draws them. */
+    NONE
   }
 
-  /** Light auto-hinting and 1.8 for both exponents, close to text on Linux desktops. */
-  public static final TextRendering LINUX = new TextRendering(Hinting.LIGHT, 1.8f, 1.8f);
+  /**
+   * Unhinted outlines, 2.0 for dark text and 1.5 for light text. Identical to {@link #WINDOWS}, so
+   * Linux and Windows render text alike.
+   */
+  public static final TextRendering LINUX = new TextRendering(Hinting.NONE, 2.0f, 1.5f);
 
-  /** The font's hints, 1.8 for dark text and 1.4 for light text, close to DirectWrite. */
-  public static final TextRendering WINDOWS = new TextRendering(Hinting.NATIVE, 1.8f, 1.4f);
+  /**
+   * Unhinted outlines, 2.0 for dark text and 1.5 for light text. Identical to {@link #LINUX}, so
+   * Linux and Windows render text alike.
+   */
+  public static final TextRendering WINDOWS = new TextRendering(Hinting.NONE, 2.0f, 1.5f);
 
   public TextRendering {
     Objects.requireNonNull(hinting, "hinting");

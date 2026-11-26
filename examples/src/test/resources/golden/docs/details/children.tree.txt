@@ -1,27 +1,27 @@
 el 0,0 520x280
   el role=navigation label="Breadcrumb" 12,12 496x24
-    el #crumb-0 12,12 102x24
-      el role=link label="localhost" 12,12 84x24
+    el #crumb-0 12,12 101x24
+      el role=link label="localhost" 12,12 83x24
         text label="server" "\u{F1DC}" 16,16 16x16
-        text "localhost" 36,16 56x16
-      el 98,12 16x24
-        text label="chevron_right" "\u{F2AE}" 100,18 12x12
-    el #crumb-1 116,12 77x24
-      el role=link label="shop" 116,12 59x24
-        text label="database" "\u{F0D7}" 120,16 16x16
-        text "shop" 140,16 31x16
-      el 177,12 16x24
-        text label="chevron_right" "\u{F2AE}" 179,18 12x12
-    el #crumb-2 195,12 83x24
-      el role=link label="public" 195,12 65x24
-        text label="folder" "\u{E643}" 199,16 16x16
-        text "public" 219,16 37x16
-      el role=button label="Inside public" 262,12 16x24 expanded
-        text label="chevron_down" "\u{F2A1}" 264,18 12x12
-    el #crumb-3 280,12 69x24
-      el role=link label="orders" 280,12 69x24 current
-        text label="table" "\u{EBF4}" 284,16 16x16
-        text "orders" 304,16 41x16
+        text "localhost" 36,16 55x16
+      el 97,12 16x24
+        text label="chevron_right" "\u{F2AE}" 99,18 12x12
+    el #crumb-1 115,12 76x24
+      el role=link label="shop" 115,12 58x24
+        text label="database" "\u{F0D7}" 119,16 16x16
+        text "shop" 139,16 30x16
+      el 175,12 16x24
+        text label="chevron_right" "\u{F2AE}" 177,18 12x12
+    el #crumb-2 193,12 84x24
+      el role=link label="public" 193,12 66x24
+        text label="folder" "\u{E643}" 197,16 16x16
+        text "public" 217,16 38x16
+      el role=button label="Inside public" 261,12 16x24 expanded
+        text label="chevron_down" "\u{F2A1}" 263,18 12x12
+    el #crumb-3 279,12 68x24
+      el role=link label="orders" 279,12 68x24 current
+        text label="table" "\u{EBF4}" 283,16 16x16
+        text "orders" 303,16 40x16
   el role=list 8,44 320x72
     el role=listitem label="Name" 8,44 320x24 value="orders"
       el 12,44 37x24
@@ -41,15 +41,15 @@ el 0,0 520x280
       text role=textbox "16384" 57,92 235x24 readonly
       el #copy role=button label="Copy OID" 300,92 24x24
         text label="copy" "\u{F32A}" 304,96 16x16
-overlay bottom start gap 2 on role=button label="Inside public" 262,12 16x24
-  el #menu role=menu 262,38 115x58 focused
-    el #item-0 role=menuitem label="customers" 267,43 105x24
-      el 267,43 105x24
-        el 275,47 16x16
-          text label="table" "\u{EBF4}" 275,47 16x16
-        text "customers" 299,47 65x16
-    el #item-1 role=menuitem label="orders" 267,67 105x24
-      el 267,67 105x24
-        el 275,71 16x16
-          text label="table" "\u{EBF4}" 275,71 16x16
-        text "orders" 299,71 65x16
+overlay bottom start gap 2 on role=button label="Inside public" 261,12 16x24
+  el #menu role=menu 261,38 114x58 focused
+    el #item-0 role=menuitem label="customers" 266,43 104x24
+      el 266,43 104x24
+        el 274,47 16x16
+          text label="table" "\u{EBF4}" 274,47 16x16
+        text "customers" 298,47 64x16
+    el #item-1 role=menuitem label="orders" 266,67 104x24
+      el 266,67 104x24
+        el 274,71 16x16
+          text label="table" "\u{EBF4}" 274,71 16x16
+        text "orders" 298,71 64x16

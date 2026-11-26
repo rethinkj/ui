@@ -59,4 +59,4 @@ el 0,0 520x236
       el 132,116 94x15
         text label="person" "\u{F5BB}" 132,117 12x12
         text "Grace Hopper" 146,116 80x15
-  text #usages "Usages of paid_orders" 12,209 138x15
+  text #usages "Usages of paid_orders" 12,209 137x15

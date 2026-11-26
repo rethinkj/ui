@@ -4,17 +4,17 @@ el 0,0 800x924
     text label="warning" "\u{F868}" 65,6 16x16
     text "normal" 89,6 42x16
     text label="warning" "\u{F868}" 139,6 16x16
-    text "muted" 163,6 39x16
-    text label="warning" "\u{F868}" 210,6 16x16
-    text "disabled" 234,6 52x16
-    text label="warning" "\u{F868}" 294,6 16x16
-    text "danger" 318,6 43x16
-    text label="warning" "\u{F868}" 369,6 16x16
-    text "warning" 393,6 49x16
-    text label="warning" "\u{F868}" 450,6 16x16
-    text "success" 474,6 51x16
-    text label="warning" "\u{F868}" 533,6 16x16
-    text "accent" 557,6 41x16
+    text "muted" 163,6 38x16
+    text label="warning" "\u{F868}" 209,6 16x16
+    text "disabled" 233,6 52x16
+    text label="warning" "\u{F868}" 293,6 16x16
+    text "danger" 317,6 43x16
+    text label="warning" "\u{F868}" 368,6 16x16
+    text "warning" 392,6 49x16
+    text label="warning" "\u{F868}" 449,6 16x16
+    text "success" 473,6 50x16
+    text label="warning" "\u{F868}" 531,6 16x16
+    text "accent" 555,6 42x16
   el 0,28 200x28
     text label="add" "\u{F108}" 8,34 16x16
     text label="add" "\u{F109}" 32,32 20x20
@@ -50,7 +50,7 @@ el 0,0 800x924
   el 0,84 200x28
     text label="arrow_maximize" "\u{F15E}" 8,90 16x16
     text label="arrow_maximize" "\u{F15F}" 32,88 20x20
-    text "arrow_maximize" 60,90 100x16
+    text "arrow_maximize" 60,90 99x16
   el 200,84 200x28
     text label="arrow_minimize" "\u{F164}" 208,90 16x16
     text label="arrow_minimize" "\u{F165}" 232,88 20x20
@@ -58,11 +58,11 @@ el 0,0 800x924
   el 400,84 200x28
     text label="arrow_redo" "\u{E0E4}" 408,90 16x16
     text label="arrow_redo" "\u{F16E}" 432,88 20x20
-    text "arrow_redo" 460,90 70x16
+    text "arrow_redo" 460,90 69x16
   el 600,84 200x28
     text label="arrow_right" "\u{E0EB}" 608,90 16x16
     text label="arrow_right" "\u{F181}" 632,88 20x20
-    text "arrow_right" 660,90 70x16
+    text "arrow_right" 660,90 69x16
   el 0,112 200x28
     text label="arrow_sort" "\u{F1AB}" 8,118 16x16
     text label="arrow_sort" "\u{F18A}" 32,116 20x20
@@ -70,11 +70,11 @@ el 0,0 800x924
   el 200,112 200x28
     text label="arrow_sort_down" "\u{F1AC}" 208,118 16x16
     text label="arrow_sort_down" "\u{F805}" 232,116 20x20
-    text "arrow_sort_down" 260,118 105x16
+    text "arrow_sort_down" 260,118 104x16
   el 400,112 200x28
     text label="arrow_sort_up" "\u{F1B3}" 408,118 16x16
     text label="arrow_sort_up" "\u{F812}" 432,116 20x20
-    text "arrow_sort_up" 460,118 87x16
+    text "arrow_sort_up" 460,118 86x16
   el 600,112 200x28
     text label="arrow_sync" "\u{E110}" 608,118 16x16
     text label="arrow_sync" "\u{F190}" 632,116 20x20
@@ -82,11 +82,11 @@ el 0,0 800x924
   el 0,140 200x28
     text label="arrow_trending" "\u{F196}" 8,146 16x16
     text label="arrow_trending" "\u{F197}" 32,144 20x20
-    text "arrow_trending" 60,146 92x16
+    text "arrow_trending" 60,146 91x16
   el 200,140 200x28
     text label="arrow_trending_down" "\u{E119}" 208,146 16x16
     text label="arrow_trending_down" "\u{E11A}" 232,144 20x20
-    text "arrow_trending_down" 260,146 132x16
+    text "arrow_trending_down" 260,146 131x16
   el 400,140 200x28
     text label="arrow_undo" "\u{E126}" 408,146 16x16
     text label="arrow_undo" "\u{F199}" 432,144 20x20
@@ -94,7 +94,7 @@ el 0,0 800x924
   el 600,140 200x28
     text label="arrow_up" "\u{F1B4}" 608,146 16x16
     text label="arrow_up" "\u{F19B}" 632,144 20x20
-    text "arrow_up" 660,146 57x16
+    text "arrow_up" 660,146 56x16
   el 0,168 200x28
     text label="arrow_upload" "\u{E131}" 8,174 16x16
     text label="arrow_upload" "\u{F1A4}" 32,172 20x20
@@ -126,7 +126,7 @@ el 0,0 800x924
   el 600,196 200x28
     text label="checkbox_checked" "\u{F27C}" 608,202 16x16
     text label="checkbox_checked" "\u{F28D}" 632,200 20x20
-    text "checkbox_checked" 660,202 118x16
+    text "checkbox_checked" 660,202 117x16
   el 0,224 200x28
     text label="checkmark" "\u{E305}" 8,230 16x16
     text label="checkmark" "\u{F294}" 32,228 20x20
@@ -166,7 +166,7 @@ el 0,0 800x924
   el 200,280 200x28
     text label="clipboard_paste" "\u{E35A}" 208,286 16x16
     text label="clipboard_paste" "\u{F2D5}" 232,284 20x20
-    text "clipboard_paste" 260,286 98x16
+    text "clipboard_paste" 260,286 97x16
   el 400,280 200x28
     text label="clock" "\u{F2DC}" 408,286 16x16
     text label="clock" "\u{F2DD}" 432,284 20x20
@@ -190,7 +190,7 @@ el 0,0 800x924
   el 600,308 200x28
     text label="cube" "\u{F334}" 608,314 16x16
     text label="cube" "\u{F335}" 632,312 20x20
-    text "cube" 660,314 31x16
+    text "cube" 660,314 30x16
   el 0,336 200x28
     text label="cut" "\u{F038C}" 8,342 16x16
     text label="cut" "\u{F33A}" 32,340 20x20
@@ -198,7 +198,7 @@ el 0,0 800x924
   el 200,336 200x28
     text label="database" "\u{F0D7}" 208,342 16x16
     text label="database" "\u{E466}" 232,340 20x20
-    text "database" 260,342 57x16
+    text "database" 260,342 56x16
   el 400,336 200x28
     text label="delete" "\u{E47B}" 408,342 16x16
     text label="delete" "\u{F34C}" 432,340 20x20
@@ -214,7 +214,7 @@ el 0,0 800x924
   el 200,364 200x28
     text label="document" "\u{E4D7}" 208,370 16x16
     text label="document" "\u{F378}" 232,368 20x20
-    text "document" 260,370 62x16
+    text "document" 260,370 61x16
   el 400,364 200x28
     text label="document_data" "\u{F0DD}" 408,370 16x16
     text label="document_data" "\u{E4F7}" 432,368 20x20
@@ -222,7 +222,7 @@ el 0,0 800x924
   el 600,364 200x28
     text label="document_table" "\u{E54A}" 608,370 16x16
     text label="document_table" "\u{E54B}" 632,368 20x20
-    text "document_table" 660,370 98x16
+    text "document_table" 660,370 97x16
   el 0,392 200x28
     text label="edit" "\u{F3DC}" 8,398 16x16
     text label="edit" "\u{F3DD}" 32,396 20x20
@@ -238,7 +238,7 @@ el 0,0 800x924
   el 600,392 200x28
     text label="eye_off" "\u{E5F4}" 608,398 16x16
     text label="eye_off" "\u{E5F5}" 632,396 20x20
-    text "eye_off" 660,398 45x16
+    text "eye_off" 660,398 44x16
   el 0,420 200x28
     text label="filter" "\u{E60A}" 8,426 16x16
     text label="filter" "\u{F406}" 32,424 20x20
@@ -262,11 +262,11 @@ el 0,0 800x924
   el 200,448 200x28
     text label="folder_open" "\u{F42D}" 208,454 16x16
     text label="folder_open" "\u{F42E}" 232,452 20x20
-    text "folder_open" 260,454 73x16
+    text "folder_open" 260,454 72x16
   el 400,448 200x28
     text label="globe" "\u{E6B1}" 408,454 16x16
     text label="globe" "\u{F45A}" 432,452 20x20
-    text "globe" 460,454 35x16
+    text "globe" 460,454 34x16
   el 600,448 200x28
     text label="history" "\u{E705}" 608,454 16x16
     text label="history" "\u{F47E}" 632,452 20x20
@@ -282,7 +282,7 @@ el 0,0 800x924
   el 400,476 200x28
     text label="key" "\u{E740}" 408,482 16x16
     text label="key" "\u{F4B6}" 432,480 20x20
-    text "key" 460,482 22x16
+    text "key" 460,482 21x16
   el 600,476 200x28
     text label="key_multiple" "\u{F0274}" 608,482 16x16
     text label="key_multiple" "\u{E745}" 632,480 20x20
@@ -350,7 +350,7 @@ el 0,0 800x924
   el 600,588 200x28
     text label="panel_left" "\u{E8AF}" 608,594 16x16
     text label="panel_left" "\u{E8B0}" 632,592 20x20
-    text "panel_left" 660,594 60x16
+    text "panel_left" 660,594 59x16
   el 0,616 200x28
     text label="panel_right" "\u{E8BC}" 8,622 16x16
     text label="panel_right" "\u{E8BD}" 32,620 20x20
@@ -358,7 +358,7 @@ el 0,0 800x924
   el 200,616 200x28
     text label="pause" "\u{F5A0}" 208,622 16x16
     text label="pause" "\u{F5A1}" 232,620 20x20
-    text "pause" 260,622 38x16
+    text "pause" 260,622 37x16
   el 400,616 200x28
     text label="people" "\u{F5A7}" 408,622 16x16
     text label="people" "\u{F5A8}" 432,620 20x20
@@ -374,15 +374,15 @@ el 0,0 800x924
   el 200,644 200x28
     text label="play" "\u{E990}" 208,650 16x16
     text label="play" "\u{F605}" 232,648 20x20
-    text "play" 260,650 26x16
+    text "play" 260,650 25x16
   el 400,644 200x28
     text label="plug_connected" "\u{F0393}" 408,650 16x16
     text label="plug_connected" "\u{E999}" 432,648 20x20
-    text "plug_connected" 460,650 98x16
+    text "plug_connected" 460,650 97x16
   el 600,644 200x28
     text label="plug_disconnected" "\u{F0394}" 608,650 16x16
     text label="plug_disconnected" "\u{F609}" 632,648 20x20
-    text "plug_disconnected" 660,650 116x16
+    text "plug_disconnected" 660,650 115x16
   el 0,672 200x28
     text label="prohibited" "\u{F705}" 8,678 16x16
     text label="prohibited" "\u{F62D}" 32,676 20x20
@@ -398,7 +398,7 @@ el 0,0 800x924
   el 600,672 200x28
     text label="record_stop" "\u{F759}" 608,678 16x16
     text label="record_stop" "\u{F75A}" 632,676 20x20
-    text "record_stop" 660,678 73x16
+    text "record_stop" 660,678 72x16
   el 0,700 200x28
     text label="save" "\u{EA43}" 8,706 16x16
     text label="save" "\u{F67F}" 32,704 20x20
@@ -406,11 +406,11 @@ el 0,0 800x924
   el 200,700 200x28
     text label="search" "\u{EA7C}" 208,706 16x16
     text label="search" "\u{F68F}" 232,704 20x20
-    text "search" 260,706 42x16
+    text "search" 260,706 41x16
   el 400,700 200x28
     text label="select_all_on" "\u{F04B9}" 408,706 16x16
     text label="select_all_on" "\u{EA86}" 432,704 20x20
-    text "select_all_on" 460,706 78x16
+    text "select_all_on" 460,706 77x16
   el 600,700 200x28
     text label="server" "\u{F1DC}" 608,706 16x16
     text label="server" "\u{F769}" 632,704 20x20
@@ -418,7 +418,7 @@ el 0,0 800x924
   el 0,728 200x28
     text label="settings" "\u{F6A8}" 8,734 16x16
     text label="settings" "\u{F6A9}" 32,732 20x20
-    text "settings" 60,734 49x16
+    text "settings" 60,734 48x16
   el 200,728 200x28
     text label="shapes" "\u{F6AC}" 208,734 16x16
     text label="shapes" "\u{F6AD}" 232,732 20x20
@@ -438,7 +438,7 @@ el 0,0 800x924
   el 200,756 200x28
     text label="square_multiple" "\u{EB95}" 208,762 16x16
     text label="square_multiple" "\u{EB96}" 232,760 20x20
-    text "square_multiple" 260,762 97x16
+    text "square_multiple" 260,762 96x16
   el 400,756 200x28
     text label="star" "\u{F70E}" 408,762 16x16
     text label="star" "\u{F70F}" 432,760 20x20
@@ -450,7 +450,7 @@ el 0,0 800x924
   el 0,784 200x28
     text label="subtract" "\u{EBCF}" 8,790 16x16
     text label="subtract" "\u{EBD0}" 32,788 20x20
-    text "subtract" 60,790 51x16
+    text "subtract" 60,790 50x16
   el 200,784 200x28
     text label="table" "\u{EBF4}" 208,790 16x16
     text label="table" "\u{F75D}" 232,788 20x20
@@ -462,7 +462,7 @@ el 0,0 800x924
   el 600,784 200x28
     text label="tag" "\u{EC70}" 608,790 16x16
     text label="tag" "\u{F77C}" 632,788 20x20
-    text "tag" 660,790 20x16
+    text "tag" 660,790 19x16
   el 0,812 200x28
     text label="text_asterisk" "\u{F03A7}" 8,818 16x16
     text label="text_asterisk" "\u{F7A3}" 32,816 20x20
@@ -470,7 +470,7 @@ el 0,0 800x924
   el 200,812 200x28
     text label="text_bullet_list_ltr" "\u{ECD8}" 208,818 16x16
     text label="text_bullet_list_ltr" "\u{ECD9}" 232,816 20x20
-    text "text_bullet_list_ltr" 260,818 106x16
+    text "text_bullet_list_ltr" 260,818 105x16
   el 400,812 200x28
     text label="text_case_title" "\u{ECEC}" 408,818 16x16
     text label="text_case_title" "\u{ECED}" 432,816 20x20
@@ -478,7 +478,7 @@ el 0,0 800x924
   el 600,812 200x28
     text label="text_period_asterisk" "\u{ED4A}" 608,818 16x16
     text label="text_period_asterisk" "\u{ED4A}" 632,816 20x20
-    text "text_period_asterisk" 660,818 123x16
+    text "text_period_asterisk" 660,818 122x16
   el 0,840 200x28
     text label="text_sort_ascending" "\u{ED5A}" 8,846 16x16
     text label="text_sort_ascending" "\u{F802}" 32,844 20x20
@@ -486,7 +486,7 @@ el 0,0 800x924
   el 200,840 200x28
     text label="text_sort_descending" "\u{ED5C}" 208,846 16x16
     text label="text_sort_descending" "\u{F803}" 232,844 20x20
-    text "text_sort_descending" 260,846 131x16
+    text "text_sort_descending" 260,846 130x16
   el 400,840 200x28
     text label="text_t" "\u{ECAE}" 408,846 16x16
     text label="text_t" "\u{ED63}" 432,844 20x20
@@ -498,7 +498,7 @@ el 0,0 800x924
   el 0,868 200x28
     text label="text_wrap" "\u{EF28}" 8,874 16x16
     text label="text_wrap" "\u{ED69}" 32,872 20x20
-    text "text_wrap" 60,874 60x16
+    text "text_wrap" 60,874 59x16
   el 200,868 200x28
     text label="timer" "\u{ED86}" 208,874 16x16
     text label="timer" "\u{ED88}" 232,872 20x20
@@ -510,8 +510,8 @@ el 0,0 800x924
   el 600,868 200x28
     text label="weather_moon" "\u{EE44}" 608,874 16x16
     text label="weather_moon" "\u{F87D}" 632,872 20x20
-    text "weather_moon" 660,874 91x16
+    text "weather_moon" 660,874 90x16
   el 0,896 200x28
     text label="window" "\u{EE5D}" 8,902 16x16
     text label="window" "\u{F8B5}" 32,900 20x20
-    text "window" 60,902 48x16
+    text "window" 60,902 47x16

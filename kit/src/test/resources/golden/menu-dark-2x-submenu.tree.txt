@@ -14,7 +14,7 @@ el 0,0 360x240
       el #table-0 role=listitem label="accounts" 17,49 208x24
         text "accounts" 25,53 56x16
       el #table-1 role=listitem label="customers" 17,73 208x24
-        text "customers" 25,77 65x16
+        text "customers" 25,77 64x16
       el #table-2 role=listitem label="invoices" 17,97 208x24
         text "invoices" 25,101 50x16
       el #table-3 role=listitem label="orders" 17,121 208x24
@@ -49,8 +49,8 @@ overlay bottom start gap 2 on #file role=button label="File" 12,12 48x24
     el #item-1 role=menuitem label="Open…" 17,67 167x24
       el 17,67 167x24
         el 25,79 16x0
-        text "Open…" 49,71 67x16
-        text "Ctrl+O" 136,71 40x16
+        text "Open…" 49,71 66x16
+        text "Ctrl+O" 135,71 41x16
     el 17,93 167x1
     el #item-3 role=menuitem label="Export" 17,96 167x24 current expanded
       el 17,96 167x24
@@ -68,16 +68,16 @@ overlay bottom start gap 2 on #file role=button label="File" 12,12 48x24
         el 25,161 16x0
         text "Close" 49,153 127x16
 overlay right start gap 5 on #item-3 role=menuitem label="Export" 17,96 167x24
-  el #submenu role=menu 189,96 121x82 focused
-    el #subitem-0 role=menuitem label="CSV" 194,101 111x24 current
-      el 194,101 111x24
+  el #submenu role=menu 189,96 120x82 focused
+    el #subitem-0 role=menuitem label="CSV" 194,101 110x24 current
+      el 194,101 110x24
         el 202,113 16x0
-        text "CSV" 226,105 71x16
-    el #subitem-1 role=menuitem label="JSON" 194,125 111x24
-      el 194,125 111x24
+        text "CSV" 226,105 70x16
+    el #subitem-1 role=menuitem label="JSON" 194,125 110x24
+      el 194,125 110x24
         el 202,137 16x0
-        text "JSON" 226,129 71x16
-    el #subitem-2 role=menuitem label="SQL inserts" 194,149 111x24 disabled
-      el 194,149 111x24
+        text "JSON" 226,129 70x16
+    el #subitem-2 role=menuitem label="SQL inserts" 194,149 110x24 disabled
+      el 194,149 110x24
         el 202,161 16x0
-        text "SQL inserts" 226,153 71x16
+        text "SQL inserts" 226,153 70x16

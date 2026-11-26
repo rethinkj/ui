@@ -1846,7 +1846,7 @@ final class Editor {
         s = caretX + caretWidth - width + margin;
       }
       s = Math.clamp(s, 0, lineWidth + caretWidth + margin - width);
-      double grid = scale >= 1.5 ? 4 : 1; // the grid of glyph positions
+      double grid = t.font().wholePixels() ? 1 : 4; // the grid of glyph positions
       s = (float) (Math.round(s * grid) / grid);
     }
     scroll = s / scale;

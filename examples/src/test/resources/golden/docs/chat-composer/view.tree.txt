@@ -2,16 +2,16 @@ el 0,0 580x132
   el 12,12 556x110
     text #field role=textbox label="Ask about your queries" "Explain the sequential scan on orders\nand suggest a composite index." 21,21 538x38 lines 1-2/2
     el #attachments 21,63 538x22
-      el #attachment-0 label="orders.sql" 21,63 100x22
+      el #attachment-0 label="orders.sql" 21,63 102x22
         text label="document" "\u{E4D7}" 29,68 12x12
-        text "orders.sql" 43,67 56x15
-        el #remove role=button label="Remove orders.sql" 101,65 18x18
-          text label="dismiss" "\u{F367}" 104,68 12x12
-      el #attachment-1 label="explain.json" 123,63 112x22
-        text label="document" "\u{E4D7}" 131,68 12x12
-        text "explain.json" 145,67 68x15
-        el #remove role=button label="Remove explain.json" 215,65 18x18
-          text label="dismiss" "\u{F367}" 218,68 12x12
+        text "orders.sql" 43,67 58x15
+        el #remove role=button label="Remove orders.sql" 103,65 18x18
+          text label="dismiss" "\u{F367}" 106,68 12x12
+      el #attachment-1 label="explain.json" 125,63 113x22
+        text label="document" "\u{E4D7}" 133,68 12x12
+        text "explain.json" 147,67 69x15
+        el #remove role=button label="Remove explain.json" 218,65 18x18
+          text label="dismiss" "\u{F367}" 221,68 12x12
     el #bar 21,89 538x24
       el #start 21,89 386x24
         el role=button label="Attach file" 21,89 24x24

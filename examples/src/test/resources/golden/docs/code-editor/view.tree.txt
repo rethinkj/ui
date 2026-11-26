@@ -1,8 +1,8 @@
 el 0,0 520x260
   el 12,12 496x187
     el 13,13 494x40
-      text role=heading "orders.sql" 29,25 70x17 level=3
-      el 107,33 384x0
+      text role=heading "orders.sql" 29,25 68x17 level=3
+      el 105,33 386x0
     text #query role=textbox label="Query" "SELECT id, total\nFROM orders\nWHERE status = 'paid';" 13,53 494x145 lines 1-3/3 squiggle 22-28
       el #rail 13,54 72x144
       el #gutter 13,58 71x128

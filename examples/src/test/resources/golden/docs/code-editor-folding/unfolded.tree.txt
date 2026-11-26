@@ -1,68 +1,68 @@
 el 0,0 520x200
   text #payload role=textbox label="Payload" "{\n  \"id\": 1042,\n  \"customer\": {\n    \"name\": \"Ada Lovelace\",\n    \"region\": \"north\"\n  },\n  \"items\": [\n    {\n      \"sku\": \"A-17\",\n      \"quantity\": 2\n    }\n  ]\n}" 12,12 496x162 lines 1-9/13 thumb-y 499,15 6x111.82 focused caret 31 (3:16)
-    el #rail 13,13 63x160
-    el #gutter 13,17 62x144
-      el #line-0 13,17 62x16
+    el #rail 13,13 64x160
+    el #gutter 13,17 63x144
+      el #line-0 13,17 63x16
         el 19,25 12x0
-        text "1" 35,17 14x16
-        el 53,25 2x0
-        el #fold-line-0 role=button label="Fold" 59,19 12x12
-          text label="chevron_down" "\u{F2A1}" 59,19 12x12
-      el #line-1 13,33 62x16
+        text "1" 35,17 15x16
+        el 54,25 2x0
+        el #fold-line-0 role=button label="Fold" 60,19 12x12
+          text label="chevron_down" "\u{F2A1}" 60,19 12x12
+      el #line-1 13,33 63x16
         el 19,41 12x0
-        text "2" 35,33 14x16
-        el 53,41 2x0
-        el 59,41 12x0
-      el #line-2 13,49 62x16
+        text "2" 35,33 15x16
+        el 54,41 2x0
+        el 60,41 12x0
+      el #line-2 13,49 63x16
         el 19,57 12x0
-        text "3" 35,49 14x16
-        el 53,57 2x0
-        el #fold-line-2 role=button label="Fold" 59,51 12x12
-          text label="chevron_down" "\u{F2A1}" 59,51 12x12
-      el #line-3 13,65 62x16
+        text "3" 35,49 15x16
+        el 54,57 2x0
+        el #fold-line-2 role=button label="Fold" 60,51 12x12
+          text label="chevron_down" "\u{F2A1}" 60,51 12x12
+      el #line-3 13,65 63x16
         el 19,73 12x0
-        text "4" 35,65 14x16
-        el 53,73 2x0
-        el 59,73 12x0
-      el #line-4 13,81 62x16
+        text "4" 35,65 15x16
+        el 54,73 2x0
+        el 60,73 12x0
+      el #line-4 13,81 63x16
         el 19,89 12x0
-        text "5" 35,81 14x16
-        el 53,89 2x0
-        el 59,89 12x0
-      el #line-5 13,97 62x16
+        text "5" 35,81 15x16
+        el 54,89 2x0
+        el 60,89 12x0
+      el #line-5 13,97 63x16
         el 19,105 12x0
-        text "6" 35,97 14x16
-        el 53,105 2x0
-        el 59,105 12x0
-      el #line-6 13,113 62x16
+        text "6" 35,97 15x16
+        el 54,105 2x0
+        el 60,105 12x0
+      el #line-6 13,113 63x16
         el 19,121 12x0
-        text "7" 35,113 14x16
-        el 53,121 2x0
-        el #fold-line-6 role=button label="Fold" 59,115 12x12
-          text label="chevron_down" "\u{F2A1}" 59,115 12x12
-      el #line-7 13,129 62x16
+        text "7" 35,113 15x16
+        el 54,121 2x0
+        el #fold-line-6 role=button label="Fold" 60,115 12x12
+          text label="chevron_down" "\u{F2A1}" 60,115 12x12
+      el #line-7 13,129 63x16
         el 19,137 12x0
-        text "8" 35,129 14x16
-        el 53,137 2x0
-        el #fold-line-7 role=button label="Fold" 59,131 12x12
-          text label="chevron_down" "\u{F2A1}" 59,131 12x12
-      el #line-8 13,145 62x16
+        text "8" 35,129 15x16
+        el 54,137 2x0
+        el #fold-line-7 role=button label="Fold" 60,131 12x12
+          text label="chevron_down" "\u{F2A1}" 60,131 12x12
+      el #line-8 13,145 63x16
         el 19,153 12x0
-        text "9" 35,145 14x16
-        el 53,153 2x0
-        el 59,153 12x0
-      el #line-9 13,161 62x16
+        text "9" 35,145 15x16
+        el 54,153 2x0
+        el 60,153 12x0
+      el #line-9 13,161 63x16
         el 19,169 12x0
-        text "10" 35,161 14x16
-        el 53,169 2x0
-        el 59,169 12x0
-      el #line-10 13,177 62x16
+        text "10" 35,161 15x16
+        el 54,169 2x0
+        el 60,169 12x0
+      el #line-10 13,177 63x16
         el 19,185 12x0
-        text "11" 35,177 14x16
-        el 53,185 2x0
-        el 59,185 12x0
-      el #line-11 13,193 62x16
+        text "11" 35,177 15x16
+        el 54,185 2x0
+        el 60,185 12x0
+      el #line-11 13,193 63x16
         el 19,201 12x0
-        text "12" 35,193 14x16
-        el 53,201 2x0
-        el 59,201 12x0
+        text "12" 35,193 15x16
+        el 54,201 2x0
+        el 60,201 12x0

@@ -5,15 +5,15 @@ el 0,0 720x160
         el 8,12 16x16
           el 9,13 14x14
             text "\u{F0D7}" 11,15 10x10
-      text "Workbench" 32,12 72x16
-      el 104,20 78x0
-      el role=button label="Search commands" 182,8 259x24
+      text "Workbench" 32,12 71x16
+      el 103,20 79x0
+      el role=button label="Search commands" 182,8 258x24
         text label="search" "\u{EA7C}" 191,12 16x16
         text "Search commands" 215,12 114x16
-        el 337,8 95x24
+        el 337,8 94x24
           el 337,8 0x24
-          text "Ctrl+Shift+P" 361,13 71x15
-      el 441,20 77x0
+          text "Ctrl+Shift+P" 361,13 70x15
+      el 440,20 78x0
     el 518,20 24x0
     el 542,0 40x40
       el 542,8 24x24
@@ -28,34 +28,34 @@ el 0,0 720x160
       text label="dismiss" "\u{F367}" 691,14 12x12
   el 0,40 720x91
   el role=status label="Status bar" 0,131 720x29
-    el 8,134 241x24
-      el role=group label="Connection" 8,134 159x24
-        el label="localhost" 8,134 79x24 value="ok"
+    el 8,134 245x24
+      el role=group label="Connection" 8,134 162x24
+        el label="localhost" 8,134 80x24 value="ok"
           el 12,138 16x16
             el 14,140 12x12
               el 16,142 8x8
-          text "localhost" 32,139 51x15
-        el label="shop · public" 89,134 78x24
-          text "shop · public" 93,139 70x15
-      el role=separator 171,138 1x16
-      el label="prod-eu" 176,134 73x24 value="error"
-        text label="error_circle" "\u{F3F0}" 180,138 16x16
-        text "prod-eu" 200,139 45x15
-    el 251,134 234x24
-      el 251,134 0x24
-      el 251,134 234x24
-        el role=separator 253,138 1x16
-        el label="20 rows in 48 ms" 258,134 124x24
-          text label="checkmark_circle" "\u{F297}" 262,138 16x16
-          text "20 rows in 48 ms" 282,139 96x15
-    el 487,134 225x24
-      el label="3 changes" 487,134 86x24
-        text label="edit" "\u{F3DC}" 491,138 16x16
-        text "3 changes" 511,139 58x15
-      el role=separator 577,138 1x16
-      el role=group label="Caret" 582,134 130x24
-        el label="Ln 3, Col 9" 582,134 67x24
-          text "Ln 3, Col 9" 586,139 59x15
+          text "localhost" 32,139 52x15
+        el label="shop · public" 90,134 80x24
+          text "shop · public" 94,139 72x15
+      el role=separator 174,138 1x16
+      el label="prod-eu" 179,134 74x24 value="error"
+        text label="error_circle" "\u{F3F0}" 183,138 16x16
+        text "prod-eu" 203,139 46x15
+    el 255,134 227x24
+      el 255,134 0x24
+      el 255,134 227x24
+        el role=separator 257,138 1x16
+        el label="20 rows in 48 ms" 262,134 126x24
+          text label="checkmark_circle" "\u{F297}" 266,138 16x16
+          text "20 rows in 48 ms" 286,139 98x15
+    el 484,134 228x24
+      el label="3 changes" 484,134 87x24
+        text label="edit" "\u{F3DC}" 488,138 16x16
+        text "3 changes" 508,139 59x15
+      el role=separator 575,138 1x16
+      el role=group label="Caret" 580,134 132x24
+        el label="Ln 3, Col 9" 580,134 69x24
+          text "Ln 3, Col 9" 584,139 61x15
         el role=button label="UTF-8" 651,134 61x24 expanded=false
           text "UTF-8" 655,139 37x15
           text label="chevron_down" "\u{F2A1}" 696,140 12x12

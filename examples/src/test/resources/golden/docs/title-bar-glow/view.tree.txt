@@ -5,14 +5,14 @@ el 0,0 640x200
         el 8,12 16x16
           el 9,13 14x14
             text "\u{F0D7}" 11,15 10x10
-      text "shop — staging" 32,12 95x16
-      el 127,20 26x0
-      el role=button label="Search commands" 153,8 259x24
-        text label="search" "\u{EA7C}" 162,12 16x16
-        text "Search commands" 186,12 114x16
-        el 308,8 95x24
-          el 308,8 0x24
-          text "Ctrl+Shift+P" 332,13 71x15
+      text "shop — staging" 32,12 96x16
+      el 128,20 26x0
+      el role=button label="Search commands" 154,8 258x24
+        text label="search" "\u{EA7C}" 163,12 16x16
+        text "Search commands" 187,12 114x16
+        el 309,8 94x24
+          el 309,8 0x24
+          text "Ctrl+Shift+P" 333,13 70x15
       el 412,20 26x0
     el 438,20 24x0
     el 462,0 40x40

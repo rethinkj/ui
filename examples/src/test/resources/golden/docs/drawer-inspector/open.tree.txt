@@ -1,8 +1,8 @@
 el 0,0 640x360
-  text "Order #1042 — Ada Lovelace" 12,12 181x16
-  el role=button label="Inspect" 12,36 93x24
+  text "Order #1042 — Ada Lovelace" 12,12 179x16
+  el role=button label="Inspect" 12,36 92x24
     text label="panel_right" "\u{E8BC}" 25,40 16x16
-    text "Inspect" 45,40 47x16
+    text "Inspect" 45,40 46x16
 overlay edge right stretch on 0,0 640x360
   el #drawer role=dialog label="Order #1042" 280,0 360x360
     el #drawer-content 293,48 341x306
@@ -28,7 +28,7 @@ overlay edge right stretch on 0,0 640x360
             text "Status" 297,152 61x16
           text role=textbox "paid" 366,148 258x24 readonly
     el 297,16 327x24
-      text role=heading label="Order #1042" "Order #1042" 297,19 96x19 level=2
-      el 401,28 191x0
+      text role=heading label="Order #1042" "Order #1042" 297,19 94x19 level=2
+      el 399,28 193x0
       el #close role=button label="Close" 600,16 24x24 focused
         text label="dismiss" "\u{F368}" 604,20 16x16

@@ -132,7 +132,8 @@ class GridIconsTest {
     orders.widths[4] = 160;
     App<Orders> app = start(orders);
     El status = find(app, "column-4");
-    assertEquals(natural(type(status)), type(status).width(), "160 pixels: all of it shows");
+    assertEquals(
+        Math.round(natural(type(status))), type(status).width(), "160 pixels: all of it shows");
     assertFalse(title(status).text().shortened());
 
     orders.widths[4] = 90;

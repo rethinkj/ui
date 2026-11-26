@@ -5,10 +5,10 @@ el 0,0 640x360
         el 8,8 16x16
           el 9,9 14x14
             text "\u{E4D7}" 11,11 10x10
-      text "Documents" 32,8 72x16
-      el #menubar role=menubar 112,4 38x24
-        el #title-0 role=menuitem label="File" 112,4 38x24 expanded=false
-          text "File" 120,8 22x16
+      text "Documents" 32,8 70x16
+      el #menubar role=menubar 110,4 38x24
+        el #title-0 role=menuitem label="File" 110,4 38x24 expanded=false
+          text "File" 118,8 22x16
     el 438,16 24x0
     el 462,0 40x32
       el 462,4 24x24
@@ -24,49 +24,49 @@ el 0,0 640x360
   el #tabs 0,32 640x328
     el 8,32 624x320
       el #bar 9,33 622x33
-        el #tablist role=tablist 11,33 598x32
+        el #tablist role=tablist 11,33 594x32
           el #tab-0 role=tab label="Query" 11,33 94x32
             text label="document" "\u{E4D7}" 19,41 16x16
             text "Query" 39,41 38x16
             el #close-0 role=button label="Close Query" 81,41 16x16
               text label="dismiss" "\u{F368}" 81,41 16x16
-          el #tab-1 role=tab label="Todo" 107,33 87x32
+          el #tab-1 role=tab label="Todo" 107,33 86x32
             text label="document" "\u{E4D7}" 115,41 16x16
-            text "Todo" 135,41 31x16
-            el #close-1 role=button label="Close Todo" 170,41 16x16
-              text label="dismiss" "\u{F368}" 170,41 16x16
-          el #tab-2 role=tab label="Readme" 196,33 106x32
-            text label="document" "\u{E4D7}" 204,41 16x16
-            text "Readme" 224,41 50x16
-            el #close-2 role=button label="Close Readme" 278,41 16x16
-              text label="dismiss" "\u{F368}" 278,41 16x16
-          el #tab-3 role=tab label="Ideas" 304,33 89x32
-            text label="document" "\u{E4D7}" 312,41 16x16
-            text "Ideas" 332,41 33x16
+            text "Todo" 135,41 30x16
+            el #close-1 role=button label="Close Todo" 169,41 16x16
+              text label="dismiss" "\u{F368}" 169,41 16x16
+          el #tab-2 role=tab label="Readme" 195,33 106x32
+            text label="document" "\u{E4D7}" 203,41 16x16
+            text "Readme" 223,41 50x16
+            el #close-2 role=button label="Close Readme" 277,41 16x16
+              text label="dismiss" "\u{F368}" 277,41 16x16
+          el #tab-3 role=tab label="Ideas" 303,33 90x32
+            text label="document" "\u{E4D7}" 311,41 16x16
+            text "Ideas" 331,41 34x16
             el #close-3 role=button label="Close Ideas" 369,41 16x16
               text label="dismiss" "\u{F368}" 369,41 16x16
-          el #tab-4 role=tab label="Notes" 395,33 93x32
+          el #tab-4 role=tab label="Notes" 395,33 91x32
             text label="document" "\u{E4D7}" 403,41 16x16
-            text "Notes" 423,41 37x16
-            el #close-4 role=button label="Close Notes" 464,41 16x16
-              text label="dismiss" "\u{F368}" 464,41 16x16
-          el #tab-5 role=tab label="orders.sql" 490,33 119x32 selected
-            el 490,63 119x2
-            text label="document" "\u{E4D7}" 498,41 16x16
-            text "orders.sql" 518,41 63x16
-            el #close-5 role=button label="Close orders.sql" 585,41 16x16
-              text label="dismiss" "\u{F368}" 585,41 16x16
-        el #room 609,49 20x0
+            text "Notes" 423,41 35x16
+            el #close-4 role=button label="Close Notes" 462,41 16x16
+              text label="dismiss" "\u{F368}" 462,41 16x16
+          el #tab-5 role=tab label="orders.sql" 488,33 117x32 selected
+            el 488,63 117x2
+            text label="document" "\u{E4D7}" 496,41 16x16
+            text "orders.sql" 516,41 61x16
+            el #close-5 role=button label="Close orders.sql" 581,41 16x16
+              text label="dismiss" "\u{F368}" 581,41 16x16
+        el #room 605,49 24x0
       el #panel role=tabpanel label="orders.sql" 9,66 622x285
         el #content-4 9,66 622x285
           el 9,66 622x285
             text #text role=textbox label="orders.sql" placeholder="Empty" "SELECT id, customer, total\nFROM orders\nWHERE placed > now() - interval '7 days'\nORDER BY total DESC;\n" 21,78 598x261 lines 1-5/5 hovered
 overlay edge bottom center gap 16 on 0,0 640x360
-  el #toasts 162,314 316x30
-    el #toast-1 role=status label="Cannot open missing.md: it is not there" 162,314 316x30
-      el 175,321 268x16
-        text label="error_circle" "\u{F3F0}" 175,321 16x16
-        text "Cannot open missing.md: it is not there" 199,321 244x16
-      el #buttons 451,317 24x24
-        el #close-1 role=button label="Close" 451,317 24x24
-          text label="dismiss" "\u{F368}" 455,321 16x16
+  el #toasts 165,314 310x30
+    el #toast-1 role=status label="Cannot open missing.md: it is not there" 165,314 310x30
+      el 178,321 262x16
+        text label="error_circle" "\u{F3F0}" 178,321 16x16
+        text "Cannot open missing.md: it is not there" 202,321 238x16
+      el #buttons 448,317 24x24
+        el #close-1 role=button label="Close" 448,317 24x24
+          text label="dismiss" "\u{F368}" 452,321 16x16

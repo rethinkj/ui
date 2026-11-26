@@ -24,7 +24,7 @@ el 0,0 460x260
               text label="chevron_down" "\u{F2A2}" 4,29 16x16
             text label="database" "\u{F0D7}" 24,29 16x16
             text "shop" 44,29 30x15
-            text "database" 78,29 57x15
+            text "database" 78,29 56x15
           el 219,25 1x23
           el #cell-0-1 role=gridcell 220,25 99x23 pos=2/3
             text "5,570,000" 250,29 65x16
@@ -65,7 +65,7 @@ el 0,0 460x260
             el 12,97 1x23
             el 28,97 16x23
             text label="table" "\u{EBF4}" 48,101 16x16
-            text "customers" 68,101 65x15
+            text "customers" 68,101 64x15
           el 219,97 1x23
           el #cell-3-1 role=gridcell 220,97 99x23 pos=2/3
             text "50,000" 272,101 43x16
@@ -126,7 +126,7 @@ el 0,0 460x260
               el 48,197 16x16
               el 48,197 16x16
               el 48,197 16x16
-            text "Loading…" 68,197 61x15
+            text "Loading…" 68,197 60x15
           el 219,193 1x23
           el #cell-7-1 role=gridcell 220,193 99x23 pos=2/3
           el 319,193 1x23

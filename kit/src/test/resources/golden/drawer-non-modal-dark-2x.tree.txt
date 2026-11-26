@@ -5,10 +5,10 @@ el 0,0 640x360
         text role=heading "Connections" 29,29 582x17 level=3
         text "Primary clusters and replicas" 29,48 582x16
     el 29,76 582x24
-      el #open role=button label="Open drawer" 29,76 107x24
-        text "Open drawer" 42,80 81x15
-      el #count role=button label="Count" 144,76 63x24
-        text "Count" 157,80 37x15
+      el #open role=button label="Open drawer" 29,76 106x24
+        text "Open drawer" 42,80 80x15
+      el #count role=button label="Count" 143,76 63x24
+        text "Count" 156,80 37x15
     text #note role=textbox label="Note" "" 29,112 200x24
 overlay edge right stretch on 0,0 640x360
   el #drawer role=dialog label="Order #1042" 280,0 360x360
@@ -35,7 +35,7 @@ overlay edge right stretch on 0,0 640x360
             text "Status" 297,152 61x16
           text role=textbox "paid" 366,148 258x24 readonly
     el 297,16 327x24
-      text role=heading label="Order #1042" "Order #1042" 297,18 96x20 level=2
-      el 401,28 191x0
+      text role=heading label="Order #1042" "Order #1042" 297,18 94x20 level=2
+      el 399,28 193x0
       el #close role=button label="Close" 600,16 24x24 focused
         text label="dismiss" "\u{F368}" 604,20 16x16

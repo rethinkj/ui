@@ -1,16 +1,16 @@
 el 0,0 360x240
   el #titlebar window=drag 0,0 360x32
     text label="database" "\u{F0D7}" 8,8 16x16
-    el #menubar role=menubar 28,4 167x24
-      el #title-0 role=menuitem label="File" 28,4 38x24 expanded
-        text "File" 36,8 22x16
-      el #title-1 role=menuitem label="Edit" 66,4 39x24 expanded=false
-        text "Edit" 74,8 23x16
-      el #title-2 role=menuitem label="View" 105,4 46x24 expanded=false
-        text "View" 113,8 30x16
-      el #title-3 role=menuitem label="Help" 151,4 44x24 expanded=false
-        text "Help" 159,8 28x16
-    el 199,16 73x0
+    el #menubar role=menubar 28,4 166x24
+      el #title-0 role=menuitem label="File" 28,4 37x24 expanded
+        text "File" 36,8 21x16
+      el #title-1 role=menuitem label="Edit" 65,4 39x24 expanded=false
+        text "Edit" 73,8 23x16
+      el #title-2 role=menuitem label="View" 104,4 46x24 expanded=false
+        text "View" 112,8 30x16
+      el #title-3 role=menuitem label="Help" 150,4 44x24 expanded=false
+        text "Help" 158,8 28x16
+    el 198,16 74x0
     el #minimize role=button label="Minimize" window=minimize 276,0 40x32
       text label="subtract" "\u{EBCF}" 288,8 16x16
     el #close role=button label="Close" window=close 320,0 40x32
@@ -18,7 +18,7 @@ el 0,0 360x240
   el 0,32 360x208
     text #query role=textbox label="Query" "SELECT * FROM orders" 12,44 336x24
     text #status "Ready · wrap" 12,76 336x16
-overlay bottom start gap 2 on #title-0 role=menuitem label="File" 28,4 38x24
+overlay bottom start gap 2 on #title-0 role=menuitem label="File" 28,4 37x24
   el #menu role=menu 28,30 177x164 focused
     el #item-0 role=menuitem label="New query" 33,35 167x24
       el 33,35 167x24
@@ -30,8 +30,8 @@ overlay bottom start gap 2 on #title-0 role=menuitem label="File" 28,4 38x24
       el 33,59 167x24
         el 41,63 16x16
           text label="folder_open" "\u{F42D}" 41,63 16x16
-        text "Open…" 65,63 67x16
-        text "Ctrl+O" 152,63 40x16
+        text "Open…" 65,63 66x16
+        text "Ctrl+O" 151,63 41x16
     el #item-2 role=menuitem label="Save" 33,83 167x24
       el 33,83 167x24
         el 41,87 16x16
@@ -48,10 +48,10 @@ overlay bottom start gap 2 on #title-0 role=menuitem label="File" 28,4 38x24
     el #item-6 role=menuitem label="Close" 33,141 167x24 disabled
       el 33,141 167x24
         el 41,153 16x0
-        text "Close" 65,145 65x16
-        text "Ctrl+W" 150,145 42x16
+        text "Close" 65,145 64x16
+        text "Ctrl+W" 149,145 43x16
     el #item-7 role=menuitem label="Quit" 33,165 167x24
       el 33,165 167x24
         el 41,177 16x0
-        text "Quit" 65,169 67x16
-        text "Ctrl+Q" 152,169 40x16
+        text "Quit" 65,169 66x16
+        text "Ctrl+Q" 151,169 41x16

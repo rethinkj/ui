@@ -192,8 +192,8 @@ class CaretTest {
     completing = true;
     type(app, "n");
     El list = app.tree().shownOverlays().getFirst();
-    // The caret after 8 characters at 14 + 64, its row from 14 to 32.
-    assertEquals(14 + 64, list.x());
+    // The caret after 8 characters of 8.5 at 14 + 68, its row from 14 to 32.
+    assertEquals(14 + 68, list.x());
     assertEquals(14 + 18, list.y());
     assertEquals("SELECT n|", show(app), "the field kept the focus");
     key(app, "Enter");
