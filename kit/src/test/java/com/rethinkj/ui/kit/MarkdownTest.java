@@ -501,6 +501,21 @@ class MarkdownTest {
     run(app, "press role=menuitem label=\"Copy link\"\nframe\nadvance 1\nframe");
     assertEquals("#guide", app.clipboard().read());
 
+    // Secondary press, Menu key and Shift+F10 on the # anchor itself also open the menu.
+    app.clipboard().write("");
+    tree = run(app, "press role=link label=\"Guide\" right\nframe\nadvance 1\nframe");
+    assertEquals("Copy-, Select all, Copy link", menuItems(tree), tree);
+    run(app, "press role=menuitem label=\"Copy link\"\nframe\nadvance 1\nframe");
+    assertEquals("#guide", app.clipboard().read());
+
+    app.clipboard().write("");
+    tree = run(app, "key Tab\nframe\nkey ContextMenu\nframe\nadvance 1\nframe");
+    assertEquals("Copy-, Select all, Copy link", menuItems(tree), tree);
+    run(app, "key Escape\nframe\nkey F10 shift\nframe\nadvance 1\nframe");
+    assertEquals("Copy-, Select all, Copy link", menuItems(run(app, "frame")), tree);
+    run(app, "press role=menuitem label=\"Copy link\"\nframe\nadvance 1\nframe");
+    assertEquals("#guide", app.clipboard().read());
+
     App<Doc> linked = app("# See [spec](https://example.com)");
     tree = run(linked, "frame\npress role=link label=\"spec\" right\nframe\nadvance 1\nframe");
     assertEquals(
@@ -519,6 +534,113 @@ class MarkdownTest {
     assertFalse(tree.contains("label=\"Guide\""), tree);
     tree = run(plain, "press #heading-guide right\nframe\nadvance 1\nframe");
     assertEquals("Copy-, Select all", menuItems(tree), tree);
+  }
+
+  @Test
+  void aHeadingAnchorDoesNotCoverAnInlineLinkAtTheRightEdge() throws IOException {
+    String source = "## Configure [the connection](https://example.com)";
+    App<Doc> app = app(source);
+    app.textRendering(TextRendering.LINUX);
+    // Narrow width so the last row runs up to the right edge and ends in the inline link.
+    Script.run("size 160 240\nframe\nsnap s\n", app, out);
+    String tree = Files.readString(out.resolve("s.tree.txt"));
+    float[] heading = bounds(tree, "#heading-configure-the-connection");
+    float[] link = bounds(tree, "role=link label=\"the connection\"");
+    assertTrue(
+        heading[0] + heading[2] - (link[0] + link[2]) < 8,
+        "link ends at the heading's right edge:\n" + tree);
+
+    // The press reaches the link; the anchor is still there after it: Tab reaches it, and the
+    // Menu key opens Copy link.
+    Script.run("""
+        size 160 240
+        press role=link label="the connection" at right-2,bottom-2
+        frame
+        key Tab
+        frame
+        snap f
+        key ContextMenu
+        frame
+        advance 1
+        frame
+        snap m
+        """, app, out);
+    assertEquals(List.of("https://example.com"), app.state().links);
+    String focused = Files.readString(out.resolve("f.tree.txt"));
+    assertTrue(line(focused, "#anchor").contains(" focused"), focused);
+    String menu = Files.readString(out.resolve("m.tree.txt"));
+    assertEquals("Copy-, Select all, Copy link", menuItems(menu), menu);
+
+    // Without onLink, the heading lays out to the exact same height (anchor takes no room).
+    MarkdownDocument parsed = Markdown.parse(source);
+    App<Object> plain = new App<>(
+        new Object(),
+        ignored -> col()
+            .wFull()
+            .hFull()
+            .child(Markdown.markdown(parsed, Markdown.options()).grow(1)));
+    plain.textRendering(TextRendering.LINUX);
+    Script.run("size 160 240\nframe\nsnap p\n", plain, out);
+    float[] plainHeading =
+        bounds(Files.readString(out.resolve("p.tree.txt")), "#heading-configure-the-connection");
+    assertEquals(plainHeading[3], heading[3], 0.5f);
+  }
+
+  @Test
+  void anImageOnlyHeadingOffersCopyLinkInItsContextMenu() throws IOException {
+    String source = "# [![Logo](logo.png)](https://logo.example.com)\n\n### ![Badge](badge.png)";
+    App<Doc> app = app(source);
+    app.state().images.put("logo.png", picture(50, 20));
+    app.state().images.put("badge.png", picture(40, 20));
+
+    // Secondary press on the image heading opens Copy link and copies #<id>.
+    String tree = run(app, "frame\npress #heading-logo right\nframe\nadvance 1\nframe");
+    assertEquals("Copy link", menuItems(tree), tree);
+    run(app, "press role=menuitem label=\"Copy link\"\nframe\nadvance 1\nframe");
+    assertEquals("#logo", app.clipboard().read());
+
+    // Secondary press on the # anchor of a level 3 image heading also copies its link.
+    app.clipboard().write("");
+    tree =
+        run(app, "press role=link label=\"Badge\" value=\"#badge\" right\nframe\nadvance 1\nframe");
+    assertEquals("Copy link", menuItems(tree), tree);
+    run(app, "press role=menuitem label=\"Copy link\"\nframe\nadvance 1\nframe");
+    assertEquals("#badge", app.clipboard().read());
+
+    // Menu key and Shift+F10 on the focused # anchor open Copy link too.
+    app.clipboard().write("");
+    tree = run(app, "key Tab\nkey Tab\nframe\nkey ContextMenu\nframe\nadvance 1\nframe");
+    assertEquals("Copy link", menuItems(tree), tree);
+    run(app, "key Escape\nframe\nkey F10 shift\nframe\nadvance 1\nframe");
+    assertEquals("Copy link", menuItems(run(app, "frame")), tree);
+    run(app, "press role=menuitem label=\"Copy link\"\nframe\nadvance 1\nframe");
+    assertEquals("#logo", app.clipboard().read());
+
+    // Without onLink or without copy, no context menu opens on an image-only heading.
+    MarkdownDocument parsed = Markdown.parse(source);
+    Map<String, com.rethinkj.ui.Image> images =
+        Map.of("logo.png", picture(50, 20), "badge.png", picture(40, 20));
+    App<Object> noLink = new App<>(
+        new Object(),
+        ignored -> col()
+            .wFull()
+            .hFull()
+            .child(Markdown.markdown(
+                    parsed, Markdown.options().images(images::get).copy(Clipboard.inMemory()))
+                .grow(1)));
+    tree = run(noLink, "frame\npress #heading-logo right\nframe\nadvance 1\nframe");
+    assertEquals("", menuItems(tree), tree);
+
+    App<Object> noCopy = new App<>(
+        new Object(),
+        ignored -> col()
+            .wFull()
+            .hFull()
+            .child(
+                Markdown.markdown(parsed, Markdown.options().images(images::get).onLink(u -> {}))
+                    .grow(1)));
+    tree = run(noCopy, "frame\npress #heading-logo right\nframe\nadvance 1\nframe");
+    assertEquals("", menuItems(tree), tree);
   }
 
   private static El anchorGlyph(App<Doc> app) {

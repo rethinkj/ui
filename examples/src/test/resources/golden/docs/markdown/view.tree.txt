@@ -4,9 +4,9 @@ el 0,0 520x320
       el 37,37 446x44 pos=1/3
         el 37,37 446x36
           text #heading-orders role=heading "Orders" 37,37 446x35 readonly level=1 lines 1-1/1
+            el #anchor role=link label="Orders" 122,37 21x31 value="#orders"
+              text "#" 126,37 17x31
           el role=separator 37,72 446x1
-          el role=link label="Orders" 466,37 17x31 value="#orders"
-            text "#" 466,37 17x31
       el 37,81 446x29 pos=2/3
         text role=paragraph "Each order belongs to a customer. See customers." 37,81 446x17 readonly lines 1-1/1
           el #link-0 role=link label="customers" 294,81 67x17 value="#customers"

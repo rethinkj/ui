@@ -89,9 +89,9 @@ el 0,0 960x640
         el 281,-147 646x61 pos=31/39
           el 281,-123 646x29
             text #heading-tables role=heading "Tables" 281,-123 646x28 readonly level=2 lines 1-1/1
+              el #anchor role=link label="Tables" 344.88,-123 17x24 value="#tables"
+                text "#" 348.88,-123 13x24
             el role=separator 281,-95 646x1
-            el role=link label="Tables" 914,-123 13x24 value="#tables"
-              text "#" 914,-123 13x24
         el 281,-86 646x143 pos=32/39
           el 281,-86 646x131
             el role=table 281,-86 293x131
@@ -141,9 +141,9 @@ el 0,0 960x640
         el 281,57 646x61 pos=33/39
           el 281,81 646x29
             text #heading-images role=heading "Images" 281,81 646x28 readonly level=2 lines 1-1/1
+              el #anchor role=link label="Images" 351.38,81 17x24 value="#images"
+                text "#" 355.38,81 13x24
             el role=separator 281,109 646x1
-            el role=link label="Images" 914,81 13x24 value="#images"
-              text "#" 914,81 13x24
         el 281,118 646x63 pos=34/39
           text role=paragraph "An image alone in its paragraph stands as a block, as large as its pixels and at most as wide as the" … "the description until an image is there." length 265 281,118 646x51 readonly lines 1-1/1
         el 281,181 646x236 pos=35/39

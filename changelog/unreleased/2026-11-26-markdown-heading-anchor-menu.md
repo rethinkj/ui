@@ -1,0 +1,1 @@
+- Fixed: a `Markdown` heading's `#` anchor now sits after the heading's text on its last row instead of covering an inline link at the right edge, and the context menu with *Copy link* now opens on the `#` anchor itself (by secondary press, Menu key or Shift+F10) as well as on image-only headings.

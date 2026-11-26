@@ -65,8 +65,9 @@ import java.util.function.Function;
  * Enter; it hands its destination to {@link Options#onLink}. Headings have the key {@code
  * heading-<id>} with GitHub's anchor as the id ({@link MarkdownDocument.Heading#id}), so that the
  * app finds one to scroll to for a link {@code #id}; with {@link Options#onLink}, a heading shows
- * a muted {@code #} anchor at its right edge on its last row under the pointer (or when focused),
- * labeled by the heading's text, whose press hands {@code #<id>} to {@link Options#onLink}.
+ * a muted {@code #} anchor after its text on its last row (at the right edge on an image-only
+ * heading) under the pointer (or when focused), labeled by the heading's text, whose press hands
+ * {@code #<id>} to {@link Options#onLink}.
  *
  * <p>Code blocks are in the mono type on the raised surface, scroll sideways unless wrapped, and
  * are colored by the highlighter {@link Options#languages} gives for their language. A slim header
@@ -675,6 +676,8 @@ public final class Markdown {
     final Map<Float, Map<Object, Float>> columns = new HashMap<>();
     // The natural and longest-word column widths of tables, by what they were measured for.
     final Map<Measured, Map<MarkdownDocument.Table, TableWidths>> tables = new HashMap<>();
+    // Open state of an image-only heading's context menu, per Heading instance.
+    final Map<MarkdownDocument.Heading, Menu.State> headingMenus = new IdentityHashMap<>();
     final List<Unit> units;
     final RowHeights heights;
     final RowHeights blockHeights; // the rows of a virtual fragment: its blocks
@@ -742,7 +745,13 @@ public final class Markdown {
 
   private static void takeOver(Block block, Prepared old, Prepared target) {
     switch (block) {
-      case MarkdownDocument.Heading h -> copyPiece(h, old, target);
+      case MarkdownDocument.Heading h -> {
+        copyPiece(h, old, target);
+        Menu.State menu = old.headingMenus.get(h);
+        if (menu != null) {
+          target.headingMenus.put(h, menu);
+        }
+      }
       case MarkdownDocument.Paragraph p -> {
         copyPiece(p, old, target);
         copyPiece(p.content(), old, target);
@@ -1429,17 +1438,18 @@ public final class Markdown {
     Theme.TextStyle style = theme.prose().headings().get(h.level() - 1);
     String destination = "#" + h.id();
     List<Picture> pictures = c.options.images == null ? List.of() : imagesOnly(h.content());
+    boolean imagesOnly = !pictures.isEmpty();
+    List<Menu.Item> copyLink = c.options.onLink != null && c.options.clipboard != null
+        ? List.of(
+            Menu.item(Texts.CURRENT.get().copyLink(), () -> c.options.clipboard.write(destination)))
+        : List.of();
     El content;
-    if (!pictures.isEmpty()) {
+    if (imagesOnly) {
       content = imageRow(c, pictures);
     } else {
       int color =
           h.level() == 6 && c.color == theme.text().primary() ? theme.text().muted() : c.color;
-      List<Menu.Item> extra = c.options.onLink != null && c.options.clipboard != null
-          ? List.of(Menu.item(
-              Texts.CURRENT.get().copyLink(), () -> c.options.clipboard.write(destination)))
-          : List.of();
-      content = field(c, piece(c, h, h.content(), true), style, color, extra);
+      content = field(c, piece(c, h, h.content(), true), style, color, copyLink);
     }
     content.role("heading").level(h.level()).key("heading-" + h.id());
     if (h.level() <= 2) {
@@ -1450,7 +1460,6 @@ public final class Markdown {
     if (c.options.onLink == null) {
       return box;
     }
-    // At the right edge on the last row: an element out of its parent's box is not hit there.
     // The glyph fades, not the link: an element at opacity 0 is neither hit nor reached by Tab.
     El glyph = El.text("#")
         .font(style.font().get())
@@ -1459,14 +1468,31 @@ public final class Markdown {
         .opacity(0)
         .motion(theme.motion().feedback());
     El anchor = link(c, MarkdownDocument.plainText(h.content()), destination)
+        .key("anchor") // a line end without a key gets one when placed, and a new identity again
         .child(glyph)
         .whenFocused(e -> glyph.opacity(1));
+    if (!imagesOnly) {
+      // After the text on its last row, where it takes no room and covers no link, and inside the
+      // field, whose menu with Copy link opens on it too.
+      int last = (int) content.text().string().chars().filter(ch -> ch == '\n').count();
+      // Its own padding stands in for the gap lineEnds leaves before it (4 px), which drops an
+      // element that starts past the edge: so a row that ends just short of it keeps the anchor.
+      anchor.margin(0, 0, 0, -4).padding(0, 0, 0, 4);
+      content.lineEnds(line -> line == last ? List.of(anchor) : null);
+      return box.whenHovered(e -> glyph.opacity(1));
+    }
     anchor.style().position = Style.Position.ABSOLUTE;
     anchor.style().right = Len.ZERO;
     anchor.style().bottom =
         Len.px(h.level() > 2 ? 0 : theme.space().s() + theme.size().stroke());
     El out = h.level() > 2 ? col().child(content) : box;
-    return out.child(anchor).whenHovered(e -> glyph.opacity(1));
+    out.child(anchor).whenHovered(e -> glyph.opacity(1));
+    if (!copyLink.isEmpty()) {
+      // No field, so the heading has a menu of its own.
+      Menu.State state = c.prepared.headingMenus.computeIfAbsent(h, ignored -> new Menu.State());
+      Menu.contextMenu(out, state, copyLink);
+    }
+    return out;
   }
 
   private static El paragraph(Context c, MarkdownDocument.Paragraph p) {
