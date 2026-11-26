@@ -7,6 +7,7 @@ import static com.rethinkj.ui.El.row;
 import com.rethinkj.ui.Clipboard;
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
+import com.rethinkj.ui.FieldMenu;
 import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
@@ -47,10 +48,13 @@ import java.util.function.Function;
  * drag—or Shift+press—selects across blocks, including rows out of view, and Control+C copies the
  * selected text of all of them in order with a line break between blocks; Tab passes the fields by
  * ({@link El#skipTab}) and reaches the links. Control+A selects the whole document, which then
- * shows as selected, and Control+C copies all of it as text ({@link #text}); a press anywhere or
- * Escape ends that. {@link #fragment} marks its column as a selection scope too, and several
+ * shows as selected, and Control+C copies all of it as text ({@link #text}); a press on the text
+ * or outside the document, or Escape, ends that, while a secondary press for its menu and one on
+ * its scrollbar keep it, as in a browser. {@link #fragment} marks its column as a selection scope too, and several
  * fragments in one container (such as a list of chat messages) join into one selection when the
- * app marks the container {@link El#selectionScope}.
+ * app marks the container {@link El#selectionScope}. A secondary press, the Menu key or Shift+F10
+ * opens a context menu ({@link El#fieldMenu}) with Copy and Select all on text, Open link and Copy
+ * link address on a link, and Copy code on a code block, omitting items whose option is not set.
  *
  * <p>A link is an element over its range of the text ({@link El#range}): {@code role=link} with
  * its text as the label, its title (if it has one) as its tooltip, in {@link Theme.Prose#link} and
@@ -183,7 +187,10 @@ public final class Markdown {
       return this;
     }
 
-    /** Copying: a copy button on code blocks, and Control+C after Control+A, go here. */
+    /**
+     * Copying: a copy button and context-menu Copy code on code blocks, Copy link address on links,
+     * and Control+C / Copy after Control+A go here.
+     */
     public Options copy(Clipboard clipboard) {
       this.clipboard = clipboard;
       return this;
@@ -273,7 +280,8 @@ public final class Markdown {
                     .maxSize(theme.prose().measure(), Float.POSITIVE_INFINITY)));
     State state = options.state;
     if (state != null) {
-      list.onAnyPointerDown(() -> state.all = false);
+      list.onPointerDown((clicks, modifiers) -> state.all = false);
+      list.onPressOutside(() -> state.all = false);
     }
     Button.Copied copied = options.copied();
     if (copied != null) {
@@ -946,13 +954,17 @@ public final class Markdown {
         .caretColor(color)
         .highlight(piece, piece);
     State state = c.options.state;
-    if (state != null && state.all && !c.compact) {
-      int selection = theme.accent().selection();
-      field.decorate((line, start, text, out) -> out.background(0, text.length() + 1, selection));
+    if (state != null && !c.compact) {
+      field.onPointerDown((clicks, modifiers) -> state.all = false);
+      if (state.all) {
+        int selection = theme.accent().selection();
+        field.decorate((line, start, text, out) -> out.background(0, text.length() + 1, selection));
+      }
     }
     if (!c.compact) { // a fragment has no whole-document selection
       field.onKey(k -> keys(c, k));
     }
+    List<El> links = piece.links.isEmpty() ? List.of() : new ArrayList<>(piece.links.size());
     for (int i = 0; i < piece.links.size(); i++) {
       Link link = piece.links.get(i);
       El el = link(c, link.label, link.destination).key("link-" + i).range(link.from, link.to);
@@ -960,9 +972,67 @@ public final class Markdown {
         Tooltip.tooltip(el, link.title);
       }
       field.child(el);
+      links.add(el);
     }
+    field.fieldMenu((f, open) -> {
+      List<Menu.Item> more = List.of();
+      for (int i = 0; i < links.size(); i++) {
+        if (open.openedOn(links.get(i))) {
+          more = linkItems(c, piece.links.get(i).destination);
+          break;
+        }
+      }
+      return menu(c, open, more);
+    });
     return field;
   }
+
+  /** Context-menu items specific to a link, omitting any whose option is not set. */
+  private static List<Menu.Item> linkItems(Context c, String destination) {
+    Texts texts = Texts.CURRENT.get();
+    List<Menu.Item> items = new ArrayList<>(2);
+    if (c.options.onLink != null) {
+      items.add(Menu.item(texts.openLink(), () -> c.options.onLink.accept(destination)));
+    }
+    if (c.options.clipboard != null) {
+      items.add(Menu.item(texts.copyLinkAddress(), () -> c.options.clipboard.write(destination)));
+    }
+    return items;
+  }
+
+  /** Context menu of a Markdown text block or code block: Copy, Select all, and any extra items. */
+  private static El menu(Context c, FieldMenu.Open open, List<Menu.Item> more) {
+    State docState = c.options.state;
+    boolean document = !c.compact && docState != null; // Control+A selects the whole document
+    // Whether the document was all selected when the menu opened: a press on an item ends that.
+    Opened opened = open.state(() -> {
+      Menu.State state = new Menu.State();
+      state.open();
+      return new Opened(state, document && docState.all);
+    });
+    if (!opened.menu.isOpen()) {
+      return null;
+    }
+    Texts texts = Texts.CURRENT.get();
+    boolean canCopy = opened.all ? c.options.clipboard != null : open.canCopy();
+    Runnable runCopy = opened.all ? () -> copyAll(c) : open::copy;
+    Menu.Item copy = TextField.command(texts.copy(), canCopy, runCopy, "C");
+    Menu.Item selectAll =
+        TextField.command(texts.selectAll(), document || open.canSelectAll(), open::selectAll, "A");
+    List<Menu.Item> items = new ArrayList<>(2 + (more.isEmpty() ? 0 : 1 + more.size()));
+    items.add(copy);
+    items.add(selectAll);
+    if (!more.isEmpty()) {
+      items.add(Menu.separator());
+      items.addAll(more);
+    }
+    El menu = TextField.menu(opened.menu, open, items, Map.of());
+    // A press that dismisses the menu reaches nothing in the document, and ends all there too.
+    return document ? menu.onPressOutside(() -> docState.all = false) : menu;
+  }
+
+  /** A context menu while it is open, and whether the document was all selected when it opened. */
+  private record Opened(Menu.State menu, boolean all) {}
 
   /** A link element: focusable, with the theme's pointer cursor, hover/pressed tint and action. */
   private static El link(Context c, String label, String destination) {
@@ -1009,14 +1079,18 @@ public final class Markdown {
     if ((k.name().equals("C") || k.name().equals("Insert"))
         && state.all
         && c.options.clipboard != null) {
-      Prepared p = c.prepared;
-      if (p.text == null) {
-        p.text = text(documentOf(c));
-      }
-      c.options.clipboard.write(p.text);
+      copyAll(c);
       return true;
     }
     return false;
+  }
+
+  private static void copyAll(Context c) {
+    Prepared p = c.prepared;
+    if (p.text == null) {
+      p.text = text(documentOf(c));
+    }
+    c.options.clipboard.write(p.text);
   }
 
   private static MarkdownDocument documentOf(Context c) {
@@ -1297,13 +1371,23 @@ public final class Markdown {
       field.highlight(highlighter, highlighter);
     }
     State state = c.options.state;
-    if (state != null && state.all && !c.compact) {
-      int selection = theme.accent().selection();
-      field.decorate((line, start, text, out) -> out.background(0, text.length() + 1, selection));
+    if (state != null && !c.compact) {
+      field.onPointerDown((clicks, modifiers) -> state.all = false);
+      if (state.all) {
+        int selection = theme.accent().selection();
+        field.decorate((line, start, text, out) -> out.background(0, text.length() + 1, selection));
+      }
     }
     if (!c.compact) {
       field.onKey(k -> keys(c, k));
     }
+    Clipboard clipboard = c.options.clipboard;
+    field.fieldMenu((f, open) -> menu(
+        c,
+        open,
+        clipboard == null
+            ? List.of()
+            : List.of(Menu.item(Texts.CURRENT.get().copyCode(), () -> clipboard.write(code)))));
     El box = col()
         .role("group")
         .fill(theme.surface().raised())
@@ -1311,7 +1395,6 @@ public final class Markdown {
         .radius(theme.radius().medium())
         .clip()
         .child(field);
-    Clipboard clipboard = c.options.clipboard;
     if (clipboard != null) {
       Button.Copied copied = c.options.copied();
       String label = Texts.CURRENT.get().copyCode();

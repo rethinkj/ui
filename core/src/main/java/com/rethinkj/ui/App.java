@@ -320,6 +320,9 @@ public final class App<S> {
   private boolean maximized; // the window is maximized
   private Object secondary; // the identity of the element a secondary press is on, until it is up
   private FieldMenu.Open fieldMenu; // the menu of a field that is open, El#fieldMenu
+  private Object fieldMenuShown; // the field whose menu was attached last, for lookedRows
+  // The keyed rows the open field menu's field is in, by list identity, with their keys then.
+  private final Map<Object, Map.Entry<Integer, Object>> fieldMenuRows = new HashMap<>();
   // How long each shown element with an onShownFor handler has been shown, by identity.
   private final Map<Object, Shown> shownTimes = new HashMap<>();
   private double shownDue = Double.POSITIVE_INFINITY; // when the next of those handlers is
@@ -729,7 +732,12 @@ public final class App<S> {
       }
       return true;
     }
-    changed |= clearScopeSelection(null);
+    boolean inFieldMenu = fieldMenu != null
+        && !hit.isEmpty()
+        && Animator.isBelow(Animator.identities(hit).getLast(), fieldMenu.field());
+    if (!inFieldMenu) {
+      changed |= clearScopeSelection(null);
+    }
     Target target = target(x, y);
     capture = target == null
         ? IDLE
@@ -951,34 +959,35 @@ public final class App<S> {
       boolean ran = target != null && target.id().equals(secondary);
       secondary = null;
       if (ran) {
-        openMenu(target.el, target.id(), x, y);
+        List<El> hit = hit(x, y);
+        Object on = hit.isEmpty() ? target.id() : Animator.identities(hit).getLast();
+        openMenu(target.el, target.id(), on, x, y);
       }
       return ran;
     });
   }
 
-  /**
-   * Whether a secondary press on this element runs its handler or opens its field's menu.
-   *
-   * <p>shortcut: a field in a virtual list's rows, which are built after {@link #openFieldMenu},
-   * opens no menu and leaves the press to the handlers around it; attach the menu in {@link
-   * #rowLooks} if rows with fields need one.
-   */
+  /** Whether a secondary press on this element runs its handler or opens its field's menu. */
   private boolean opensMenu(El el) {
-    Object id = animator.identity(el);
     return el.onSecondaryPress() != null
         || el.fieldMenu() != null
             && el.takesEdits()
-            && animator.inRow(id) == null
-            && !Animator.inFieldPart(id);
+            && !Animator.inFieldPart(animator.identity(el));
   }
 
   /** Runs the element's {@link El#onSecondaryPress} handler, or else opens its field's menu. */
-  private void openMenu(El el, Object id, float x, float y) {
+  private void openMenu(El el, Object id, Object on, float x, float y) {
     if (el.onSecondaryPress() != null) {
       el.onSecondaryPress().accept(x, y);
     } else {
-      fieldMenu = new FieldMenu.Open(this, id, x, y, !clipboard.read().isEmpty());
+      fieldMenu = new FieldMenu.Open(this, id, on, x, y, !clipboard.read().isEmpty());
+      fieldMenuRows.clear();
+      for (Animator.InRow in : animator.inRows(id)) {
+        Object key = in.list().rowKey(in.row());
+        if (key != null) {
+          fieldMenuRows.put(in.listId(), Map.entry(in.row(), key));
+        }
+      }
     }
     handled = true;
   }
@@ -1769,7 +1778,9 @@ public final class App<S> {
       for (El el : path.reversed()) {
         if (opensMenu(el)) {
           float[] at = menuPoint(path);
-          openMenu(el, animator.identity(el), at[0], at[1]);
+          Object id = animator.identity(el);
+          Object on = path.isEmpty() ? id : animator.identity(path.getLast());
+          openMenu(el, id, on, at[0], at[1]);
           return true;
         }
       }
@@ -4303,7 +4314,8 @@ public final class App<S> {
         && !rowsKept
         && !focus.claimed() // what the rows ask for waits for no later build, which has no claim
         && (focus.id() == null
-            || animator.inRow(focus.id()) == null && !Animator.inFieldPart(focus.id()));
+            || animator.inRow(focus.id()) == null && !Animator.inFieldPart(focus.id()))
+        && (fieldMenu == null || animator.inRow(fieldMenu.field()) == null);
     rowsKept = false;
     endPresses(false);
     if (rowsPending) {
@@ -5620,6 +5632,42 @@ public final class App<S> {
       step.accept(now.editor());
       handled |= now.editor().answerPending();
       rowsKept |= now.editor().answerPending();
+      return true;
+    });
+  }
+
+  /** Copies the field's selection, or the selection across its scope when it belongs to one. */
+  void copyField(Object id) {
+    enqueue(() -> {
+      settle();
+      El now = animator.element(id);
+      if (now == null || now.editor() == null) {
+        return false;
+      }
+      if (isScopeFieldCandidate(now) && isScopeSelectedId(id)) {
+        copyScopeSelection();
+        handled = true;
+        return true;
+      }
+      now.editor().copy(clipboard);
+      return true;
+    });
+  }
+
+  /**
+   * Gives the field the focus and does there what Control+A does: its key handlers or those around
+   * it go first, as a document's that selects more than the field, and either ends a selection
+   * across its scope.
+   */
+  void selectAllField(Object id) {
+    enqueue(() -> {
+      settle();
+      El now = animator.element(id);
+      if (now == null || now.editor() == null) {
+        return false;
+      }
+      focus.set(now, false, time);
+      keyDownAt(new Key("A", Key.CONTROL, false));
       return true;
     });
   }
@@ -7464,6 +7512,10 @@ public final class App<S> {
     }
     toldRows.keySet().retainAll(rowLists);
     rowLists.clear();
+    if (fieldMenu != null && animator.liveElement(fieldMenu.field()) == null) {
+      fieldMenu = null;
+      fieldMenuShown = null;
+    }
     // After scrolling, movement and new rows, the overlays follow their anchors.
     caretOverlays = Overlays.place(root, width, height);
     if (built) {
@@ -7857,6 +7909,10 @@ public final class App<S> {
     ids.add(shown.pressed());
     ids.add(focus.id());
     ids.add(pressedId());
+    if (fieldMenu != null) {
+      ids.add(fieldMenu.field());
+    }
+    ids.add(fieldMenuShown);
     Set<Integer> rows = new HashSet<>();
     for (Object id : ids) {
       int row = Animator.rowIn(id, list);
@@ -7950,6 +8006,19 @@ public final class App<S> {
         continue;
       }
       Object rowId = Animator.row(listId, list.firstRow() + i);
+      if (fieldMenu != null && Animator.isBelow(fieldMenu.field(), listId)) {
+        El field = Animator.find(row, rowId, fieldMenu.field());
+        Map.Entry<Integer, Object> was = fieldMenuRows.get(listId);
+        boolean moved = was != null
+            && (was.getKey() >= list.rowCount()
+                || !was.getValue().equals(list.rowKey(was.getKey())));
+        if (moved) { // another row took the index of the one it opened in
+          fieldMenu = null;
+          fieldMenuShown = null;
+        } else if (field != null) {
+          attachFieldMenu(field);
+        }
+      }
       boolean took = false;
       for (Object id : under) {
         if (Animator.isBelow(id, listId)
@@ -8430,23 +8499,36 @@ public final class App<S> {
 
   /**
    * Attaches the open {@link El#fieldMenu} to its field of a tree the view has just built, or
-   * forgets it when it closed or the field no longer takes input.
+   * forgets it when it closed or the field no longer takes input; a field in a virtual list's rows
+   * is attached in {@link #rowLooks} once its row is built.
    */
   private void openFieldMenu(El tree) {
     if (fieldMenu == null) {
       return;
     }
     El field = Animator.find(tree, fieldMenu.field());
+    if (field != null) {
+      attachFieldMenu(field);
+    } else if (animator.inRow(fieldMenu.field()) == null) {
+      fieldMenu = null;
+      fieldMenuShown = null;
+    }
+  }
+
+  private void attachFieldMenu(El field) {
     Editor editor = editors.get(fieldMenu.field());
     El menu = null;
-    if (field != null && editor != null && field.fieldMenu() != null && field.takesEdits()) {
-      fieldMenu.update(field, editor);
+    if (editor != null && field.fieldMenu() != null && field.takesEdits()) {
+      boolean scopeSelected = isScopeFieldCandidate(field) && isScopeSelectedId(fieldMenu.field());
+      fieldMenu.update(field, editor, scopeSelected);
       menu = field.fieldMenu().build(field, fieldMenu);
     }
     if (menu == null) {
       fieldMenu = null;
+      fieldMenuShown = null;
     } else {
       field.overlay(menu);
+      fieldMenuShown = fieldMenu.field();
     }
   }
 

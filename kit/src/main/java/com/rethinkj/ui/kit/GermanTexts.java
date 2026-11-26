@@ -117,6 +117,16 @@ public class GermanTexts implements Texts {
   }
 
   @Override
+  public String openLink() {
+    return "Link öffnen";
+  }
+
+  @Override
+  public String copyLinkAddress() {
+    return "Link-Adresse kopieren";
+  }
+
+  @Override
   public String paste() {
     return "Einfügen";
   }

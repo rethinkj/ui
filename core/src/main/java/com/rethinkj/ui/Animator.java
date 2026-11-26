@@ -358,6 +358,18 @@ final class Animator {
     return null;
   }
 
+  /** The virtual lists of the current tree that the element with this identity is in, inmost first. */
+  List<InRow> inRows(Object identity) {
+    List<InRow> rows = new ArrayList<>();
+    for (Id id = (Id) identity; id != null && id.parent() != null; id = id.parent()) {
+      Entry parent = entries.get(id.parent());
+      if (parent != null && parent.el.isVirtualList() && id.part() instanceof Integer row) {
+        rows.add(new InRow(parent.el, id.parent(), row));
+      }
+    }
+    return rows;
+  }
+
   /**
    * The element of a tree that the view has just built that will have this identity once the next
    * {@link #update} takes the tree, or null.

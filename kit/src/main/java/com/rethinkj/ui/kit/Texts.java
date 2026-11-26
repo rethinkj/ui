@@ -136,6 +136,14 @@ public interface Texts {
     return "Copy code";
   }
 
+  default String openLink() {
+    return "Open link";
+  }
+
+  default String copyLinkAddress() {
+    return "Copy link address";
+  }
+
   default String paste() {
     return "Paste";
   }

@@ -30,6 +30,7 @@ public interface FieldMenu {
   final class Open {
     private final App<?> app;
     private final Object field;
+    private final Object on;
     private final float x;
     private final float y;
     private final boolean clipboardText; // read once, when the menu opened
@@ -37,11 +38,13 @@ public interface FieldMenu {
     private boolean editable;
     private boolean shown;
     private boolean filled;
+    private El target;
     private Object state;
 
-    Open(App<?> app, Object field, float x, float y, boolean clipboardText) {
+    Open(App<?> app, Object field, Object on, float x, float y, boolean clipboardText) {
       this.app = app;
       this.field = field;
+      this.on = on;
       this.x = x;
       this.y = y;
       this.clipboardText = clipboardText;
@@ -53,11 +56,12 @@ public interface FieldMenu {
     }
 
     /** Takes what the commands can do from the field of this build and its editor. */
-    void update(El el, Editor editor) {
-      selected = editor.caret() != editor.anchor();
+    void update(El el, Editor editor, boolean scopeSelected) {
+      selected = scopeSelected || editor.caret() != editor.anchor();
       editable = el.onEdit() != null && !el.isReadOnly();
       shown = !el.text().hidden();
       filled = !el.text().string().isEmpty();
+      target = on == null ? null : Animator.find(el, field, on);
     }
 
     /** Where the menu opened, in logical pixels of the window. */
@@ -69,12 +73,36 @@ public interface FieldMenu {
       return y;
     }
 
+    /**
+     * Whether the menu opened on {@code part} or inside it: the element under the pointer for a
+     * secondary press, or the focused element for the Menu key and Shift+F10. {@code part} is an
+     * element inside the field passed to {@link FieldMenu#build}.
+     */
+    public boolean openedOn(El part) {
+      return part != null && target != null && contains(part, target);
+    }
+
+    private static boolean contains(El el, El wanted) {
+      if (el == wanted) {
+        return true;
+      }
+      for (El child : el.children()) {
+        if (contains(child, wanted)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
     /** Whether some text is selected that the field shows and takes edits for. */
     public boolean canCut() {
       return canCopy() && editable;
     }
 
-    /** Whether some text is selected that the field shows: a hidden password copies nothing. */
+    /**
+     * Whether some text is selected—in this field or across a {@link El#selectionScope selection
+     * scope} it belongs to—that the field shows: a hidden password copies nothing.
+     */
     public boolean canCopy() {
       return selected && shown;
     }
@@ -93,8 +121,12 @@ public interface FieldMenu {
       run(editor -> editor.cut(app.clipboard()));
     }
 
+    /**
+     * Copies the field's selection, or the selection across its {@link El#selectionScope selection
+     * scope} when it belongs to one.
+     */
     public void copy() {
-      run(editor -> editor.copy(app.clipboard()));
+      app.copyField(field);
     }
 
     public void paste() {
@@ -102,7 +134,7 @@ public interface FieldMenu {
     }
 
     public void selectAll() {
-      run(Editor::selectAll);
+      app.selectAllField(field);
     }
 
     private void run(Consumer<Editor> command) {
