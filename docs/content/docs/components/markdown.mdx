@@ -26,11 +26,13 @@ By default, code blocks have no syntax highlighting. Pass highlighters to `langu
 | `onLink(destination -> …)` | Called when a link is clicked (external URL or `#id` heading anchor). Open a URL with [`app.openUri`](/docs/concepts/platform#open-a-web-address) |
 | `images(address -> image)` | Returns an `Image` for a path/URL, or `null` while loading (shows a placeholder) |
 | `languages(language -> highlighter)` | Returns a highlighter for a fenced code block's language (the first word after the opening fence), or `null` for no highlighting |
-| `copy(clipboard)` | Enables code-block copy buttons, context-menu **Copy code** and **Copy link address**, and full-document Ctrl+A / Ctrl+C copy when `.state(Markdown.State)` is also set |
+| `copy(clipboard)` | Enables the copy button in each code block's header, context-menu **Copy code** and **Copy link address**, and full-document Ctrl+A / Ctrl+C copy when `.state(Markdown.State)` is also set |
 | `copied(Button.Copied)` | Enables brief check-mark and tooltip confirmation on code-block copy buttons without a `Markdown.State` (overrides the state's own when both are set) |
-| `state(Markdown.State)` | Preserves full-document selection and default copy-button confirmation state |
+| `state(Markdown.State)` | Preserves full-document selection, per-code-block line wrapping (enabling the header's wrap toggle), and default copy-button confirmation state |
 | `scroll(ScrollState)` | Keeps the document's scroll offsets for `markdown` (ignored by `fragment` and `definitions`), so switching documents preserves positions, `app.scrollToRow` jumps to headings, and `Markdown.current` tracks the heading in view |
 | `textColor(color)` | Overrides the prose text color (`0xAARRGGBB`, such as `theme.code().comment()`) for `markdown`, `fragment`, and `definitions` descriptions |
+
+Every code block with a language, `state(...)`, or `copy(...)` renders a slim header row above the code: a language badge on the left when the block has one, a word-wrap toggle on the right when `state(...)` is provided, and a copy button on the right when `copy(...)` is provided. Code blocks scroll sideways until wrapped.
 
 Pass a `ScrollState` to `scroll(...)`, then jump to a heading with `app.scrollToRow(scroll, Markdown.rowOf(document, id))` and mark the heading in view in an outline of `document.headings()`, such as a [`NavList.outline`](/docs/components/nav-list), with `Markdown.current(document, headings, scroll)`. Use `Markdown.text(document)` to extract plain text. A link with a title shows its title as a tooltip. Raw HTML in Markdown is rendered safely as plain text. Table columns take their natural width when the table fits, wrap proportionally to fit narrower containers, and scroll horizontally only when their longest words cannot fit.
 
@@ -44,7 +46,7 @@ Wrap the element `Markdown.markdown` returns with [`Find.find(app, rendered, sta
 
 ## Fragments and definition lists
 
-When Markdown belongs inside another element—such as a rendered doc comment, a quick-documentation popover, or completion details—use `Markdown.fragment(document, options)`. It renders the same blocks in a plain, non-scrolling column with compact spacing that takes its container's width, supporting links, images, syntax-highlighted code blocks, copy buttons, and selection across blocks. To let a selection span several fragments (such as chat messages in a list), mark their enclosing container with `.selectionScope()`.
+When Markdown belongs inside another element—such as a rendered doc comment, a quick-documentation popover, or completion details—use `Markdown.fragment(document, options)`. It renders the same blocks in a plain, non-scrolling column with compact spacing that takes its container's width, supporting links, images, syntax-highlighted code blocks with their header row (language badge, wrap toggle with `State`, copy button), and selection across blocks. To let a selection span several fragments (such as chat messages in a list), mark their enclosing container with `.selectionScope()`.
 
 A long fragment in a row of a virtual list with `RowHeights`, such as an answer in a chat transcript, should use `Markdown.options().virtual()`. The fragment is then a virtual list of its blocks, as high as they are, and it builds and lays out only the blocks in view. A rebuild, like a key typed next to a long answer or a streamed piece of it, costs what is on screen rather than the whole document. The transcript's row grows with the blocks as they are measured. A selection scope around the transcript reaches the blocks out of view for selecting, finding and copying. Like any virtual list, a virtual fragment takes its width from its container. The scrollbar is based on estimated heights for blocks not shown yet. For a long document of its own, use `Markdown.markdown`.
 
@@ -81,7 +83,7 @@ Every font `Markdown` draws—body, headings, emphasis, strong, strong emphasis,
 
 ## State API
 
-Store one `Markdown.State` per document to track **Ctrl+A** full-document selection (`allSelected()`, `selectAll(boolean)`); a press on the text or outside the document, or **Escape**, clears it, while a right-click for the context menu or a press on the scrollbar keeps it.
+Store one `Markdown.State` per document to track **Ctrl+A** full-document selection (`allSelected()`, `selectAll(boolean)`) and per-code-block line wrapping (`wraps(int)`, `wrap(int, boolean)`, indexed in document order). A press on the text or outside the document, or **Escape**, clears the full-document selection, while a right-click for the context menu or a press on the scrollbar keeps it.
 
 ## In a tree dump
 

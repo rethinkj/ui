@@ -1,32 +1,37 @@
 el 0,0 680x340
   el 12,12 656x316
     el 13,13 654x314
-      el #list role=log label="Transcript" 13,13 654x314 rows 0-9/10 scroll 0,113 thumb-y 659,80.23 6x181.27
-        el 29,-92 622x51 pos=1/10
-          el role=article label="User message" 29,-84 622x35
-            el 386,-84 265x35
-              text role=paragraph "Which queries got slower this week?" 399,-75 239x17 readonly lines 1-1/1
-        el 29,-41 622x33 pos=2/10
-          el role=article label="Agent message" 29,-33 622x17
-            el 29,-33 622x17
-              text role=paragraph "Only the open orders query, since Monday." 29,-33 622x17 readonly lines 1-1/1
-        el 29,-8 622x51 pos=3/10
-          el role=article label="User message" 29,0 622x35
-            el 222,0 429x35
-              text role=paragraph "Why did the orders query slow down after Monday's release?" 235,9 403x17 readonly lines 1-1/1
-        el 29,43 622x50 pos=4/10
-          el role=article label="Agent message" 29,51 622x34
-            el 29,51 622x34
-              text role=paragraph "The orders table grew past 1.8M rows and has no composite index on (status, created_at), so PostgreSQL switched from an index scan to a sequential scan." 29,51 622x34 readonly lines 1-1/1
-        el 29,93 622x51 pos=5/10
-          el role=article label="User message" 29,101 622x35
-            el 319,101 332x35
-              text role=paragraph "Can we add the index without blocking writes?" 332,110 306x17 readonly lines 1-1/1
-        el 29,144 622x83 pos=6/10
-          el role=article label="Agent message" 29,152 622x67
-            el 29,152 622x67
-              text role=paragraph "Yes — build it concurrently so writes keep running:" 29,152 622x17 readonly lines 1-1/1
-              el role=group 29,177 622x42
+      el #list role=log label="Transcript" 13,13 654x314 rows 0-9/10 scroll 0,142 thumb-y 659,92.77 6x171.98
+        el 29,-121 622x51 pos=1/10
+          el role=article label="User message" 29,-113 622x35
+            el 386,-113 265x35
+              text role=paragraph "Which queries got slower this week?" 399,-104 239x17 readonly lines 1-1/1
+        el 29,-70 622x33 pos=2/10
+          el role=article label="Agent message" 29,-62 622x17
+            el 29,-62 622x17
+              text role=paragraph "Only the open orders query, since Monday." 29,-62 622x17 readonly lines 1-1/1
+        el 29,-37 622x51 pos=3/10
+          el role=article label="User message" 29,-29 622x35
+            el 222,-29 429x35
+              text role=paragraph "Why did the orders query slow down after Monday's release?" 235,-20 403x17 readonly lines 1-1/1
+        el 29,14 622x50 pos=4/10
+          el role=article label="Agent message" 29,22 622x34
+            el 29,22 622x34
+              text role=paragraph "The orders table grew past 1.8M rows and has no composite index on (status, created_at), so PostgreSQL switched from an index scan to a sequential scan." 29,22 622x34 readonly lines 1-1/1
+        el 29,64 622x51 pos=5/10
+          el role=article label="User message" 29,72 622x35
+            el 319,72 332x35
+              text role=paragraph "Can we add the index without blocking writes?" 332,81 306x17 readonly lines 1-1/1
+        el 29,115 622x112 pos=6/10
+          el role=article label="Agent message" 29,123 622x96
+            el 29,123 622x96
+              text role=paragraph "Yes — build it concurrently so writes keep running:" 29,123 622x17 readonly lines 1-1/1
+              el role=group 29,148 622x71
+                el 30,149 620x29
+                  el label="sql" 38,154 28x18
+                    text "sql" 44,156 16x15
+                  el 70,163 568x0
+                  el 642,163 0x0
                 text role=code label="sql" "CREATE INDEX CONCURRENTLY orders_status_created\n  ON orders (status, created_at);" 30,178 620x40 readonly lines 1-2/2
         el 29,227 622x51 pos=7/10
           el role=article label="User message" 29,235 622x35

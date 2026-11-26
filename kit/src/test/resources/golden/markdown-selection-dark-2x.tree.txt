@@ -14,11 +14,17 @@ el 0,0 480x280
           text "•" 24,72 12x17
           el 40,72 416x17
             text role=paragraph "list item two" 40,72 416x17 readonly lines 1-1/1
-    el 24,101 432x46 pos=4/5
-      el role=group 24,101 432x34
-        text role=code label="sql" "SELECT id FROM orders;" 25,102 430x32 readonly lines 1-1/1 hovered focused caret 9 (1:10) anchor 0
-        el 427,106 24x24
-          el #copy role=button label="Copy code" 427,106 24x24
-            text label="copy" "\u{F32A}" 431,110 16x16
-    el 24,147 432x17 pos=5/5
-      text role=paragraph "Trailing paragraph." 24,147 432x17 readonly lines 1-1/1
+    el 24,101 432x75 pos=4/5
+      el role=group 24,101 432x63
+        el 25,102 430x29
+          el label="sql" 37,107 29x18
+            text "sql" 43,109 17x14
+          el 70,116 325x0
+          el 399,106 44x20
+            el #wrap role=button label="Wrap lines" 399,106 20x20 checked=false
+              text label="text_wrap" "\u{EF28}" 401,108 16x16
+            el #copy role=button label="Copy code" 423,106 20x20
+              text label="copy" "\u{F32A}" 425,108 16x16
+        text role=code label="sql" "SELECT id FROM orders;" 25,131 430x32 readonly lines 1-1/1 hovered focused caret 9 (1:10) anchor 0
+    el 24,176 432x17 pos=5/5
+      text role=paragraph "Trailing paragraph." 24,176 432x17 readonly lines 1-1/1

@@ -488,18 +488,22 @@ el 0,0 800x896
     text label="text_whole_word" "\u{ED68}" 232,844 20x20
     text "text_whole_word" 260,846 102x16
   el 400,840 200x28
-    text label="timer" "\u{ED86}" 408,846 16x16
-    text label="timer" "\u{ED88}" 432,844 20x20
-    text "timer" 460,846 31x16
+    text label="text_wrap" "\u{EF28}" 408,846 16x16
+    text label="text_wrap" "\u{ED69}" 432,844 20x20
+    text "text_wrap" 460,846 60x16
   el 600,840 200x28
-    text label="warning" "\u{F868}" 608,846 16x16
-    text label="warning" "\u{F869}" 632,844 20x20
-    text "warning" 660,846 49x16
+    text label="timer" "\u{ED86}" 608,846 16x16
+    text label="timer" "\u{ED88}" 632,844 20x20
+    text "timer" 660,846 31x16
   el 0,868 200x28
-    text label="weather_moon" "\u{EE44}" 8,874 16x16
-    text label="weather_moon" "\u{F87D}" 32,872 20x20
-    text "weather_moon" 60,874 91x16
+    text label="warning" "\u{F868}" 8,874 16x16
+    text label="warning" "\u{F869}" 32,872 20x20
+    text "warning" 60,874 49x16
   el 200,868 200x28
-    text label="window" "\u{EE5D}" 208,874 16x16
-    text label="window" "\u{F8B5}" 232,872 20x20
-    text "window" 260,874 48x16
+    text label="weather_moon" "\u{EE44}" 208,874 16x16
+    text label="weather_moon" "\u{F87D}" 232,872 20x20
+    text "weather_moon" 260,874 91x16
+  el 400,868 200x28
+    text label="window" "\u{EE5D}" 408,874 16x16
+    text label="window" "\u{F8B5}" 432,872 20x20
+    text "window" 460,874 48x16

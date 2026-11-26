@@ -73,7 +73,7 @@ el 0,0 960x640
                 el 15,354 2x16
                 text "Images" 21,354 214x15
     el 256,32 696x600
-      el #doc-0 role=document 257,33 694x598 rows 0-12/39 thumb-y 943,35 6x166.77
+      el #doc-0 role=document 257,33 694x598 rows 0-12/39 thumb-y 943,35 6x162.35
         el 281,57 646x45 pos=1/39
           el 281,57 646x37
             text #heading-writing-documents role=heading "Writing documents" 281,57 646x36 readonly level=1 lines 1-1/1
@@ -85,10 +85,10 @@ el 0,0 960x640
             el #link-2 role=link label="checklist" 569,136 58.75x17 value="#a-checklist"
         el 281,165 646x61 pos=3/39
           el 281,189 646x29
-            text #heading-text role=heading "Text" 281,189 646x28 readonly level=2 lines 1-1/1 hovered
+            text #heading-text role=heading "Text" 281,189 646x28 readonly level=2 lines 1-1/1
             el role=separator 281,217 646x1
         el 281,226 646x80 pos=4/39
-          text role=paragraph "A paragraph is lines of text with no blank line between them. They flow together and wrap at the wid" … "eps a character literal: *not emphasis*." length 324 281,226 646x68 readonly lines 1-1/1
+          text role=paragraph "A paragraph is lines of text with no blank line between them. They flow together and wrap at the wid" … "eps a character literal: *not emphasis*." length 324 281,226 646x68 readonly lines 1-1/1 hovered
         el 281,306 646x63 pos=5/39
           text role=paragraph "Two spaces at the end of a line\nbreak it without starting a new paragraph. Entities such as ©, — and € turn into their characters, and raw HTML such as <kbd>Ctrl</kbd> stays text." 281,306 646x51 readonly lines 1-2/2
         el 281,369 646x41 pos=6/39
