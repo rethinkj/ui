@@ -354,11 +354,11 @@ class MarkdownTest {
     App<Doc> app = app(DOC);
     // On plain text without a selection: Copy is disabled, Select all selects the whole document.
     String tree = run(app, "frame\npress #heading-guide right\nframe\nadvance 1\nframe");
-    assertEquals("Copy-, Select all", menuItems(tree), tree);
+    assertEquals("Copy-, Select all, Copy link", menuItems(tree), tree);
     run(app, "press label=\"Select all\"\nframe\nadvance 1\nframe");
     assertTrue(app.state().selection.allSelected());
     tree = run(app, "press #heading-guide right\nframe\nadvance 1\nframe");
-    assertEquals("Copy, Select all", menuItems(tree), tree);
+    assertEquals("Copy, Select all, Copy link", menuItems(tree), tree);
     run(app, "press label=\"Copy\"\nframe\nadvance 1\nframe");
     assertEquals(Markdown.text(app.state().document), app.clipboard().read());
 
@@ -448,6 +448,67 @@ class MarkdownTest {
           return l.endsWith(" disabled") ? label + "-" : label;
         })
         .collect(Collectors.joining(", "));
+  }
+
+  @Test
+  void aHeadingShowsItsLinkAnchorOnHoverAndCopiesItsLinkFromTheMenu() throws IOException {
+    App<Doc> app = app(DOC);
+    String tree = run(app, "frame");
+    assertTrue(line(tree, "label=\"Guide\"").contains("role=link"), tree);
+    assertTrue(line(tree, "label=\"Guide\"").endsWith("value=\"#guide\""), tree);
+    assertEquals(0f, anchorGlyph(app).opacity());
+    // Tab reaches the hidden anchor and shows it.
+    run(app, "key Tab\nframe\nadvance 1\nframe");
+    assertEquals(1f, anchorGlyph(app).opacity());
+    run(app, "key Tab shift\nframe\nadvance 1\nframe");
+
+    // Hovering the heading reveals its # anchor, and pressing it hands #id to onLink.
+    run(app, "move #heading-guide\nframe\nadvance 1\nframe");
+    assertEquals(1f, anchorGlyph(app).opacity());
+    run(app, "press role=link label=\"Guide\"\nframe");
+    assertEquals(List.of("#guide"), app.state().links);
+
+    // Context menu on a heading offers Copy link, and after link items on a link inside a heading.
+    tree = run(app, "press #heading-guide right\nframe\nadvance 1\nframe");
+    assertEquals("Copy-, Select all, Copy link", menuItems(tree), tree);
+    run(app, "press role=menuitem label=\"Copy link\"\nframe\nadvance 1\nframe");
+    assertEquals("#guide", app.clipboard().read());
+
+    App<Doc> linked = app("# See [spec](https://example.com)");
+    tree = run(linked, "frame\npress role=link label=\"spec\" right\nframe\nadvance 1\nframe");
+    assertEquals(
+        "Copy-, Select all, Open link, Copy link address, Copy link", menuItems(tree), tree);
+
+    // Without onLink, neither the anchor nor Copy link is shown.
+    MarkdownDocument parsed = Markdown.parse(DOC);
+    Clipboard clipboard = Clipboard.inMemory();
+    App<Object> plain = new App<>(
+        new Object(),
+        ignored -> col()
+            .wFull()
+            .hFull()
+            .child(Markdown.markdown(parsed, Markdown.options().copy(clipboard)).grow(1)));
+    tree = run(plain, "frame");
+    assertFalse(tree.contains("label=\"Guide\""), tree);
+    tree = run(plain, "press #heading-guide right\nframe\nadvance 1\nframe");
+    assertEquals("Copy-, Select all", menuItems(tree), tree);
+  }
+
+  private static El anchorGlyph(App<Doc> app) {
+    return labeled(app.tree(), "link", "Guide").children().getFirst();
+  }
+
+  private static El labeled(El el, String role, String label) {
+    if (role.equals(el.role()) && label.equals(el.label())) {
+      return el;
+    }
+    for (El child : el.children()) {
+      El found = labeled(child, role, label);
+      if (found != null) {
+        return found;
+      }
+    }
+    return null;
   }
 
   @Test
@@ -1055,7 +1116,9 @@ class MarkdownTest {
     Script.run("size 800 600 scale 2\nframe", app, out);
 
     // A linked image's title is its tooltip.
-    tree = run(app, "move role=link label=\"Logo\"\nframe\nadvance 1\nframe");
+    tree = run(
+        app,
+        "move role=link label=\"Logo\" value=\"https://logo.example.com\"\nframe\nadvance 1\nframe");
     assertTrue(line(tree, "role=tooltip").contains("label=\"Project logo\""), tree);
 
     // Without Options#images, the images stay their alt text and a linked one a text link.

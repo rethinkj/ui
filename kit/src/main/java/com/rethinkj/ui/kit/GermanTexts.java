@@ -122,6 +122,11 @@ public class GermanTexts implements Texts {
   }
 
   @Override
+  public String copyLink() {
+    return "Link kopieren";
+  }
+
+  @Override
   public String copyLinkAddress() {
     return "Link-Adresse kopieren";
   }
