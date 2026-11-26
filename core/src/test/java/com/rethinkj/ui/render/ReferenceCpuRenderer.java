@@ -171,12 +171,12 @@ final class ReferenceCpuRenderer {
         // Alpha is the last channel, so it is still the old value while the colors are blended.
         double pointX = (px + 0.5) / scale;
         double pointY = (py + 0.5) / scale;
-        double alpha = mix(scene, i, 3, fillShare, pointX, pointY) * coverage;
+        double alpha = mix(scene, i, 3, fillShare, pointX, pointY, scale) * coverage;
         if (blends != null) {
           blends.blend(frame, at, alpha);
         }
         for (int c = 0; c < 4; c++) {
-          double source = mix(scene, i, c, fillShare, pointX, pointY) * coverage;
+          double source = mix(scene, i, c, fillShare, pointX, pointY, scale) * coverage;
           frame[at + c] = (float) (source + frame[at + c] * (1 - alpha));
         }
       }
@@ -742,39 +742,59 @@ final class ReferenceCpuRenderer {
   }
 
   /** One channel of the instance's color: the border color, or the fill where the fill shows. */
-  private static double mix(Scene scene, int i, int channel, double fillShare, double x, double y) {
+  private static double mix(
+      Scene scene, int i, int channel, double fillShare, double x, double y, double scale) {
     double fill = scene.get(i, Scene.FILL + channel * 4);
     double edge = scene.get(i, Scene.BORDER + channel * 4);
     if (scene.getInt(i, Scene.KIND) == Scene.GRADIENT) {
-      fill = gradient(scene, i + 1, channel, x, y, fill);
+      fill = gradient(scene, i + 1, channel, x, y, fill, scale);
     }
     return edge + (fill - edge) * fillShare;
   }
 
   /** One channel of the gradient of stops {@code i} at {@code (x, y)}, over a fill. */
-  private static double gradient(Scene scene, int i, int channel, double x, double y, double fill) {
+  private static double gradient(
+      Scene scene, int i, int channel, double x, double y, double fill, double scale) {
     double x1 = scene.get(i, Scene.X);
     double y1 = scene.get(i, Scene.Y);
     double x2 = scene.get(i, Scene.WIDTH);
     double y2 = scene.get(i, Scene.HEIGHT);
-    double t;
-    if (scene.getInt(i, Scene.GRADIENT_SHAPE) == Scene.RADIAL) {
-      double ux = (x - x1) / x2;
-      double uy = (y - y1) / y2;
-      t = Math.min(StrictMath.sqrt(ux * ux + uy * uy), 1);
+    int shape = scene.getInt(i, Scene.GRADIENT_SHAPE);
+    double s;
+    if (shape == Scene.STRIPES) {
+      double width = scene.get(i, Scene.STRIPE_WIDTH);
+      double period = scene.get(i, Scene.STRIPE_PERIOD);
+      double u = (x - x1) * x2 + (y - y1) * y2;
+      double h = 0.5 / scale;
+      double cover =
+          (stripeLength(u + h, width, period) - stripeLength(u - h, width, period)) / (2 * h);
+      s = 1 - Math.clamp(cover, 0, 1);
     } else {
-      double dx = x2 - x1;
-      double dy = y2 - y1;
-      double span = dx * dx + dy * dy;
-      t = span > 0 ? Math.clamp(((x - x1) * dx + (y - y1) * dy) / span, 0, 1) : 0;
+      double t;
+      if (shape == Scene.RADIAL) {
+        double ux = (x - x1) / x2;
+        double uy = (y - y1) / y2;
+        t = Math.min(StrictMath.sqrt(ux * ux + uy * uy), 1);
+      } else {
+        double dx = x2 - x1;
+        double dy = y2 - y1;
+        double span = dx * dx + dy * dy;
+        t = span > 0 ? Math.clamp(((x - x1) * dx + (y - y1) * dy) / span, 0, 1) : 0;
+      }
+      s = t * t * (3 - 2 * t);
     }
-    double s = t * t * (3 - 2 * t);
     double fromA = scene.get(i, Scene.FILL + 12);
     double rest = 1 - (fromA + (scene.get(i, Scene.BORDER + 12) - fromA) * s);
     double from = scene.get(i, Scene.FILL + channel * 4);
     return (from + (scene.get(i, Scene.BORDER + channel * 4) - from) * s)
             * scene.get(i, Scene.GRADIENT_OPACITY)
         + fill * rest;
+  }
+
+  /** How much of the line across stripes {@code w} wide every {@code p} lies in them up to v. */
+  private static double stripeLength(double v, double w, double p) {
+    double k = Math.floor(v / p);
+    return k * w + Math.clamp(v - k * p, 0, w);
   }
 
   /** Signed distance to a rounded rectangle centered on the origin; negative inside. */

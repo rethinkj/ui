@@ -160,7 +160,8 @@ public final class CpuRenderer {
     }
     double[] fill = color(scene, i, Scene.FILL);
     double[] edge = color(scene, i, Scene.BORDER);
-    Stops stops = scene.getInt(i, Scene.KIND) == Scene.GRADIENT ? new Stops(scene, i + 1) : null;
+    Stops stops =
+        scene.getInt(i, Scene.KIND) == Scene.GRADIENT ? new Stops(scene, i + 1, scale) : null;
     double[] gradient = scratch.gradient;
     // The source of a pixel covered whole: as in blend below, with coverage 1 and a fill share
     // of 0, in the border, or 1.
@@ -242,23 +243,29 @@ public final class CpuRenderer {
     }
   }
 
-  /** The {@link Scene#STOPS} of a gradient, which give its fill at each point. */
+  /** The {@link Scene#STOPS} of a gradient or stripes, which give its fill at each point. */
   private static final class Stops {
-    private final boolean radial;
+    private final int shape;
     private final double x1;
     private final double y1;
     private final double x2;
     private final double y2;
+    private final double stripeWidth;
+    private final double stripePeriod;
+    private final double halfPixel;
     private final double opacity;
     private final double[] from;
     private final double[] to;
 
-    private Stops(Scene scene, int i) {
-      radial = scene.getInt(i, Scene.GRADIENT_SHAPE) == Scene.RADIAL;
+    private Stops(Scene scene, int i, double scale) {
+      shape = scene.getInt(i, Scene.GRADIENT_SHAPE);
       x1 = scene.get(i, Scene.X);
       y1 = scene.get(i, Scene.Y);
       x2 = scene.get(i, Scene.WIDTH);
       y2 = scene.get(i, Scene.HEIGHT);
+      stripeWidth = scene.get(i, Scene.STRIPE_WIDTH);
+      stripePeriod = scene.get(i, Scene.STRIPE_PERIOD);
+      halfPixel = 0.5 / scale;
       opacity = scene.get(i, Scene.GRADIENT_OPACITY);
       from = color(scene, i, Scene.FILL);
       to = color(scene, i, Scene.BORDER);
@@ -266,23 +273,38 @@ public final class CpuRenderer {
 
     /** The gradient over {@code fill} at {@code (x, y)}, into {@code out}. */
     double[] over(double[] fill, double x, double y, double[] out) {
-      double t;
-      if (radial) {
-        double ux = (x - x1) / x2;
-        double uy = (y - y1) / y2;
-        t = Math.min(StrictMath.sqrt(ux * ux + uy * uy), 1);
+      double s;
+      if (shape == Scene.STRIPES) {
+        double u = (x - x1) * x2 + (y - y1) * y2;
+        double cover = (stripeLength(u + halfPixel, stripeWidth, stripePeriod)
+                - stripeLength(u - halfPixel, stripeWidth, stripePeriod))
+            / (2 * halfPixel);
+        s = 1 - Math.clamp(cover, 0, 1);
       } else {
-        double dx = x2 - x1;
-        double dy = y2 - y1;
-        double span = dx * dx + dy * dy;
-        t = span > 0 ? Math.clamp(((x - x1) * dx + (y - y1) * dy) / span, 0, 1) : 0;
+        double t;
+        if (shape == Scene.RADIAL) {
+          double ux = (x - x1) / x2;
+          double uy = (y - y1) / y2;
+          t = Math.min(StrictMath.sqrt(ux * ux + uy * uy), 1);
+        } else {
+          double dx = x2 - x1;
+          double dy = y2 - y1;
+          double span = dx * dx + dy * dy;
+          t = span > 0 ? Math.clamp(((x - x1) * dx + (y - y1) * dy) / span, 0, 1) : 0;
+        }
+        s = t * t * (3 - 2 * t);
       }
-      double s = t * t * (3 - 2 * t);
       double rest = 1 - (from[3] + (to[3] - from[3]) * s);
       for (int c = 0; c < 4; c++) {
         out[c] = (from[c] + (to[c] - from[c]) * s) * opacity + fill[c] * rest;
       }
       return out;
+    }
+
+    /** How much of the line across stripes {@code w} wide every {@code p} lies in them up to v. */
+    private static double stripeLength(double v, double w, double p) {
+      double k = Math.floor(v / p);
+      return k * w + Math.clamp(v - k * p, 0, w);
     }
   }
 

@@ -4,9 +4,10 @@ import java.util.Objects;
 
 /**
  * A background painted over an element's {@link El#fill} ({@link El#background(Background)}): a
- * two-color linear or elliptical radial gradient, or an {@link Image} ({@link #image}), where the
- * fill shows, within the inner edge of the element's border and its rounded corners, under its
- * {@link El#image}, segments, text and children.
+ * two-color linear or elliptical radial gradient, repeating parallel stripes ({@link #stripes}),
+ * or an {@link Image} ({@link #image}), where the fill shows, within the inner edge of the
+ * element's border and its rounded corners, under its {@link El#image}, segments, text and
+ * children.
  *
  * <p>For gradients, positions and radii are {@link Len#px} in logical pixels or {@link
  * Len#percent} of the element's padding box (inside its border), where {@code 0} is the top-left
@@ -18,7 +19,7 @@ import java.util.Objects;
  * gets the glyph correction for an unknown backdrop unless {@link El#textBackground} names one.
  */
 public sealed interface Background
-    permits Background.Linear, Background.Radial, Background.Picture {
+    permits Background.Linear, Background.Radial, Background.Stripes, Background.Picture {
 
   /**
    * A linear gradient from {@code (x1, y1)} in {@code from} to {@code (x2, y2)} in {@code to}.
@@ -56,6 +57,26 @@ public sealed interface Background
    */
   static Background radial(Len x, Len y, Len radiusX, Len radiusY, int inner, int outer) {
     return new Radial(x, y, radiusX, radiusY, inner, outer);
+  }
+
+  /**
+   * Repeating parallel stripes of {@code color} over the element's {@link El#fill}, anchored to
+   * the top-left corner of the element's padding box (inside its border) so they move with it.
+   *
+   * <p>Each stripe is {@code width} logical pixels wide, followed by a gap of {@code gap} logical
+   * pixels where the element's fill shows through. The stripes run in the direction of {@code
+   * angle} degrees, measured clockwise on screen from the horizontal ({@code 0} for horizontal
+   * stripes, {@code 90} for vertical, {@code -45} rising from bottom left to top right),
+   * antialiased across each physical pixel and mixed premultiplied in linear light with the
+   * element's opacity applied.
+   *
+   * @param color the stripe color as 0xAARRGGBB
+   * @param width the stripe width in positive logical pixels
+   * @param gap the gap between stripes in positive logical pixels
+   * @param angle the direction the stripes run in finite degrees, clockwise from horizontal
+   */
+  static Background stripes(int color, float width, float gap, float angle) {
+    return new Stripes(color, width, gap, angle);
   }
 
   /**
@@ -119,6 +140,27 @@ public sealed interface Background
   }
 
   /**
+   * Repeating parallel stripes ({@link #stripes}).
+   *
+   * @param color the stripe color as 0xAARRGGBB
+   * @param width the stripe width in positive logical pixels
+   * @param gap the gap between stripes in positive logical pixels
+   * @param angle the direction the stripes run in finite degrees, clockwise from horizontal
+   */
+  record Stripes(int color, float width, float gap, float angle) implements Background {
+
+    public Stripes {
+      positive("width", width);
+      positive("gap", gap);
+      positive("width plus gap", width + gap);
+      if (!Float.isFinite(angle)) {
+        throw new IllegalArgumentException(
+            "A background's angle must be finite degrees, was " + angle);
+      }
+    }
+  }
+
+  /**
    * An image background ({@link #image}).
    *
    * @param image the image to paint
@@ -147,6 +189,13 @@ public sealed interface Background
         || !(len.value() > 0 && len.value() < Float.POSITIVE_INFINITY)) {
       throw new IllegalArgumentException(
           "A background's " + name + " must be positive pixels or a percent, was " + len);
+    }
+  }
+
+  private static void positive(String name, float value) {
+    if (!(value > 0 && value < Float.POSITIVE_INFINITY)) {
+      throw new IllegalArgumentException(
+          "A background's " + name + " must be positive logical pixels, was " + value);
     }
   }
 }

@@ -323,7 +323,7 @@ class CpuRendererEquivalenceTest {
     data.set(ValueLayout.JAVA_INT, at + Scene.IMAGE_INDEX, index);
   }
 
-  /** Stops after the instance last added, which they make a gradient: linear or radial. */
+  /** Stops after the instance last added, which they make a gradient: linear, radial or stripes. */
   private static void addStops(Scene scene, Random random, float width, float height) {
     scene
         .data()
@@ -334,16 +334,34 @@ class CpuRendererEquivalenceTest {
     scene.rect(0, 0, 1, 1, 0, 0, 0, 0);
     MemorySegment data = scene.data();
     long at = (long) (scene.count() - 1) * Scene.STRIDE;
-    boolean radial = random.nextBoolean();
+    int shape = random.nextInt(3);
     put(data, at + Scene.X, position(random, width));
     put(data, at + Scene.Y, position(random, height));
-    put(data, at + Scene.WIDTH, radial ? length(random, width) : position(random, width));
-    put(data, at + Scene.HEIGHT, radial ? length(random, height) : position(random, height));
-    data.set(ValueLayout.JAVA_INT, at + Scene.GRADIENT_SHAPE, radial ? Scene.RADIAL : Scene.LINEAR);
+    if (shape == Scene.STRIPES) {
+      double angle = random.nextDouble() * 2 * Math.PI;
+      put(data, at + Scene.WIDTH, (float) -StrictMath.sin(angle));
+      put(data, at + Scene.HEIGHT, (float) StrictMath.cos(angle));
+      float stripeWidth = 0.25f + random.nextFloat() * 4;
+      float stripePeriod = stripeWidth + 0.25f + random.nextFloat() * 8;
+      put(data, at + Scene.STRIPE_WIDTH, stripeWidth);
+      put(data, at + Scene.STRIPE_PERIOD, stripePeriod);
+    } else {
+      put(
+          data,
+          at + Scene.WIDTH,
+          shape == Scene.RADIAL ? length(random, width) : position(random, width));
+      put(
+          data,
+          at + Scene.HEIGHT,
+          shape == Scene.RADIAL ? length(random, height) : position(random, height));
+    }
+    data.set(ValueLayout.JAVA_INT, at + Scene.GRADIENT_SHAPE, shape);
     put(data, at + Scene.GRADIENT_OPACITY, random.nextBoolean() ? 1 : random.nextFloat());
     data.set(ValueLayout.JAVA_INT, at + Scene.KIND, Scene.STOPS);
     color(data, at + Scene.FILL, random);
-    color(data, at + Scene.BORDER, random);
+    if (shape != Scene.STRIPES) {
+      color(data, at + Scene.BORDER, random);
+    }
   }
 
   /** A squiggle instance at random coordinates, amplitude, wavelength, stroke and phase. */

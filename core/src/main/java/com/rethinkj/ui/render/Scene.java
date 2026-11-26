@@ -358,37 +358,47 @@ import java.util.Map;
  * and a physical pixel vertically and beyond {@code [x, x + width]} and a physical pixel
  * horizontally. Renderers draw it over that box.
  *
- * <p>A gradient background ({@link Background.Linear} or {@link Background.Radial} on {@link
- * El#background(Background)}) is drawn as the fill of a rounded rectangle, a {@link #GRADIENT}: one
- * in the slots of a {@link #RECT}, drawn as one but for its fill, which shows the gradient over the
- * fill. Its {@link #STOPS} come right after it and are not drawn by themselves; their positions are
- * resolved on the element's padding box. An image background ({@link Background.Picture}) is an
- * ordinary {@link #IMAGE} instance emitted right after the element's rectangle(s) and before its
- * {@link El#image}, fitted in the padding box and clipped to its inner corners:
+ * <p>A gradient or striped background ({@link Background.Linear}, {@link Background.Radial} or
+ * {@link Background.Stripes} on {@link El#background(Background)}) is drawn as the fill of a
+ * rounded rectangle, a {@link #GRADIENT}: one in the slots of a {@link #RECT}, drawn as one but
+ * for its fill, which shows the gradient or stripes over the fill. Its {@link #STOPS} come right
+ * after it and are not drawn by themselves; their positions are resolved on the element's padding
+ * box. An image background ({@link Background.Picture}) is an ordinary {@link #IMAGE} instance
+ * emitted right after the element's rectangle(s) and before its {@link El#image}, fitted in the
+ * padding box and clipped to its inner corners:
  *
  * <pre>
- *  0  x1           f32   the start (linear) or the center (radial), in logical pixels
- *  4  y1           f32
- *  8  x2           f32   the end (linear), or the horizontal radius (radial), more than 0
- * 12  y2           f32   the end (linear), or the vertical radius (radial), more than 0
- * 16  shape        u32   LINEAR, 0, or RADIAL, 1
+ *  0  x1           f32   the start (linear), the center (radial) or the point nearest the origin
+ *  4  y1           f32   where a stripe starts, as one does at the padding box's top left
+ *                        (stripes), in logical pixels
+ *  8  x2           f32   the end (linear), the horizontal radius (radial), more than 0, or the
+ *                        unit normal across the stripes (stripes)
+ * 12  y2           f32   the end (linear), the vertical radius (radial), more than 0, or the
+ *                        unit normal across the stripes (stripes)
+ * 16  shape        u32   LINEAR, 0, RADIAL, 1, or STRIPES, 2
  * 20  opacity      f32   the element's and its ancestors', which the rectangle's colors include
  * 24  clip         u32   0
  * 28  kind         u32   8, STOPS
- * 32  from        f32 x 4   r, g, b, a at the start or the center, without the opacity
- * 48  to          f32 x 4   r, g, b, a at the end or beyond the radii, without the opacity
- * 64  unused      f32 x 8   0
+ * 32  from        f32 x 4   r, g, b, a at the start, the center or of a stripe, without the opacity
+ * 48  to          f32 x 4   r, g, b, a at the end or beyond the radii, without the opacity, or 0
+ * 64  width        f32   the stripes' width in logical pixels (stripes), or 0
+ * 68  period       f32   the stripes' width plus their gap in logical pixels (stripes), or 0
+ * 72  unused      f32 x 6   0
  * </pre>
  *
  * <p>For the center {@code p} of a pixel, in logical pixels, the gradient's fill is:
  *
  * <pre>
- * linear: d = (x2 - x1, y2 - y1),
- *         t = clamp(dot(p - (x1, y1), d) / dot(d, d), 0, 1), or 0 when dot(d, d) &lt;= 0
- * radial: t = min(|((p.x - x1) / x2, (p.y - y1) / y2)|, 1)
- * s       = t * t * (3 - 2 * t)
- * g       = from + (to - from) * s
- * fill    = g * opacity + rectangle's fill * (1 - g.a)
+ * linear:  d = (x2 - x1, y2 - y1),
+ *          t = clamp(dot(p - (x1, y1), d) / dot(d, d), 0, 1), or 0 when dot(d, d) &lt;= 0
+ *          s = t * t * (3 - 2 * t)
+ * radial:  t = min(|((p.x - x1) / x2, (p.y - y1) / y2)|, 1)
+ *          s = t * t * (3 - 2 * t)
+ * stripes: u = dot(p - (x1, y1), (x2, y2)), h = 0.5 / scale, half a physical pixel,
+ *          F(v) = floor(v / P) * W + clamp(v - floor(v / P) * P, 0, W) for width W and period P
+ *          s = 1 - clamp((F(u + h) - F(u - h)) / (2 * h), 0, 1)
+ * g        = from + (to - from) * s
+ * fill     = g * opacity + rectangle's fill * (1 - g.a)
  * </pre>
  *
  * <p>Colors are linear and premultiplied by alpha, the opacity of the element and its ancestors
@@ -545,7 +555,7 @@ public final class Scene {
   /** The {@link #KIND} of the gradient of the {@link #GRADIENT} before it; drawn by itself never. */
   public static final int STOPS = 8;
 
-  /** The slot of the {@link #STOPS} that says whether their gradient is linear or radial. */
+  /** The slot of the {@link #STOPS} that says whether they are linear, radial or stripes. */
   public static final int GRADIENT_SHAPE = 16;
   /** The slot of the {@link #STOPS} with the opacity that the rectangle's colors include. */
   public static final int GRADIENT_OPACITY = 20;
@@ -553,6 +563,12 @@ public final class Scene {
   public static final int LINEAR = 0;
   /** An elliptical radial gradient in {@link #GRADIENT_SHAPE}. */
   public static final int RADIAL = 1;
+  /** Repeating parallel stripes in {@link #GRADIENT_SHAPE}. */
+  public static final int STRIPES = 2;
+  /** The slot of {@link #STOPS} with the stripe width for {@link #STRIPES}, in logical pixels. */
+  public static final int STRIPE_WIDTH = 64;
+  /** The slot of {@link #STOPS} with the stripe period for {@link #STRIPES}, in logical pixels. */
+  public static final int STRIPE_PERIOD = 68;
 
   // The slots of a squiggle that differ from a rectangle's.
   public static final int AMPLITUDE = 12;
@@ -817,7 +833,8 @@ public final class Scene {
     int[] colors = el.borderColors();
     float[] shown = hasBorder ? borders : NO_BORDER; // the borders the rectangle draws
     boolean hasGradient = el.background() instanceof Background.Linear
-        || el.background() instanceof Background.Radial;
+        || el.background() instanceof Background.Radial
+        || el.background() instanceof Background.Stripes;
     // A transparent side is no border, as one transparent color is, and all of them none at all.
     if (colors != null && (colors[0] | colors[1] | colors[2] | colors[3]) >>> 24 != 0 && inside) {
       // The whole rectangle once per side, each clipped to its part, so that every pixel is drawn
@@ -1144,6 +1161,9 @@ public final class Scene {
     float h = b - t;
     data.set(ValueLayout.JAVA_INT, (long) (count - 1) * STRIDE + KIND, GRADIENT);
     long offset = next();
+    for (int slot = BORDER + 16; slot < STRIDE; slot += 4) {
+      put(offset + slot, 0);
+    }
     switch (background) {
       case Background.Linear linear -> {
         put(offset + X, l + resolve(linear.x1(), w));
@@ -1163,14 +1183,30 @@ public final class Scene {
         color(offset + FILL, radial.inner(), 1);
         color(offset + BORDER, radial.outer(), 1);
       }
+      case Background.Stripes stripes -> {
+        double a = Math.toRadians(stripes.angle());
+        double nx = -StrictMath.sin(a);
+        double ny = StrictMath.cos(a);
+        double period = (double) stripes.width() + stripes.gap();
+        // The start of a stripe nearest the origin on the normal, not the padding box's corner:
+        // the same stripes, but small floats however far the element lies, as when scrolled.
+        double start = l * nx + t * ny;
+        start -= Math.floor(start / period) * period;
+        put(offset + X, (float) (start * nx));
+        put(offset + Y, (float) (start * ny));
+        put(offset + WIDTH, (float) nx);
+        put(offset + HEIGHT, (float) ny);
+        data.set(ValueLayout.JAVA_INT, offset + GRADIENT_SHAPE, STRIPES);
+        color(offset + FILL, stripes.color(), 1);
+        color(offset + BORDER, 0, 1);
+        put(offset + STRIPE_WIDTH, stripes.width());
+        put(offset + STRIPE_PERIOD, (float) period);
+      }
       case Background.Picture _ -> throw new AssertionError("unreachable");
     }
     put(offset + GRADIENT_OPACITY, opacity);
     data.set(ValueLayout.JAVA_INT, offset + CLIP, 0);
     data.set(ValueLayout.JAVA_INT, offset + KIND, STOPS);
-    for (int slot = BORDER + 16; slot < STRIDE; slot += 4) {
-      put(offset + slot, 0);
-    }
     count++;
   }
 
