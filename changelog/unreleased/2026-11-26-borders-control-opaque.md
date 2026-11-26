@@ -1,0 +1,1 @@
+- Documented that `Theme.Borders`'s `control` color must be opaque in custom themes, because `Meter` and round `Progress` bars also use it as their track fill and lay colors over it.

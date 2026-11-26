@@ -1072,8 +1072,10 @@ public record Theme(
    * @param strong the edges a control is recognized by, such as the line along a text field's
    *     bottom or a checkbox's box, which stand out 3:1 from the surfaces and from a field's fill,
    *     also under the pointer
-   * @param control the edge of a button and of other controls that their text names, quieter
-   *     than {@code strong}, of a field's top and sides, and of popups and dialogs
+   * @param control opaque, the edge of a button and of other controls that their text names,
+   *     quieter than {@code strong}, of a field's top and sides, and of popups and dialogs; also
+   *     the fill of a {@link Meter}'s track and of a round {@link Progress} bar's track, on which
+   *     colors are laid
    * @param track translucent, a faint line that keeps one contrast on every surface, band and
    *     selection it lies on: a {@link Progress#spinner}'s ring
    * @param divider a hairline that separates content on a surface: a {@link Divider}, a menu's
