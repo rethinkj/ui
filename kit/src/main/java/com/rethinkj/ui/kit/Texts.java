@@ -153,6 +153,17 @@ public interface Texts {
     return "Wrap lines";
   }
 
+  /** Title of a GitHub alert in {@link Markdown}. */
+  default String alert(MarkdownDocument.Alert kind) {
+    return switch (kind) {
+      case NOTE -> "Note";
+      case TIP -> "Tip";
+      case IMPORTANT -> "Important";
+      case WARNING -> "Warning";
+      case CAUTION -> "Caution";
+    };
+  }
+
   default String paste() {
     return "Paste";
   }

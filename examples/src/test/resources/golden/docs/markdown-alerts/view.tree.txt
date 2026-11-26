@@ -1,0 +1,38 @@
+el 0,0 520x362
+  el 12,12 496x338
+    el 29,29 462x304
+      el role=note label="Note" 29,29 462x51
+        el 33,37 3x35
+        text label="info" "\u{F4A2}" 44,37 16x16
+        el 68,37 415x35
+          text "Note" 68,37 415x16
+          el 68,55 415x17
+            text role=paragraph "Read-only replicas serve reports without touching the primary." 68,55 415x17 readonly lines 1-1/1
+      el role=note label="Tip" 29,88 462x51
+        el 33,96 3x35
+        text label="lightbulb" "\u{F4D5}" 44,96 16x16
+        el 68,96 415x35
+          text "Tip" 68,96 415x16
+          el 68,114 415x17
+            text role=paragraph "Use EXPLAIN (ANALYZE, BUFFERS) to see where time goes." 68,114 415x17 readonly lines 1-1/1
+      el role=note label="Important" 29,147 462x68
+        el 33,155 3x52
+        text label="alert" "\u{E014}" 44,155 16x16
+        el 68,155 415x52
+          text "Important" 68,155 415x16
+          el 68,173 415x34
+            text role=paragraph "Migrations must be backward-compatible during a rolling deploy." 68,173 415x34 readonly lines 1-1/1
+      el role=note label="Warning" 29,223 462x51
+        el 33,231 3x35
+        text label="warning" "\u{F868}" 44,231 16x16
+        el 68,231 415x35
+          text "Warning" 68,231 415x16
+          el 68,249 415x17
+            text role=paragraph "Dropping an index takes a lock on the table." 68,249 415x17 readonly lines 1-1/1
+      el role=note label="Caution" 29,282 462x51
+        el 33,290 3x35
+        text label="error_circle" "\u{F3F0}" 44,290 16x16
+        el 68,290 415x35
+          text "Caution" 68,290 415x16
+          el 68,308 415x17
+            text role=paragraph "TRUNCATE removes every row and cannot be undone." 68,308 415x17 readonly lines 1-1/1

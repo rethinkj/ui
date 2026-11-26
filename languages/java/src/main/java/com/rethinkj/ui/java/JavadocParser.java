@@ -716,7 +716,8 @@ final class JavadocParser {
         case CodeBlock c ->
           out.add(new CodeBlock(
               restorePlaceholders(c.language(), tags), restorePlaceholders(c.code(), tags)));
-        case Quote q -> out.add(new Quote(rewriteBlocks(q.blocks(), tags, resolvedRefs, inLink)));
+        case Quote q ->
+          out.add(new Quote(q.alert(), rewriteBlocks(q.blocks(), tags, resolvedRefs, inLink)));
         case ListBlock l -> {
           List<Item> items = new ArrayList<>(l.items().size());
           for (Item item : l.items()) {

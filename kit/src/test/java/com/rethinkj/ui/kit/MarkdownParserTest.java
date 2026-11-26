@@ -569,4 +569,69 @@ class MarkdownParserTest {
       }
     }
   }
+
+  @Test
+  void alertsParseAtTopLevelOnlyAndKeepPlainQuotes() {
+    for (MarkdownDocument.Alert kind : MarkdownDocument.Alert.values()) {
+      String name = kind.name();
+      MarkdownDocument doc = MarkdownParser.read("> [!" + name + "]\n> Body.");
+      MarkdownDocument.Quote q =
+          assertInstanceOf(MarkdownDocument.Quote.class, doc.blocks().getFirst());
+      assertEquals(kind, q.alert());
+      assertEquals(
+          "quote alert=" + name.toLowerCase(java.util.Locale.ROOT)
+              + "\n  paragraph\n    text \"Body.\"\n",
+          doc.tree());
+    }
+
+    // Case-insensitive, trailing spaces, marker alone, blank line after marker, and headings
+    // inside.
+    assertEquals(
+        "quote alert=note\n  paragraph\n    text \"Body\"\n", tree("> [!note]   \n> Body"));
+    assertEquals(
+        "quote alert=tip\n  paragraph\n    text \"Body\"\n", tree("> [!Tip]\t \n>\n> Body"));
+    assertEquals("quote alert=caution\n", tree("> [!CAUTION]"));
+    assertEquals(
+        "quote alert=warning\n  heading 2 #watch-out\n    text \"Watch out\"\n  paragraph\n    text \"Text\"\n",
+        tree("> [!WARNING]\n> ## Watch out\n>\n> Text"));
+    assertEquals(null, new MarkdownDocument.Quote(List.of()).alert());
+
+    // Plain quotes: unknown kind, escaped marker, text on marker line, blank first line, indented,
+    // or nested inside a list or another quote.
+    for (String plain : List.of(
+        "> [!UNKNOWN]\n> Body",
+        "> \\[!NOTE]\n> Body",
+        "> [!NOTE] extra\n> Body",
+        ">\n> [!NOTE]\n> Body",
+        ">     [!NOTE]",
+        "- > [!NOTE]\n  > Body",
+        "> > [!NOTE]\n> > Body")) {
+      String dump = tree(plain);
+      assertFalse(dump.contains("alert="), plain + " ->\n" + dump);
+    }
+  }
+
+  @Test
+  void streamingAlertsWithNextMatchesParse() {
+    String source = """
+        # Deploy
+
+        > [!WARNING]
+        > Back up the database first.
+        >
+        > ```sql
+        > SELECT count(*) FROM orders;
+        > ```
+
+        After the alert.""";
+    MarkdownDocument doc = MarkdownDocument.parse("");
+    for (int end = 1; end <= source.length(); end++) {
+      String prefix = source.substring(0, end);
+      doc = doc.next(prefix);
+      assertEquals(MarkdownDocument.parse(prefix).tree(), doc.tree(), "at " + end + ":\n" + prefix);
+    }
+    MarkdownDocument grown = doc.next(source + " More text.");
+    assertEquals(MarkdownDocument.parse(source + " More text.").tree(), grown.tree());
+    assertSame(doc.blocks().get(1), grown.blocks().get(1), "closed alert block is reused");
+  }
 }

@@ -3,7 +3,7 @@ title: Markdown
 description: Scrollable Markdown document viewer with syntax-highlighted code blocks, tables, links, and async images.
 ---
 
-`Markdown.markdown` renders a parsed `MarkdownDocument` as a virtualized scrollable page supporting CommonMark plus GitHub tables, task lists, strikethrough, and autolinks. Only visible blocks are built, so long documents scroll smoothly.
+`Markdown.markdown` renders a parsed `MarkdownDocument` as a virtualized scrollable page supporting CommonMark plus GitHub tables, task lists, alerts, strikethrough, and autolinks. Only visible blocks are built, so long documents scroll smoothly.
 
 Javadoc: [`Markdown`](/api/com/rethinkj/ui/kit/Markdown.html), [`Markdown.Options`](/api/com/rethinkj/ui/kit/Markdown.Options.html), [`Markdown.Task`](/api/com/rethinkj/ui/kit/Markdown.Task.html), [`Markdown.Section`](/api/com/rethinkj/ui/kit/Markdown.Section.html), [`Markdown.Definition`](/api/com/rethinkj/ui/kit/Markdown.Definition.html), [`MarkdownDocument`](/api/com/rethinkj/ui/kit/MarkdownDocument.html).
 
@@ -81,6 +81,15 @@ Without `onTask`, task list items render disabled checkboxes. Pass `onTask` to l
 ```java snippet="markdown-tasks"
 ```
 
+## Alerts
+
+A quote at the top level whose first paragraph starts with a line of `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]` or `[!CAUTION]` alone renders as a callout, as on GitHub. Its title comes from `Texts.alert` and is not selected or copied with the text; the body works as in a quote. Anything else, such as an unknown kind or text after the marker, stays a quote.
+
+<Shot src="examples/docs/markdown-alerts/view-{theme}" alt="Five GitHub alerts rendered as callouts: Note, Tip, Important, Warning, and Caution" />
+
+```java snippet="markdown-alerts"
+```
+
 ## Streaming
 
 When a document grows at its end while streaming, keep the `MarkdownDocument` in your state and replace it with `document.next(text)` for each piece. Blocks that did not change keep their identity, so `Markdown.markdown` and `Markdown.fragment` reuse what they already built, highlighted, and measured for them, while unfinished constructs at the end (such as an unclosed code fence, table, or list) render as CommonMark reads them so far.
@@ -95,7 +104,7 @@ When a document grows at its end while streaming, keep the `MarkdownDocument` in
 ```java snippet="markdown-model"
 ```
 
-- **Blocks:** `Heading(level, content, id)`, `Paragraph(content)`, `CodeBlock(language, code)`, `Quote(blocks)`, `ListBlock(ordered, start, tight, items)`, `Table(aligns, header, rows)`, `ThematicBreak()`.
+- **Blocks:** `Heading(level, content, id)`, `Paragraph(content)`, `CodeBlock(language, code)`, `Quote(alert, blocks)` (`alert` is a `MarkdownDocument.Alert` or `null`), `ListBlock(ordered, start, tight, items)`, `Table(aligns, header, rows)`, `ThematicBreak()`.
 - **Inlines:** `Text`, `Emphasis`, `Strong`, `Strike`, `Code`, `Link`, `Image`, `SoftBreak`, `HardBreak`.
 
 ## Fonts

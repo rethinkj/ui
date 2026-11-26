@@ -953,6 +953,32 @@ final class Editors {
     return Frame.of(checklistCard(state));
   }
 
+  // docs:start markdown-alerts
+  final MarkdownDocument alerts = Markdown.parse("""
+      > [!NOTE]
+      > Read-only replicas serve reports without touching the primary.
+
+      > [!TIP]
+      > Use `EXPLAIN (ANALYZE, BUFFERS)` to see where time goes.
+
+      > [!IMPORTANT]
+      > Migrations must be backward-compatible during a rolling deploy.
+
+      > [!WARNING]
+      > Dropping an index takes a lock on the table.
+
+      > [!CAUTION]
+      > `TRUNCATE` removes every row and cannot be undone.""");
+
+  static El alertsCard(Editors state) {
+    return Card.card(Markdown.fragment(state.alerts, Markdown.options())).wFull();
+  }
+  // docs:end markdown-alerts
+
+  static El markdownAlerts(Editors state) {
+    return Frame.of(alertsCard(state));
+  }
+
   final MarkdownDocument queryChange = Markdown.parse("""
       Include `tax` and filter paid orders:
 

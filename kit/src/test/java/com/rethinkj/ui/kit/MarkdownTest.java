@@ -2852,6 +2852,94 @@ class MarkdownTest {
     assertTrue(plain.contains("int x = 1;"), plain);
   }
 
+  @Test
+  void anAlertInAVirtualFragmentIsOneRowWithWorkingLinksAndCode() throws IOException {
+    String source = """
+        Intro paragraph.
+
+        > [!WARNING]
+        > Check [the guide](https://example.com) first.
+        >
+        > ```sql
+        > SELECT 1;
+        > ```
+
+        > [!TIP]
+
+        > Plain quote.""";
+    MarkdownDocument document = Markdown.parse(source);
+    assertEquals(4, document.blocks().size());
+    List<String> links = new ArrayList<>();
+    Clipboard clipboard = Clipboard.inMemory();
+    Markdown.State state = new Markdown.State();
+    boolean[] replace = {false};
+    Function<MarkdownDocument.CodeBlock, El> hook = block -> block.language().equals("sql")
+        ? El.text("replaced:" + block.code().strip())
+            .role("region")
+            .editable(text -> {})
+            .readOnly()
+            .w(120)
+        : null;
+    App<Object> app = new App<>(new Object(), ignored -> {
+          Markdown.Options options =
+              Markdown.options().virtual().onLink(links::add).copy(clipboard).state(state);
+          if (replace[0]) {
+            options.codeBlocks(hook);
+          }
+          return col()
+              .wFull()
+              .hFull()
+              .child(Markdown.fragment(document, options).key("frag").grow(1));
+        })
+        .provide(Theme.CURRENT, ignored -> Theme.DARK);
+
+    String tree = run(app, "size 640 480\nframe");
+    assertTrue(line(tree, "#frag").contains("rows 0-3/4"), "one row per block:\n" + tree);
+    assertTrue(line(tree, "role=note label=\"Warning\"").startsWith("el role=note"), tree);
+    assertTrue(line(tree, "role=note label=\"Tip\"").startsWith("el role=note"), tree);
+    assertTrue(line(tree, "role=blockquote").startsWith("el role=blockquote"), tree);
+
+    // Link inside the alert works, and code inside the alert wraps and copies.
+    run(app, "size 640 480\npress role=link label=\"the guide\"\nframe");
+    assertEquals(List.of("https://example.com"), links);
+    run(app, "size 640 480\npress #copy\nframe");
+    assertEquals("SELECT 1;", clipboard.read());
+    run(app, "size 640 480\npress #wrap\nframe");
+    assertTrue(state.wraps(0), "code block inside alert indexed in state");
+
+    // Title is chrome: neither scopeText nor Markdown.text copies it.
+    String copied = app.scopeText(CellEditorTest.find(app.tree(), "frag"));
+    assertTrue(copied.contains("Check the guide first."), copied);
+    assertTrue(copied.contains("SELECT 1;"), copied);
+    assertFalse(copied.contains("Warning"), copied);
+    assertFalse(copied.contains("Tip"), copied);
+    assertFalse(Markdown.text(document).contains("Warning"));
+    assertFalse(Markdown.text(document).contains("Tip"));
+
+    // Code inside an alert counts for the virtual fragment's code rows: toggling codeBlocks
+    // replaces and restores the alert's code block.
+    replace[0] = true;
+    String replaced = run(app, "size 640 480\nframe");
+    assertTrue(replaced.contains("replaced:SELECT 1;"), replaced);
+    assertFalse(replaced.contains("role=code"), replaced);
+    replace[0] = false;
+    String restored = run(app, "size 640 480\nframe");
+    assertTrue(restored.contains("role=code"), restored);
+
+    // Localized titles come from Texts.CURRENT.
+    App<Object> german = new App<>(
+            new Object(),
+            ignored -> col()
+                .wFull()
+                .hFull()
+                .child(Markdown.fragment(document, Markdown.options().virtual()).grow(1)))
+        .provide(Theme.CURRENT, ignored -> Theme.DARK)
+        .provide(Texts.CURRENT, ignored -> new GermanTexts());
+    String germanTree = run(german, "size 640 480\nframe");
+    assertTrue(germanTree.contains("role=note label=\"Warnung\""), germanTree);
+    assertTrue(germanTree.contains("role=note label=\"Tipp\""), germanTree);
+  }
+
   private static void collectRole(El el, String role, List<El> into) {
     if (role.equals(el.role())) {
       into.add(el);

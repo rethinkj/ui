@@ -32,8 +32,8 @@ import java.util.function.Function;
 /**
  * A Markdown document in the theme's {@link Theme.Prose} look, as a scroll area that builds only
  * the blocks in view, to lay into a card: headings, paragraphs with bold, italic, inline code,
- * struck-out text and links, code blocks, quotes, lists and task lists, tables and thematic
- * breaks. Raw HTML shows as text.
+ * struck-out text and links, code blocks, quotes and GitHub alerts, lists and task lists, tables
+ * and thematic breaks. Raw HTML shows as text.
  *
  * <pre>{@code
  * // In the state, once:
@@ -854,8 +854,15 @@ public final class Markdown {
         code.code().lines().count() * theme.prose().mono().size() * 1.35
             + 2 * theme.space().l()
             + codeHeaderHeight(theme);
-      case MarkdownDocument.Quote q ->
-        q.blocks().stream().mapToDouble(b -> estimate(theme, b)).sum();
+      case MarkdownDocument.Quote q -> {
+        double inner = q.blocks().stream().mapToDouble(b -> estimate(theme, b)).sum();
+        yield q.alert() == null
+            ? inner
+            : inner
+                + line
+                + 2 * theme.space().m()
+                + (q.blocks().isEmpty() ? 0 : theme.space().xs());
+      }
       case MarkdownDocument.ListBlock l ->
         l.items().stream()
             .flatMap(i -> i.blocks().stream())
@@ -1205,9 +1212,13 @@ public final class Markdown {
   /** What building a document needs, and the color of its text where it is now. */
   private record Context(
       Theme theme, Options options, Prepared prepared, int color, int depth, boolean compact) {
-    Context muted() { // the app's text color stays
-      int muted = options.textColor != 0 ? options.textColor : theme.text().muted();
-      return new Context(theme, options, prepared, muted, depth, compact);
+    Context muted() {
+      return colored(theme.text().muted());
+    }
+
+    Context colored(int fallback) { // the app's text color stays
+      int text = options.textColor != 0 ? options.textColor : fallback;
+      return new Context(theme, options, prepared, text, depth, compact);
     }
 
     Context deeper() {
@@ -1262,6 +1273,9 @@ public final class Markdown {
         yield own;
       }
       case MarkdownDocument.Quote q -> {
+        if (q.alert() != null) {
+          yield alert(c, q);
+        }
         El content = col().grow(1).minSize(0, 0);
         blocks(c.muted(), q.blocks(), false, content);
         yield row()
@@ -1282,6 +1296,29 @@ public final class Markdown {
       }
       case MarkdownDocument.Table table -> table(c, table);
     };
+  }
+
+  private static El alert(Context c, MarkdownDocument.Quote q) {
+    MarkdownDocument.Alert alert = q.alert();
+    Callout.Kind kind = switch (alert) {
+      case NOTE, IMPORTANT -> Callout.Kind.INFO;
+      case TIP -> Callout.Kind.SUCCESS;
+      case WARNING -> Callout.Kind.WARNING;
+      case CAUTION -> Callout.Kind.DANGER;
+    };
+    Symbol icon = switch (alert) {
+      case NOTE -> Symbol.INFO;
+      case TIP -> Symbol.LIGHTBULB;
+      case IMPORTANT -> Symbol.ALERT;
+      case WARNING -> Symbol.WARNING;
+      case CAUTION -> Symbol.ERROR_CIRCLE;
+    };
+    El body = null;
+    if (!q.blocks().isEmpty()) {
+      body = col().minSize(0, 0);
+      blocks(c.colored(c.theme.callout().text()), q.blocks(), false, body);
+    }
+    return Callout.frame(kind, icon, Texts.CURRENT.get().alert(alert), body);
   }
 
   /** A read-only field for a block of text: selectable, passed by Tab, as high as its rows. */

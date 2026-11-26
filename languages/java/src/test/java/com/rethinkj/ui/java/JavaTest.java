@@ -470,6 +470,9 @@ class JavaTest {
         ///
         /// > Quote with {@code q*1*} and [String].
         ///
+        /// > [!NOTE]
+        /// > Alert with [String].
+        ///
         /// | Tag | Ref |
         /// | --- | --- |
         /// | {@code t*1*} | [List] |
@@ -497,6 +500,10 @@ class JavaTest {
         tree.contains("text \"Not links: [not a ref], [0], [(optional)], ![String].\""), tree);
     assertTrue(
         tree.contains("quote\n  paragraph\n    text \"Quote with \"\n    code \"q*1*\""), tree);
+    assertTrue(
+        tree.contains(
+            "quote alert=note\n  paragraph\n    text \"Alert with \"\n    link \"String\""),
+        tree);
     assertTrue(tree.contains("cell\n      code \"t*1*\""), tree);
     assertTrue(tree.contains("cell\n      link \"List\"\n        code \"List\""), tree);
 

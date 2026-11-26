@@ -16,8 +16,9 @@ import java.util.regex.Pattern;
 
 /**
  * Reads Markdown for {@link MarkdownDocument#parse}, after the algorithm of the CommonMark
- * specification (0.31.2) and its reference implementation: blocks line by line with a stack of
- * open containers, then the inline parts of each paragraph, heading and table cell with a stack of
+ * specification (0.31.2) and its reference implementation, with the GitHub extensions tables, task
+ * list items, alerts, strikethrough and bare URLs: blocks line by line with a stack of open
+ * containers, then the inline parts of each paragraph, heading and table cell with a stack of
  * delimiters and one of brackets, so that the time grows with the length of the text.
  *
  * <p>Left out on purpose: HTML blocks and inline HTML (both stay text, which is what the component
@@ -1070,11 +1071,31 @@ final class MarkdownParser {
       case INDENTED -> out.add(new MarkdownDocument.CodeBlock("", b.content.toString()));
       case BREAK -> out.add(new MarkdownDocument.ThematicBreak());
       case QUOTE -> {
+        MarkdownDocument.Alert alert = null;
         List<Block> blocks = new ArrayList<>();
-        for (B child : b.children) {
+        for (int i = 0; i < b.children.size(); i++) {
+          B child = b.children.get(i);
+          if (i == 0
+              && b.parent == doc
+              && child.type == PARA
+              && child.startLine == b.startLine
+              && child.contentStart >= 0) {
+            String content = child.content.toString();
+            int cut = content.indexOf('\n');
+            String first = cut < 0 ? content : content.substring(0, cut);
+            MarkdownDocument.Alert kind = alert(first);
+            if (kind != null) {
+              alert = kind;
+              String rest = cut < 0 ? "" : content.substring(cut + 1).strip();
+              if (!rest.isEmpty()) {
+                blocks.add(new MarkdownDocument.Paragraph(inlines(rest)));
+              }
+              continue;
+            }
+          }
           convert(child, blocks);
         }
-        out.add(new MarkdownDocument.Quote(blocks));
+        out.add(new MarkdownDocument.Quote(alert, blocks));
       }
       case LIST -> {
         List<MarkdownDocument.Item> items = new ArrayList<>();
@@ -1128,6 +1149,25 @@ final class MarkdownParser {
     }
   }
 
+  /** A GitHub alert marker alone on the first line of a top-level quote, or null. */
+  private static MarkdownDocument.Alert alert(String line) {
+    int end = line.length();
+    while (end > 0 && isSpaceOrTab(line.charAt(end - 1))) {
+      end--;
+    }
+    if (end < 4 || line.charAt(0) != '[' || line.charAt(1) != '!' || line.charAt(end - 1) != ']') {
+      return null;
+    }
+    return switch (line.substring(2, end - 1).toUpperCase(Locale.ROOT)) {
+      case "NOTE" -> MarkdownDocument.Alert.NOTE;
+      case "TIP" -> MarkdownDocument.Alert.TIP;
+      case "IMPORTANT" -> MarkdownDocument.Alert.IMPORTANT;
+      case "WARNING" -> MarkdownDocument.Alert.WARNING;
+      case "CAUTION" -> MarkdownDocument.Alert.CAUTION;
+      default -> null;
+    };
+  }
+
   /** The blocks with each heading's anchor, GitHub's slug, made unique in the document. */
   private static List<Block> identify(List<Block> blocks) {
     Map<String, Integer> seen = new HashMap<>();
@@ -1151,7 +1191,7 @@ final class MarkdownParser {
         }
         case MarkdownDocument.Quote q -> {
           List<Block> inner = identify(q.blocks(), seen);
-          yield inner == q.blocks() ? q : new MarkdownDocument.Quote(inner);
+          yield inner == q.blocks() ? q : new MarkdownDocument.Quote(q.alert(), inner);
         }
         case MarkdownDocument.ListBlock l -> {
           List<MarkdownDocument.Item> items = identifyItems(l.items(), seen);
@@ -2203,7 +2243,12 @@ final class MarkdownParser {
       case MarkdownDocument.CodeBlock c ->
         line(out, depth, "code " + quote(c.language()) + " " + quote(c.code()));
       case MarkdownDocument.Quote q -> {
-        line(out, depth, "quote");
+        line(
+            out,
+            depth,
+            q.alert() == null
+                ? "quote"
+                : "quote alert=" + q.alert().name().toLowerCase(Locale.ROOT));
         q.blocks().forEach(b -> tree(b, depth + 1, out));
       }
       case MarkdownDocument.ListBlock l -> {

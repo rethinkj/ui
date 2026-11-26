@@ -42,11 +42,23 @@ public final class Callout {
    */
   public static El callout(Kind kind, String title, String text, El... actions) {
     Theme theme = Theme.CURRENT.get();
+    El body = text == null
+        ? null
+        : label(Label.Variant.MUTED, text).color(theme.callout().text()).wrapText();
+    return frame(kind, symbol(kind), title, body, actions);
+  }
+
+  /**
+   * The callout's frame — bar, icon, title, optional body element and optional actions — shared
+   * with {@link Markdown} alerts.
+   */
+  static El frame(Kind kind, Icon symbol, String title, El body, El... actions) {
+    Theme theme = Theme.CURRENT.get();
     Theme.CalloutTone tone = theme.callout().of(kind);
     El words = col().grow(1).gap(theme.space().xs()).child(label(title).wrapText());
     words.style().minWidth = Len.ZERO;
-    if (text != null) {
-      words.child(label(Label.Variant.MUTED, text).color(theme.callout().text()).wrapText());
+    if (body != null) {
+      words.child(body);
     }
     float bar = theme.callout().bar();
     El callout = row()
@@ -63,7 +75,7 @@ public final class Callout {
         .fill(tone.fill())
         .child(
             el().w(bar).shrink(0).alignSelf(Style.Align.STRETCH).radius(bar / 2).fill(tone.mark()))
-        .child(icon(symbol(kind)).color(tone.mark()));
+        .child(icon(symbol).color(tone.mark()));
     if (actions.length == 0) {
       return callout.child(words);
     }

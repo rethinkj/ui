@@ -137,6 +137,17 @@ public class GermanTexts implements Texts {
   }
 
   @Override
+  public String alert(MarkdownDocument.Alert kind) {
+    return switch (kind) {
+      case NOTE -> "Hinweis";
+      case TIP -> "Tipp";
+      case IMPORTANT -> "Wichtig";
+      case WARNING -> "Warnung";
+      case CAUTION -> "Vorsicht";
+    };
+  }
+
+  @Override
   public String paste() {
     return "Einfügen";
   }

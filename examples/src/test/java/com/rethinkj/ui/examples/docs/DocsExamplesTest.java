@@ -131,6 +131,7 @@ class DocsExamplesTest {
       Map.entry("diff-view-unified", List.of("view")),
       Map.entry("markdown-fragment", List.of("view")),
       Map.entry("markdown-tasks", List.of("view", "toggled")),
+      Map.entry("markdown-alerts", List.of("view")),
       Map.entry("markdown-blocks", List.of("view")),
       Map.entry("chat", List.of("view")),
       Map.entry("chat-transcript", List.of("view")),
@@ -291,6 +292,7 @@ class DocsExamplesTest {
     editors(all, "markdown", Editors::markdown, 520, 320);
     editors(all, "markdown-fragment", Editors::markdownFragment, 520, 196);
     editors(all, "markdown-tasks", Editors::markdownTasks, 400, 132);
+    editors(all, "markdown-alerts", Editors::markdownAlerts, 520, 362);
     editors(all, "markdown-blocks", Editors::markdownBlocks, 520, 238);
     editors(all, "chat", Editors::chat, 580, 416);
     editors(all, "chat-transcript", Editors::chatTranscript, 680, 340);

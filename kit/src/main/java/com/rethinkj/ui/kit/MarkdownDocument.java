@@ -8,7 +8,7 @@ import java.util.function.UnaryOperator;
 /**
  * A Markdown text read into a tree of blocks and inline parts, which {@link Markdown#markdown}
  * shows. {@link #parse} reads CommonMark with the GitHub extensions tables, task list items,
- * strikethrough and bare URLs; it never throws and takes time in proportion to the text. Raw HTML
+ * alerts, strikethrough and bare URLs; it never throws and takes time in proportion to the text. Raw HTML
  * stays text. An app parses a document once and keeps it in its state, so that a rebuild of the
  * view does not read it again: the component keeps what it makes of the document with it. For a
  * document that grows while it streams, keep it in the state and replace it with {@link
@@ -125,10 +125,29 @@ public final class MarkdownDocument {
    */
   public record CodeBlock(String language, String code) implements Block {}
 
-  /** A block quote, {@code >}, which may hold any blocks, quotes among them. */
-  public record Quote(List<Block> blocks) implements Block {
+  /** The kind of a GitHub alert quote ({@code > [!NOTE]} and the like). */
+  public enum Alert {
+    NOTE,
+    TIP,
+    IMPORTANT,
+    WARNING,
+    CAUTION
+  }
+
+  /**
+   * A block quote, {@code >}, which may hold any blocks, quotes among them, or a top-level GitHub
+   * alert whose first line is a marker such as {@code [!WARNING]}.
+   *
+   * @param alert the alert kind, or null for a plain quote
+   */
+  public record Quote(Alert alert, List<Block> blocks) implements Block {
     public Quote {
       blocks = List.copyOf(blocks);
+    }
+
+    /** A plain block quote, without an alert kind. */
+    public Quote(List<Block> blocks) {
+      this(null, blocks);
     }
   }
 
