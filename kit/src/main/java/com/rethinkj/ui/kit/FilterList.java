@@ -795,7 +795,9 @@ public final class FilterList {
       leading = Icon.Picture.color(
           icon(entry.symbol(), enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED), quiet);
     }
-    El name = label(entry.text()).color(text).minSize(0, 0).ellipsis();
+    // The name keeps its width as the detail gives way, and yields only where it alone overflows.
+    El name = label(entry.text()).color(text).ellipsis();
+    name.style().minYields = true;
     int[] at = shown.query().isEmpty() ? null : Fuzzy.positions(shown.query(), entry.text());
     if (at != null && at.length > 0) {
       name.highlight(shown.query(), (line, before, spans) -> {
@@ -824,10 +826,12 @@ public final class FilterList {
                 .margin(0, 0, 0, theme.space().s())
             : null,
         entry.checked() ? icon(Menu.CHECKED).color(quiet) : null);
-    return PassiveList.option(
+    El option = PassiveList.option(
             theme, i, s.highlight, s::light, enabled ? () -> choose.accept(entry) : null)
         .label(entry.text())
         .child(content);
+    return Tooltip.whenShortened(
+        option, entry.detail() == null ? entry.text() : entry.text() + " — " + entry.detail());
   }
 
   /**

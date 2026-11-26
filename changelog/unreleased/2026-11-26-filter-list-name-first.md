@@ -1,0 +1,1 @@
+- Changed: A `FilterList` entry keeps its name whole and shortens its detail first; the name is cut only where it alone does not fit. When either is cut short, resting the pointer on the entry shows the name and the detail whole in a tooltip.

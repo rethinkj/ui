@@ -57,6 +57,32 @@ class FilterListTest {
     assertTrue(check[0] + check[2] <= option[0] + option[2] - t.space().m(), tree);
   }
 
+  @Test
+  void theDetailGivesWayToTheNameAndShowsWholeOnHover() throws IOException {
+    TextLibraries.assumeLoaded();
+    String detail = "For complex work and everyday coding";
+    String roomy = run(entryApp(detail), "size 220 40");
+    String tree = run(entryApp(detail), "size 180 40\nframe\nmove #option-0");
+    float[] before = StructureTest.rect(StructureTest.line(roomy, "text \"Opus 5.5\""));
+    float[] name = StructureTest.rect(StructureTest.line(tree, "text \"Opus 5.5\""));
+    float[] wider = StructureTest.rect(StructureTest.line(roomy, "text \"" + detail + "\""));
+    float[] cut = StructureTest.rect(StructureTest.line(tree, "text \"" + detail + "\""));
+    assertEquals(before[2], name[2], tree);
+    assertTrue(cut[2] > 0 && cut[2] < wider[2], tree);
+    assertTrue(tree.contains("role=tooltip label=\"Opus 5.5 — " + detail + "\""), tree);
+  }
+
+  private static App<FilterList.State> entryApp(String detail) {
+    Theme t = Theme.DARK;
+    FilterList.Entries entries =
+        FilterList.Entries.of(List.of(FilterList.entry("Opus 5.5", () -> {}).detail(detail)));
+    return new App<>(
+        new FilterList.State(),
+        s -> FilterList.list(
+                t, s, FilterList.shown(s, entries), 4, t.size().control(), "Models", e -> {})
+            .wFull());
+  }
+
   /** A finder that answers "two" at once and waits with every other text until it is let go. */
   static final class Finder {
     final CommandPalette.State palette = new CommandPalette.State();
