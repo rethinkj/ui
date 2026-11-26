@@ -20,7 +20,8 @@ Javadoc: [`TabGroups`](/api/com/rethinkj/ui/kit/TabGroups.html), [`TabGroups.Fra
 
 - Every window has a `TabGroups.Frame<T>` holding a binary tree of splits whose leaves are `TabGroups.Group<T>` instances. `groups.main()` returns the primary window's frame; `groups.frames()` lists every open frame.
 - The window-opener callback receives the new `Frame<T>` and opens a window running an `App` over the same state so all windows stay synchronized. Pass the provided `Window.Options` through (adding `frameless()` or an icon if desired).
-- `groups.tabs(frame, tabToUi, tabToContent)` builds the frame's tab bar(s) and active content (`tabToContent` receives `null` when a group is empty). Hand `tabs.onKey()` to your window root so tab shortcuts act on the frame's active group from anywhere in the window.
+- `groups.tabs(frame, tabToUi, tabToContent)` builds the frame's tab bar(s) and active content (`tabToContent` receives `null` when a group is empty). Hand `tabs.onKey()` (never `null`) to your window root so tab shortcuts act on the frame's active group from anywhere in the window.
+- Tabs are compared by object identity (`==`); each tab instance can live in at most one group at a time (duplicates in the constructor or `add` are rejected).
 
 Example headless script moving a tab to a new window via its context menu:
 
@@ -52,7 +53,7 @@ Splits are opt-in: call `.splits(true)` on your `TabGroups` instance to enable t
 | `onClosed(tab -> …)` | Notification after a tab is closed |
 | `onAdd(group -> …)` | Shows a `+` button and binds Ctrl+T in each group's bar, passing the group |
 
-You can also manipulate tabs from code with `select`, `add`, `close`, `move`, `dock`, `split`, `toNewWindow`, `dockAll`, `closeAll`, `frames`, `groups`, and `groupOf(tab)`. See [`TabGroups` Javadoc](/api/com/rethinkj/ui/kit/TabGroups.html).
+You can also manipulate tabs from code with `select`, `add`, `close`, `move`, `dock`, `split`, `toNewWindow` (a no-op on a detached window's lone tab), `dockAll`, `closeAll`, `frames`, `groups`, and `groupOf(tab)`. See [`TabGroups` Javadoc](/api/com/rethinkj/ui/kit/TabGroups.html).
 
 ## Focus and state across splits and windows
 

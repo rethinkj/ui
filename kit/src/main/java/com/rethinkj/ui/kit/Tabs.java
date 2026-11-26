@@ -367,6 +367,8 @@ public final class Tabs {
     private boolean switchKeys = true;
     private boolean active = true;
     private Object focusBar;
+    private El panelOverlay;
+    private Consumer<El> onTablist;
     private Dock onDock;
     private Menu.State menu;
     private List<Menu.Item> menuItems = List.of();
@@ -486,6 +488,18 @@ public final class Tabs {
     /** Moves the focus to this bar's tablist when {@code key} is new; used by {@link TabGroups}. */
     Options focusBar(Object key) {
       this.focusBar = key;
+      return this;
+    }
+
+    /** Places {@code overlay} last inside the panel, over the tab's content; used by {@link TabGroups}. */
+    Options panelOverlay(El overlay) {
+      this.panelOverlay = overlay;
+      return this;
+    }
+
+    /** Reports this bar's {@code #tablist} element when built; used by {@link TabGroups}. */
+    Options onTablist(Consumer<El> listener) {
+      this.onTablist = listener;
       return this;
     }
 
@@ -794,6 +808,9 @@ public final class Tabs {
       built.add(tab);
       list.child(tab);
     }
+    if (options.onTablist != null) {
+      options.onTablist.accept(list);
+    }
     float padX = line ? theme.space().s() : theme.space().xs();
     float gap = theme.space().xs();
     El bar = row()
@@ -897,6 +914,9 @@ public final class Tabs {
       content.style().minWidth = Len.ZERO;
       content.style().minHeight = Len.ZERO;
       panel.child(content.grow(1));
+    }
+    if (options.panelOverlay != null) {
+      panel.child(options.panelOverlay);
     }
     El root = (line ? col() : Card.surface(theme, Card.Variant.OUTLINED)).children(bar, panel);
     // It fills the room it is given: a list of rows in the content is no minimum.
