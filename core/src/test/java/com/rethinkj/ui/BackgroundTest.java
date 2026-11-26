@@ -296,6 +296,9 @@ class BackgroundTest {
     assertThrows(IllegalArgumentException.class, () -> Background.stripes(0xFFFFFFFF, 0, 5, 0));
     assertThrows(IllegalArgumentException.class, () -> Background.stripes(0xFFFFFFFF, 1, -2, 0));
     assertThrows(
+        IllegalArgumentException.class,
+        () -> Background.stripes(0xFFFFFFFF, Float.MAX_VALUE, Float.MAX_VALUE, 0));
+    assertThrows(
         IllegalArgumentException.class, () -> Background.stripes(0xFFFFFFFF, 1, 5, Float.NaN));
   }
 

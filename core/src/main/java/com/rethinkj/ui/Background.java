@@ -152,6 +152,7 @@ public sealed interface Background
     public Stripes {
       positive("width", width);
       positive("gap", gap);
+      positive("width plus gap", width + gap);
       if (!Float.isFinite(angle)) {
         throw new IllegalArgumentException(
             "A background's angle must be finite degrees, was " + angle);
