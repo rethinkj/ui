@@ -183,7 +183,10 @@ public final class NavList {
      * This item with a context menu shown on a secondary press, or with Shift+F10 or the Menu key
      * while selected and the list has the focus; not while disabled. One {@link Menu.State} may be
      * shared by all items of a list. Pass null for {@code state} or null or an empty list for
-     * {@code items} for none.
+     * {@code items} for none. While the selected item has a menu, the list answers the secondary
+     * presses on its other rows and its free room, for the keys, so a {@link Menu#contextMenu}
+     * around the whole list opens only where the selected item has none: give the other rows
+     * menus of their own.
      */
     public Item contextMenu(Menu.State state, List<Menu.Item> items) {
       return new Item(
