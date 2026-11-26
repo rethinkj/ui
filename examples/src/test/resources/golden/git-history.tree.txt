@@ -15,7 +15,7 @@ el 0,0 1040x940
       text label="dismiss" "\u{F367}" 1011,10 12x12
   el 8,32 1024x900
     el #first 8,32 1024x326
-      el label="History" 8,32 1024x326.01
+      el label="History" 8,32 1024x326
         el 9,33 1022x40
           text role=heading "History" 25,45 49x17 level=3
           el label="18 commits" 82,42 81x22
@@ -242,7 +242,7 @@ el 0,0 1040x940
           text "4 branches · 3 tags" 905,336 110x14
     el #rest 8,358 1024x574
       el #second 8,366 1024x566
-        el #details label="Commit" 8,366 1024x565.99
+        el #details label="Commit" 8,366 1024x566
           el 9,367 1022x40
             text role=heading "Commit" 25,379 53x17 level=3
             el #hash 86,376 69x22

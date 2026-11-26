@@ -3,7 +3,7 @@ title: Motion
 description: Animate size, position, color, opacity, enter/exit transitions, and continuous spinners.
 ---
 
-Calling `.motion(spring)` smoothly animates changes to an element's size, position, color, opacity, corner radius, and arc sweep instead of snapping immediately. Colors spring with premultiplied alpha, so a fade from or to a transparent color shows no gray. Elements with both `.key(...)` and `.motion(...)` also fade in when added and fade out when removed. For continuous animations like spinners, use `.cycle(...)`.
+Calling `.motion(spring)` smoothly animates changes to an element's size, position, color, opacity, corner radius, and arc sweep instead of snapping immediately. Colors spring with premultiplied alpha, so a fade from or to a transparent color shows no gray. Elements with both `.key(...)` and `.motion(...)` also fade in when added and fade out when removed. `.motion(spring, false)` springs everything but the size and position, which change at once; cards use it, so that they follow a layout that moves or resizes them, such as a collapsing split, without lagging behind it. For continuous animations like spinners, use `.cycle(...)`.
 
 All animations run on the app clock (which scripts control with `advance`).
 

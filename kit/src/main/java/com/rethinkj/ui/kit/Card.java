@@ -114,7 +114,7 @@ public final class Card {
 
   /** A card's surface, edge, corners and lift, without padding. */
   static El surface(Theme theme, Variant variant) {
-    El card = col().radius(theme.radius().large()).clip().motion(theme.motion().feedback());
+    El card = col().radius(theme.radius().large()).clip().motion(theme.motion().feedback(), false);
     return switch (variant) {
       case OUTLINED ->
         card.fill(theme.surface().panel())

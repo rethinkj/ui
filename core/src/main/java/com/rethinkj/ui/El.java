@@ -91,6 +91,7 @@ public final class El {
   private Object endKey; // the key of the last of them, with a keyed RowHeights
   boolean focused;
   private Spring motion;
+  private boolean motionRectangle = true;
   private float opacity = 1;
   private float targetOpacity = 1; // as the view set it, which motion springs towards
   private float arcStart;
@@ -3938,7 +3939,8 @@ public final class El {
    * Lets this element spring to new values: when a rebuild of the view gives an element that was
    * already there a new rectangle, fill, border color, radius, opacity, text color or {@link #arc}
    * sweep, {@link App} moves it there with {@code spring} instead of at once. Children are placed
-   * relative to their parent and move with it.
+   * relative to their parent and move with it. Shorthand for {@link #motion(Spring, boolean)
+   * motion(spring, true)}.
    *
    * <p>An element that appears after the app's first frame fades in from opacity 0, in the place
    * layout gives it; it takes the focus from that frame on, and presses once it shows. One with a
@@ -3949,7 +3951,22 @@ public final class El {
    * @param spring how to move, or null to change at once
    */
   public El motion(Spring spring) {
+    return motion(spring, true);
+  }
+
+  /**
+   * Lets this element spring to new values as {@link #motion(Spring)} does, with {@code rectangle}
+   * controlling whether its rectangle springs as well. With {@code rectangle} set to {@code false},
+   * a rebuild that gives this element a new x, y, width or height puts it there at once, while
+   * fill, border color, radius, opacity, text color, {@link #arc} sweep, the fade-in of a new
+   * element and the exit fade of a keyed element still spring.
+   *
+   * @param spring how to move, or null to change at once
+   * @param rectangle whether x, y, width and height spring too; {@code false} updates them at once
+   */
+  public El motion(Spring spring, boolean rectangle) {
     this.motion = spring;
+    this.motionRectangle = rectangle;
     return this;
   }
 
@@ -5055,6 +5072,11 @@ public final class El {
 
   public Spring motion() {
     return motion;
+  }
+
+  /** Whether {@link #motion(Spring, boolean)} springs this element's rectangle as well. */
+  boolean motionRectangle() {
+    return motionRectangle;
   }
 
   /**

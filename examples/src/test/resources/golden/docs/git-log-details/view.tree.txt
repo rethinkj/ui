@@ -1,7 +1,7 @@
 el 0,0 920x880
   el 12,12 896x856
     el #first 12,12 896x274
-      el label="History" 12,12 896x274.01
+      el label="History" 12,12 896x274
         el 13,13 894x40
           text role=heading "History" 29,25 50x17 level=3
           el label="18 commits" 87,22 81x22
@@ -177,7 +177,7 @@ el 0,0 920x880
           text "4 branches · 2 tags" 784,264 107x15
     el #rest 12,286 896x582
       el #second 12,294 896x574
-        el #details label="Commit" 12,294 896x573.99
+        el #details label="Commit" 12,294 896x574
           el 13,295 894x40
             text role=heading "Commit" 29,307 54x17 level=3
             el #hash 91,304 67x22

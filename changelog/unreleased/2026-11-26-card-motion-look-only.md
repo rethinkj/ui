@@ -1,0 +1,1 @@
+- Cards no longer spring their size or place: when a layout change moves or resizes a `Card`, such as collapsing or restoring a part of `Split.cards`, it is there at once instead of jumping and then crawling, while its colors and its fade-in still spring. The new `El.motion(Spring, boolean)` lets any element do the same.
