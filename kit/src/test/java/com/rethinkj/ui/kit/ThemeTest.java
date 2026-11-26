@@ -498,10 +498,11 @@ class ThemeTest {
           4.5);
       check(failures, "strong badge text", tone.strongText(), Map.of("strong", tone.strong()), 4.5);
     }
-    // Callouts: the title and the text below it on each kind's fill, the bar and the icon on it;
-    // a ghost button's text under its overlays over the fill (a secondary one has its raised fill,
-    // checked above), the outline of a secondary one as far from the fill as its edge is from the
-    // surfaces it stands on elsewhere, and the focus ring of either.
+    // Callouts: the title and the text below it on each kind's fill, the bar and the icon on it,
+    // plus prose links and inline code for Markdown alerts; a ghost button's text under its
+    // overlays over the fill (a secondary one has its raised fill, checked above), the outline of a
+    // secondary one as far from the fill as its edge is from the surfaces it stands on elsewhere,
+    // and the focus ring of either.
     Theme.Callouts callouts = t.callout();
     double edgeOnSurfaces = surfaces.values().stream()
         .mapToDouble(surface -> contrast(t.border().control(), surface))
@@ -509,17 +510,32 @@ class ThemeTest {
         .orElseThrow();
     for (Callout.Kind kind : Callout.Kind.values()) {
       int fill = callouts.of(kind).fill();
+      int hovered = over(fill, s.hover());
+      int pressed = over(fill, s.pressed());
+      int inlineCode = over(fill, prose.code());
       Map<String, Integer> on = Map.of(kind + " callout", fill);
       check(failures, "callout title", t.text().primary(), on, 4.5);
-      check(failures, "callout text", callouts.text(), on, 4.5);
+      check(
+          failures,
+          "callout text",
+          callouts.text(),
+          Map.of(kind + " callout", fill, kind + " callout inline code", inlineCode),
+          4.5);
       check(failures, "callout mark", callouts.of(kind).mark(), on, 3);
+      check(
+          failures,
+          "callout link",
+          prose.link(),
+          Map.of(
+              kind + " callout", fill,
+              kind + " callout hovered", hovered,
+              kind + " callout inline code", inlineCode),
+          4.5);
       check(
           failures,
           "ghost button text",
           t.text().primary(),
-          Map.of(
-              kind + " callout hovered", over(fill, s.hover()),
-              kind + " callout pressed", over(fill, s.pressed())),
+          Map.of(kind + " callout hovered", hovered, kind + " callout pressed", pressed),
           4.5);
       // A secondary button keeps its raised fill: on a tint its outline is its edge or its fill,
       // whichever stands out more, as on a raised surface it is its edge alone.

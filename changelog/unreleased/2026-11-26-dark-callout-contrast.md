@@ -1,0 +1,1 @@
+- Dark-theme callout fills (`Theme.Callouts.DARK`) are darker tints of each kind so prose links and inline code in Markdown alerts keep at least 4.5:1 contrast.
