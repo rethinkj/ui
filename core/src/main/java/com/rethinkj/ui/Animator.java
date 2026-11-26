@@ -614,10 +614,11 @@ final class Animator {
       } else if (entry.tracks == null) {
         entry.resetTracks(before, true); // what it showed without motion, to spring from
       }
+      boolean snapRectangle = row || !el.motionRectangle();
       for (int i = 0; i < COUNT; i++) {
         Track track = entry.tracks[i];
         double target = value(el, i);
-        if (row && i < RADIUS) {
+        if (snapRectangle && i < RADIUS) {
           track.set(target);
         } else if (target != track.target()) {
           track.retarget(target, spring, now);

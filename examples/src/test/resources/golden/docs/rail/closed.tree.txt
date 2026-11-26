@@ -15,7 +15,7 @@ el 0,0 560x260
     el #first 49,8 0x244
     el #rest 49,8 503x244
       el #second 49,8 503x244
-        el 49,8 315x244
+        el 49,8 503x244
           el 50,9 501x40
             text role=heading "orders.sql" 66,21 70x17 level=3
             el 144,29 391x0

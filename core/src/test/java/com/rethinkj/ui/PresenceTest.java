@@ -4,6 +4,7 @@ import static com.rethinkj.ui.El.el;
 import static com.rethinkj.ui.El.row;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -322,6 +323,44 @@ class PresenceTest {
     assertTrue(message.contains("is fading in, at opacity 0 in the last frame"), message);
     Script.run("advance 1\nframe\n" + press + "frame\n", app, out);
     assertEquals(List.of("refresh"), log);
+  }
+
+  @Test
+  void motionWithoutRectangleMovesAtOnceWhileTheFillStillSprings() {
+    boolean[] moved = {false};
+    int before = Colors.rgb(0x204080);
+    int after = Colors.rgb(0xE04020);
+    App<boolean[]> app = new App<>(
+        moved,
+        s -> el().size(200, 100)
+            .onPress(() -> s[0] = true)
+            .child(el().key("box")
+                .absolute(s[0] ? 80 : 10, s[0] ? 30 : 10)
+                .size(s[0] ? 90 : 40, s[0] ? 50 : 20)
+                .fill(s[0] ? after : before)
+                .motion(Spring.SETTLE, false)));
+    app.resize(200, 100, 1);
+    app.frame();
+
+    press(app, 190, 90);
+    app.frame();
+    El box = find(app, "box");
+    assertEquals(80, box.x(), "rectangle moves at once");
+    assertEquals(30, box.y());
+    assertEquals(90, box.width());
+    assertEquals(50, box.height());
+    assertEquals(before, box.fill(), "fill starts from the previous color");
+    assertTrue(app.isMoving());
+
+    app.advance(0.05);
+    app.frame();
+    assertNotEquals(before, box.fill(), "fill is springing");
+    assertNotEquals(after, box.fill());
+
+    app.advance(1);
+    app.frame();
+    assertEquals(after, box.fill());
+    assertFalse(app.isMoving());
   }
 
   /** The badge example after its first frame, 200 by 120 pixels. */
