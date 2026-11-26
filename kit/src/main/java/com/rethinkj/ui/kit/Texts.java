@@ -140,6 +140,10 @@ public interface Texts {
     return "Open link";
   }
 
+  default String copyLink() {
+    return "Copy link";
+  }
+
   default String copyLinkAddress() {
     return "Copy link address";
   }

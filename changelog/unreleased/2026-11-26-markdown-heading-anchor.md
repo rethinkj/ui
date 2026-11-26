@@ -1,0 +1,1 @@
+- `Markdown.markdown` and `Markdown.fragment` show a muted `#` link anchor at the right edge of a heading under the pointer when `Options.onLink` is set (pressing it passes `#<id>` to `onLink`), and offer Copy link in a heading's context menu when `Options.copy` is also set.

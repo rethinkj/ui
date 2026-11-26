@@ -56,14 +56,17 @@ import java.util.function.Function;
  * fragments in one container (such as a list of chat messages) join into one selection when the
  * app marks the container {@link El#selectionScope}. A secondary press, the Menu key or Shift+F10
  * opens a context menu ({@link El#fieldMenu}) with Copy and Select all on text, Open link and Copy
- * link address on a link, and Copy code on a code block, omitting items whose option is not set.
+ * link address on a link, Copy link on a heading, and Copy code on a code block, omitting items
+ * whose option is not set.
  *
  * <p>A link is an element over its range of the text ({@link El#range}): {@code role=link} with
  * its text as the label, its title (if it has one) as its tooltip, in {@link Theme.Prose#link} and
  * underlined, with the pointer's cursor and a tint under it, one stop for Tab, and pressed by
  * Enter; it hands its destination to {@link Options#onLink}. Headings have the key {@code
  * heading-<id>} with GitHub's anchor as the id ({@link MarkdownDocument.Heading#id}), so that the
- * app finds one to scroll to for a link {@code #id}.
+ * app finds one to scroll to for a link {@code #id}; with {@link Options#onLink}, a heading shows
+ * a muted {@code #} anchor at its right edge on its last row under the pointer (or when focused),
+ * labeled by the heading's text, whose press hands {@code #<id>} to {@link Options#onLink}.
  *
  * <p>Code blocks are in the mono type on the raised surface, scroll sideways unless wrapped, and
  * are colored by the highlighter {@link Options#languages} gives for their language. A slim header
@@ -269,7 +272,7 @@ public final class Markdown {
 
     /**
      * Copying: a copy button and context-menu Copy code on code blocks, Copy link address on links,
-     * and Control+C / Copy after Control+A go here.
+     * Copy link on headings, and Control+C / Copy after Control+A go here.
      */
     public Options copy(Clipboard clipboard) {
       this.clipboard = clipboard;
@@ -1119,6 +1122,11 @@ public final class Markdown {
 
   /** A read-only field for a block of text: selectable, passed by Tab, as high as its rows. */
   private static El field(Context c, Piece piece, Theme.TextStyle style, int color) {
+    return field(c, piece, style, color, List.of());
+  }
+
+  private static El field(
+      Context c, Piece piece, Theme.TextStyle style, int color, List<Menu.Item> extra) {
     Theme theme = c.theme;
     El field = El.text(piece.text)
         .editable(text -> {})
@@ -1161,6 +1169,10 @@ public final class Markdown {
           more = linkItems(c, piece.links.get(i).destination);
           break;
         }
+      }
+      if (!extra.isEmpty()) {
+        more = new ArrayList<>(more);
+        more.addAll(extra);
       }
       return menu(c, open, more);
     });
@@ -1279,23 +1291,47 @@ public final class Markdown {
 
   private static El heading(Context c, MarkdownDocument.Heading h) {
     Theme theme = c.theme;
+    Theme.TextStyle style = theme.prose().headings().get(h.level() - 1);
+    String destination = "#" + h.id();
     List<Picture> pictures = c.options.images == null ? List.of() : imagesOnly(h.content());
     El content;
     if (!pictures.isEmpty()) {
       content = imageRow(c, pictures);
     } else {
-      Theme.TextStyle style = theme.prose().headings().get(h.level() - 1);
       int color =
           h.level() == 6 && c.color == theme.text().primary() ? theme.text().muted() : c.color;
-      content = field(c, piece(c, h, h.content(), true), style, color);
+      List<Menu.Item> extra = c.options.onLink != null && c.options.clipboard != null
+          ? List.of(Menu.item(
+              Texts.CURRENT.get().copyLink(), () -> c.options.clipboard.write(destination)))
+          : List.of();
+      content = field(c, piece(c, h, h.content(), true), style, color, extra);
     }
     content.role("heading").level(h.level()).key("heading-" + h.id());
-    if (h.level() > 2) {
-      return content;
+    if (h.level() <= 2) {
+      // The two top levels stand over a hairline, as on a page of documentation.
+      content.padding(0, 0, theme.space().s(), 0);
     }
-    // The two top levels stand over a hairline, as on a page of documentation.
-    content.padding(0, 0, theme.space().s(), 0);
-    return col().children(content, Divider.divider());
+    El box = h.level() > 2 ? content : col().children(content, Divider.divider());
+    if (c.options.onLink == null) {
+      return box;
+    }
+    // At the right edge on the last row: an element out of its parent's box is not hit there.
+    // The glyph fades, not the link: an element at opacity 0 is neither hit nor reached by Tab.
+    El glyph = El.text("#")
+        .font(style.font().get())
+        .fontSize(style.size())
+        .color(theme.text().muted())
+        .opacity(0)
+        .motion(theme.motion().feedback());
+    El anchor = link(c, MarkdownDocument.plainText(h.content()), destination)
+        .child(glyph)
+        .whenFocused(e -> glyph.opacity(1));
+    anchor.style().position = Style.Position.ABSOLUTE;
+    anchor.style().right = Len.ZERO;
+    anchor.style().bottom =
+        Len.px(h.level() > 2 ? 0 : theme.space().s() + theme.size().stroke());
+    El out = h.level() > 2 ? col().child(content) : box;
+    return out.child(anchor).whenHovered(e -> glyph.opacity(1));
   }
 
   private static El paragraph(Context c, MarkdownDocument.Paragraph p) {

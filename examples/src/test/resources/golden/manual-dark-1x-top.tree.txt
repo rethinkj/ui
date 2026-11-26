@@ -78,6 +78,8 @@ el 0,0 960x640
           el 281,57 646x36
             text #heading-writing-documents role=heading "Writing documents" 281,57 646x35 readonly level=1 lines 1-1/1
             el role=separator 281,92 646x1
+            el role=link label="Writing documents" 910,57 17x31 value="#writing-documents"
+              text "#" 910,57 17x31
         el 281,101 646x63 pos=2/39
           text role=paragraph "A document of the kit is written in Markdown and shown by Markdown.markdown. This manual uses every " … "r jump to tables, code or the checklist." length 237 281,101 646x51 readonly lines 1-1/1
             el #link-0 role=link label="tables" 404,135 40x17 value="#tables"
@@ -87,12 +89,17 @@ el 0,0 960x640
           el 281,188 646x29
             text #heading-text role=heading "Text" 281,188 646x28 readonly level=2 lines 1-1/1
             el role=separator 281,216 646x1
+            el role=link label="Text" 914,188 13x24 value="#text"
+              text "#" 914,188 13x24
         el 281,225 646x80 pos=4/39
           text role=paragraph "A paragraph is lines of text with no blank line between them. They flow together and wrap at the wid" … "eps a character literal: *not emphasis*." length 324 281,225 646x68 readonly lines 1-1/1
         el 281,305 646x63 pos=5/39
           text role=paragraph "Two spaces at the end of a line\nbreak it without starting a new paragraph. Entities such as ©, — and € turn into their characters, and raw HTML such as <kbd>Ctrl</kbd> stays text." 281,305 646x51 readonly lines 1-2/2
         el 281,368 646x41 pos=6/39
-          text #heading-links role=heading "Links" 281,380 646x21 readonly level=3 lines 1-1/1
+          el 281,380 646x21
+            text #heading-links role=heading "Links" 281,380 646x21 readonly level=3 lines 1-1/1
+            el role=link label="Links" 916,380 11x21 value="#links"
+              text "#" 916,380 11x21
         el 281,409 646x63 pos=7/39
           text role=paragraph "Links come inline, by reference, as autolinks such as https://spec.commonmark.org and as bare addres" … " there; any other one shows its address." length 219 281,409 646x51 readonly lines 1-1/1
             el #link-0 role=link label="inline" 359,409 33x17 value="https://commonmark.org"
@@ -104,6 +111,8 @@ el 0,0 960x640
           el 281,496 646x29
             text #heading-lists role=heading "Lists" 281,496 646x28 readonly level=2 lines 1-1/1
             el role=separator 281,524 646x1
+            el role=link label="Lists" 914,496 13x24 value="#lists"
+              text "#" 914,496 13x24
         el 281,533 646x19 pos=9/39
           el role=list 281,533 646x19
             el role=listitem 281,533 646x17 pos=1/2
