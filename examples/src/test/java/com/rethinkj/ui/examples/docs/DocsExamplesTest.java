@@ -64,6 +64,7 @@ class DocsExamplesTest {
       Map.entry("tab-groups", List.of("moved", "ideas-moved")),
       Map.entry("status", List.of("view")),
       Map.entry("meter", List.of("view")),
+      Map.entry("meter-usage", List.of("view")),
       Map.entry("bars", List.of("view")),
       Map.entry("title-bar-glow", List.of("view")),
       Map.entry("title-bar-rail", List.of("view")),
@@ -194,6 +195,7 @@ class DocsExamplesTest {
     layouts(all, "tabs-line", Layouts::tabsLine, 480, 180);
     layouts(all, "status", Layouts::status, 460, 420);
     layouts(all, "meter", state -> Layouts.meter(), 520, 56);
+    layouts(all, "meter-usage", state -> Layouts.meterUsage(), 720, 341);
     layouts(all, "bars", Layouts::bars, 720, 160);
     layouts(all, "title-bar-glow", Layouts::titleBarGlow, 640, 200);
     layouts(all, "title-bar-rail", Layouts::titleBarRail, 640, 240);

@@ -1,0 +1,94 @@
+el 0,0 720x341
+  el 12,12 696x317
+    el 12,12 696x117
+      el 12,12 696x16
+        text label="people" "\u{F5A7}" 12,12 16x16
+        text "Workspace" 32,12 70x16
+      el 12,36 696x93
+        el 29,53 662x59
+          el 29,53 168x59
+            text "Weekly" 29,53 168x16
+            el 29,71 168x24
+              text "83%" 29,71 46x24
+              el 79,77 33x16
+                text "left" 79,77 19x16
+                text label="arrow_down" "\u{F8D0}" 100,79 12x12
+            el 29,97 168x15
+              text label="clock" "\u{F2DB}" 29,99 12x12
+              text "+3% in 6d 10h" 43,97 80x15
+          el 209,67 482x32
+            el role=meter label="Chat" 209,67 237x32 value="72%"
+              el #segment-0 label="Chat" 209,67 171x32 value="72%"
+                text "Chat 72%" 217,75 58x15
+              el #marker label="Expected" 314,67 4x32 value="45%"
+              el #trailing-layer 209,67 237x32
+                el 209,67 74x32
+                el 283,67 36x32
+                el #trailing 327,67 111x32
+                  el 327,74 87x18
+                    el label="resets now" 327,74 87x18
+                      text label="arrow_clockwise" "\u{E0A9}" 333,77 12x12
+                      text "resets now" 347,75 61x15
+                  el 418,74 20x18
+                    el label="3" 418,74 20x18
+                      text "3" 424,75 8x15
+            el role=meter label="Code" 454,67 237x32 value="94%"
+              el #segment-0 label="Code" 454,67 223x32 value="94%"
+                text "Code 94%" 462,75 61x15
+              el #marker label="Expected" 571,67 4x32 value="50%"
+              el #trailing-layer 454,67 237x32
+                el 454,67 77x32
+                el 531,67 56x32
+                el #trailing 595,67 88x32
+                  el 595,74 64x18
+                    el label="6d 10h" 595,74 64x18
+                      text label="arrow_clockwise" "\u{E0A9}" 601,77 12x12
+                      text "6d 10h" 615,75 38x15
+                  el 663,74 20x18
+                    el label="3" 663,74 20x18
+                      text "3" 669,75 8x15
+    el 12,145 696x184
+      el 12,145 696x16
+        text label="person" "\u{F5BC}" 12,145 16x16
+        text "Personal" 32,145 54x16
+      el 12,169 696x76
+        el 29,186 662x42
+          el 29,186 168x42
+            text "Weekly" 29,186 168x16
+            el 29,204 168x24
+              text "86%" 29,204 46x24
+              el 79,210 33x16
+                text "left" 79,210 19x16
+                text label="arrow_down" "\u{F8D0}" 100,212 12x12
+          el role=meter label="Personal weekly" 209,191 482x32 value="86%"
+            el #segment-0 label="" 209,191 415x32 value="86%"
+              text "86%" 217,200 28x15
+            el #marker label="Expected" 606,191 4x32 value="83%"
+            el #trailing-layer 209,191 482x32
+              el 209,191 44x32
+              el 253,191 357x32
+              el #trailing 618,191 65x32
+                el 618,198 65x18
+                  el label="5d 23h" 618,198 65x18
+                    text label="arrow_clockwise" "\u{E0A9}" 624,201 12x12
+                    text "5d 23h" 638,200 39x15
+      el 12,253 696x76
+        el 29,270 662x42
+          el 29,270 168x42
+            text "Weekly · Large model" 29,270 168x16
+            el 29,288 168x24
+              text "100%" 29,288 59x24
+              el 92,294 33x16
+                text "left" 92,294 19x16
+                text label="arrow_down" "\u{F8D0}" 113,296 12x12
+          el role=meter label="Personal large model" 209,275 482x32 value="100%"
+            el #segment-0 label="" 209,275 482x32 value="100%"
+              text "100%" 217,284 36x15
+            el #trailing-layer 209,275 482x32
+              el 209,275 52x32
+              el 261,275 349x32
+              el #trailing 618,275 65x32
+                el 618,282 65x18
+                  el label="5d 23h" 618,282 65x18
+                    text label="arrow_clockwise" "\u{E0A9}" 624,285 12x12
+                    text "5d 23h" 638,284 39x15

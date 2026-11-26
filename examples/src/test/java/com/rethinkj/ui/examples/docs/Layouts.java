@@ -27,6 +27,7 @@ import com.rethinkj.ui.kit.Divider;
 import com.rethinkj.ui.kit.EmptyState;
 import com.rethinkj.ui.kit.Form;
 import com.rethinkj.ui.kit.Group;
+import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Label;
 import com.rethinkj.ui.kit.Menu;
 import com.rethinkj.ui.kit.Meter;
@@ -608,6 +609,98 @@ final class Layouts {
     // docs:end meter
     return Frame.of(usage);
   }
+
+  static El meterUsage() {
+    return Frame.of(usageOverview());
+  }
+
+  // docs:start meter-usage
+  private static final int PERSONAL_FILL = 0xFF3B669C;
+
+  static El usageOverview() {
+    Theme theme = Theme.CURRENT.get();
+    El workspaceMeters = row()
+        .wFull()
+        .gap(theme.space().m())
+        .children(
+            Meter.bar(
+                    List.of(new Meter.Segment("Chat", 0.72, 0)),
+                    Meter.options()
+                        .hatched()
+                        .marker(0.45, "Expected")
+                        .trailing(resetBadge("resets now"), Badge.badge("3")))
+                .label("Chat"),
+            Meter.bar(
+                    List.of(new Meter.Segment("Code", 0.94, 0)),
+                    Meter.options()
+                        .hatched()
+                        .marker(0.50, "Expected")
+                        .trailing(resetBadge("6d 10h"), Badge.badge("3")))
+                .label("Code"));
+    El personalWeekly = Meter.bar(
+            List.of(new Meter.Segment("", 0.86, 0).color(PERSONAL_FILL)),
+            Meter.options().hatched().marker(0.83, "Expected").trailing(resetBadge("5d 23h")))
+        .label("Personal weekly");
+    El personalLarge = Meter.bar(
+            List.of(new Meter.Segment("", 1.0, 0).color(PERSONAL_FILL)),
+            Meter.options().trailing(resetBadge("5d 23h")))
+        .label("Personal large model");
+
+    return col()
+        .wFull()
+        .gap(theme.space().xl())
+        .children(
+            usageSection(
+                Symbol.PEOPLE,
+                "Workspace",
+                usageCard("Weekly", "83%", "+3% in 6d 10h", workspaceMeters)),
+            usageSection(
+                Symbol.PERSON,
+                "Personal",
+                usageCard("Weekly", "86%", null, personalWeekly),
+                usageCard("Weekly · Large model", "100%", null, personalLarge)));
+  }
+
+  private static El usageSection(Symbol icon, String title, El... cards) {
+    Theme theme = Theme.CURRENT.get();
+    El heading = row()
+        .gap(theme.space().s())
+        .align(Style.Align.CENTER)
+        .children(Icon.icon(icon, Icon.Variant.MUTED), Label.label(Label.Variant.STRONG, title));
+    return col().wFull().gap(theme.space().m()).child(heading).children(cards);
+  }
+
+  private static El usageCard(String title, String percent, String note, El meter) {
+    Theme theme = Theme.CURRENT.get();
+    El remaining = row()
+        .gap(theme.space().xs())
+        .align(Style.Align.CENTER)
+        .children(
+            Label.label(Label.Variant.MUTED, "left"),
+            Icon.icon(Symbol.ARROW_DOWN, Icon.Variant.MUTED, 12));
+    El figure = row()
+        .gap(theme.space().s())
+        .align(Style.Align.BASELINE)
+        .children(Label.label(Label.Variant.TITLE, percent).fontFeatures("+tnum"), remaining);
+    El summary =
+        col().w(168).shrink(0).gap(theme.space().xs()).children(Label.label(title), figure);
+    if (note != null) {
+      summary.child(row()
+          .gap(theme.space().xs())
+          .align(Style.Align.CENTER)
+          .children(
+              Icon.icon(Symbol.CLOCK, Icon.Variant.MUTED, 12),
+              Label.label(Label.Variant.SMALL, note)));
+    }
+    return Card.card(
+            row().wFull().gap(theme.space().l()).align(Style.Align.CENTER).children(summary, meter))
+        .wFull();
+  }
+
+  private static El resetBadge(String text) {
+    return Badge.badge(text, Badge.options().icon(Symbol.ARROW_CLOCKWISE));
+  }
+  // docs:end meter-usage
 
   static El bars(Layouts state) {
     Theme theme = Theme.CURRENT.get();

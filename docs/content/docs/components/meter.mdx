@@ -29,6 +29,15 @@ Each `Meter.Segment(name, fraction, series)` takes a share of the whole track (`
 
 Segments and the marker spring to new values with `Theme.Motion.move()`. Customize the muted data-series fills on a theme with `theme.withSeries(new Theme.Series(colors, text))`.
 
+## Usage cards
+
+Combine `Meter.bar` with `Card`, `Label`, `Badge`, and `Icon` to build quota cards with side-by-side meters, reset badges, and an app-chosen segment color.
+
+<Shot src="examples/docs/meter-usage/view-{theme}" alt="Two quota sections, Workspace and Personal, with usage cards pairing a percentage summary on the left with hatched, marked, full, and custom-colored meters on the right" />
+
+```java snippet="meter-usage"
+```
+
 ## In a tree dump
 
 `role=meter` with its `label` and combined `value` in whole percent, each segment as `#segment-0`, `#segment-1`, … with its own `label` and `value`, and the marker as `#marker`:
