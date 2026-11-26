@@ -5,7 +5,8 @@
 # code, paragraphs, link reference definitions, block quotes, list items and lists, task list
 # items, backslash escapes, entities, code spans, emphasis, links, images, autolinks, bare URLs,
 # strikethrough and tables. HTML blocks and raw HTML are left out, as the reader keeps them as
-# text. A tab is written as →.
+# text, except <br>, <br/> and <br /> (case-insensitive, without attributes), which are read as
+# hard breaks unlike the spec. A tab is written as →.
 
 ```````````````````````````````` example
 →foo→baz→→bim

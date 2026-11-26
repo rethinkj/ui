@@ -1,0 +1,1 @@
+- `MarkdownDocument.parse` now reads `<br>`, `<br/>`, and `<br />` (case-insensitive, without attributes) as hard line breaks in paragraphs, headings, and table cells while keeping other raw HTML, escaped tags, entities, and code spans or blocks as text; `Markdown.text` turns breaks inside table cells into spaces so each table row stays on one line.

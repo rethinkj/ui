@@ -133,6 +133,89 @@ class MarkdownParserTest {
   }
 
   @Test
+  void brTagsBecomeHardBreaksWhileOtherHtmlAndEscapesStayText() {
+    assertEquals("""
+        paragraph
+          text "a"
+          hardbreak
+          text "b"
+          hardbreak
+          text "c"
+          hardbreak
+          text "d"
+        """, tree("a<br>b<br/>c<br />d"));
+    assertEquals("""
+        paragraph
+          text "a"
+          hardbreak
+          text "b"
+          hardbreak
+          text "c"
+          hardbreak
+          text "d"
+        """, tree("a<BR>b<Br/>c<bR />d"));
+    assertEquals(
+        """
+        paragraph
+          text "one"
+          hardbreak
+          text "two"
+        """, tree("one <br> \n  two<br>"), "spaces, a line end and a break at the end drop");
+    assertEquals(tree("one<br>two"), tree("one\n<br>\ntwo"), "line ends on both sides drop");
+    assertEquals("""
+        table none
+          header
+            cell
+              emphasis
+                text "last"
+        """, tree("| *last<br>* |\n| - |"), "a break at the end of emphasis drops");
+    assertEquals(
+        "paragraph\n  text \"a\"\n  hardbreak\n",
+        tree("a<br><br>"),
+        "of two breaks at the end, the one before the last stays, as in HTML");
+    assertEquals(
+        "paragraph\n  link \"/x\"\n    text \"one\"\n    hardbreak\n",
+        tree("[one  \n](/x)"),
+        "a break of spaces at the end of a link stays");
+    assertEquals("""
+        heading 1 #ab
+          text "a"
+          hardbreak
+          text "b"
+        """, tree("# a<br>b"));
+    assertEquals("""
+        table none,none
+          header
+            cell
+              text "h1"
+              hardbreak
+              text "h2"
+            cell
+              text "col"
+          row
+            cell
+              text "x"
+              hardbreak
+              text "y"
+            cell
+              emphasis
+                text "m"
+                hardbreak
+                text "n"
+        """, tree("| h1<br>h2 | col |\n| --- | --- |\n| x<br/>y | *m<br />n* |"));
+    assertEquals("""
+        paragraph
+          text "<br class=\\"x\\"> <br clear=\\"all\\" /> </br> <brx> <b>bold</b>"
+        """, tree("<br class=\"x\"> <br clear=\"all\" /> </br> <brx> <b>bold</b>"));
+    assertEquals("""
+        paragraph
+          code "<br>"
+          text " <br> <br/> <br> <br />"
+        """, tree("`<br>` \\<br> \\<br/> &lt;br&gt; &lt;br /&gt;"));
+    assertEquals("code \"\" \"<br>\\n<br />\\n\"\n", tree("```\n<br>\n<br />\n```"));
+  }
+
+  @Test
   void aCodeBlocksLanguageIsTheFirstWordOfItsInfoString() {
     assertEquals("code \"sql\" \"SELECT 1;\\n\"\n", tree("```sql title=x\nSELECT 1;\n```"));
     assertEquals("code \"\" \"a\\n\"\n", tree("~~~\na\n~~~"));
