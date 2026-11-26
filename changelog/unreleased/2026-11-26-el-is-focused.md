@@ -1,0 +1,1 @@
+- Added: `El.isFocused()` says whether the element itself has the focus, also in a key handler right after the focus moved, so that a handler can tell a key meant for its element from one that comes up from a focused element inside it.

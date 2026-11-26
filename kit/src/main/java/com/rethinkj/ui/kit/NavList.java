@@ -223,7 +223,7 @@ public final class NavList {
    *
    * @param current the index of the item to mark, -1 for none
    * @param onPress told the index of the item the user presses or moves to with the keyboard, and
-   *     of the current item for Enter or Space
+   *     of the current item for Enter or Space while the list has the focus
    */
   public static El outline(List<? extends Entry> entries, int current, IntConsumer onPress) {
     return navList(entries, current, Objects.requireNonNull(onPress, "onPress"), true);
@@ -547,7 +547,7 @@ public final class NavList {
       if (k.modifiers() != 0 || count == 0) {
         return false;
       }
-      if (again && (k.name().equals("Enter") || k.name().equals("Space"))) {
+      if (again && list.isFocused() && (k.name().equals("Enter") || k.name().equals("Space"))) {
         if (selected < 0 || selected >= count || !selectable(selected)) {
           return false;
         }
