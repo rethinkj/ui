@@ -911,9 +911,9 @@ class TabGroupsTest {
     assertEquals(1, d.groups.frames().size(), "dragging over content stayed in the window");
     assertTrue(line(rightTree, "#zone").contains("value=\"right\""), rightTree);
     assertTrue(line(tree("left"), "#zone").contains("value=\"left\""), tree("left"));
-    assertTrue(
-        line(tree("top-no-room"), "#zone").contains("value=\"center\""),
-        "without vertical room, top falls back to center: " + tree("top-no-room"));
+    assertFalse(
+        tree("top-no-room").contains("#zone"),
+        "without vertical room on its own group, top shows no center zone: " + tree("top-no-room"));
     assertEquals(List.of(List.of("a", "c", "d"), List.of("b")), order(d));
     assertSame(d.groups.main().groups().get(1), d.groups.main().active());
     assertSame(find(find(app.tree(), "group-1"), "tablist"), app.focused());
@@ -960,19 +960,23 @@ class TabGroupsTest {
         tree("bottom-on-right"));
     assertEquals(List.of(List.of("c", "d"), List.of("b"), List.of("a")), order(d));
 
-    // The center of its own group of several tabs moves the tab to the end, active: d, which is
-    // there already, behind the active c.
+    // The center of its own group of several tabs shows no zone and leaves order and active tab
+    // unchanged.
     Script.run("""
         size 400 300 at 100,100
+        advance 1
+        frame
         down role=tab label="d" at left+5
         move 30,17
         frame
         move 100,160
         frame
+        snap own-center
         up 100,160
         frame""", app, out);
+    assertFalse(tree("own-center").contains("#zone"), tree("own-center"));
     assertEquals(List.of(List.of("c", "d"), List.of("b"), List.of("a")), order(d));
-    assertEquals("d", d.groups.main().groups().getFirst().activeTab());
+    assertEquals("c", d.groups.main().groups().getFirst().activeTab());
   }
 
   @Test
@@ -1050,10 +1054,9 @@ class TabGroupsTest {
         snap following-over-main
         key Escape
         frame""", app, out);
-    assertFalse(
+    assertTrue(
         tree("following-over-main").contains("#zone"),
-        "once a window follows the pointer, only bars take the tab");
-    assertFalse(tree("following-over-main").contains("#drop"));
+        "a following window can drop into another group's zone: " + tree("following-over-main"));
     assertEquals(1, d.groups.frames().size(), "Escape closed the torn-off window");
     assertEquals(List.of(left, right), d.groups.main().groups(), "original split group restored");
     assertEquals(List.of(List.of("a", "c", "d"), List.of("b")), order(d));
@@ -1096,7 +1099,7 @@ class TabGroupsTest {
     assertEquals(2, d.groups.frames().size(), "no window opened over a window that takes no drops");
     assertEquals(List.of(List.of("a", "c", "d"), List.of("b")), order(d));
 
-    // Dragging straight over b does not tear off, shows no zones in b, and docks into b's bar.
+    // Dragging straight over b does not tear off, shows zones in b, and docks into b's bar.
     Script.run("""
         window main
         down role=tab label="c" at left+5
@@ -1109,10 +1112,97 @@ class TabGroupsTest {
         frame
         up screen 580,117
         frame""", app, out);
-    assertFalse(tree("b-over-other-panel").contains("#zone"), "other window offers no zones");
-    assertFalse(tree("b-over-other-panel").contains("#drop"));
+    assertTrue(
+        tree("b-over-other-panel").contains("#zone"),
+        "other window offers drop zones: " + tree("b-over-other-panel"));
     assertEquals(2, d.groups.frames().size(), "no third window opened over another window");
     assertEquals(List.of(List.of("a", "d"), List.of("b", "c")), order(d));
+
+    // Tearing off a tab and dropping it on another window's right edge splits that window directly
+    // and closes the following window.
+    Script.run("""
+        window main
+        down role=tab label="d" at left+5
+        move 80,17
+        frame
+        move screen 50,400
+        frame
+        move screen 770,180
+        frame
+        snap cross-split-zone
+        up screen 770,180
+        frame""", app, out);
+    assertTrue(
+        line(tree("b-cross-split-zone"), "#zone").contains("value=\"right\""),
+        tree("b-cross-split-zone"));
+    assertEquals(2, d.groups.frames().size(), "following window closed on cross-window split");
+    assertEquals(List.of(List.of("a"), List.of("b", "c"), List.of("d")), order(d));
+
+    // Direct cross-window panel drop (without leaving the touching windows) raises the receiving
+    // window for both center and edge releases.
+    App<Docs> direct = start();
+    Docs dd = direct.state();
+    dd.groups.splits(true);
+    Script.run("size 400 160 at 100,100\nframe", direct, out);
+    Group<String> bGroup = dd.groups.toNewWindow(dd.groups.main().active(), 1); // b
+    Script.run("""
+        window b
+        size 300 160 at 450,100
+        frame
+        window main""", direct, out);
+    Windows.Handle directMain = direct.windows().of(direct);
+    directMain.raise();
+    // Center drop of c straight from main onto b's panel (screen 600,180) raises b above main.
+    Script.run("""
+        window main
+        down role=tab label="c" at left+5
+        move 80,17
+        frame
+        move screen 600,180
+        frame
+        up screen 600,180
+        frame""", direct, out);
+    assertEquals(List.of("b", "c"), bGroup.tabs());
+    assertSame(
+        bGroup.window(),
+        direct.windows().place(direct, 360, 80).window(),
+        "direct cross-window center drop raises the receiving window");
+
+    // Edge drop of d straight from main onto b's right edge (screen 720,180) splits and raises b.
+    directMain.raise();
+    Script.run("""
+        window main
+        down role=tab label="d" at left+5
+        move 80,17
+        frame
+        move screen 720,180
+        frame
+        up screen 720,180
+        frame""", direct, out);
+    assertEquals(2, bGroup.frame().groups().size());
+    assertSame(
+        bGroup.window(),
+        direct.windows().place(direct, 360, 80).window(),
+        "direct cross-window edge drop raises the receiving window");
+
+    // Tearing off main's last remaining tab (a) and returning to main's empty panel docks it back.
+    Script.run("""
+        window main
+        down role=tab label="a" at left+5
+        move 80,17
+        frame
+        move screen 50,400
+        frame
+        move screen 250,180
+        frame
+        snap empty-main-center
+        up screen 250,180
+        frame""", direct, out);
+    assertTrue(
+        line(tree("empty-main-center"), "#zone").contains("value=\"center\""),
+        tree("empty-main-center"));
+    assertEquals(2, dd.groups.frames().size(), "following window closed on empty-main center drop");
+    assertEquals(List.of("a"), dd.groups.main().active().tabs());
 
     // Without a window runner, dragging outside the app stays inside and never calls the opener.
     int[] opened = {0};
@@ -1782,5 +1872,84 @@ class TabGroupsTest {
         () -> d.groups.dockAll(split, d.groups.main().active()));
     // Repeating 1-arg dockAll on an already emptied/pruned group remains a no-op.
     d.groups.dockAll(split);
+  }
+
+  @Test
+  void keyboardShortcutsAndFocusGroupSwitchBetweenSplitGroups() throws IOException {
+    List<String> unhandled = new ArrayList<>();
+    TabGroups<String> groups = new TabGroups<>(List.of("a", "b", "c")).splits(true);
+    App<Object> app = new App<>(new Object(), s -> {
+      El tabs = groups.tabs(groups.main(), Tab::new, t -> t == null ? null : Label.label(t));
+      return col()
+          .wFull()
+          .hFull()
+          .onKey(k -> {
+            if (tabs.onKey().test(k)) {
+              return true;
+            }
+            unhandled.add(k.name());
+            return false;
+          })
+          .child(tabs.grow(1));
+    });
+    // Unsplit: Ctrl+1 and F6 bubble through unhandled.
+    Script.run("size 600 200\nframe\nfocus #tablist\nkey 1 control\nkey F6\nframe", app, out);
+    assertEquals(List.of("1", "F6"), unhandled);
+    unhandled.clear();
+
+    Group<String> g0 = groups.main().active();
+    Group<String> g1 = groups.split(g0, 1, g0, Side.RIGHT); // g0=[a,c], g1=[b]
+    Group<String> g2 = groups.split(g0, 1, g1, Side.RIGHT); // g0=[a], g1=[b], g2=[c]
+    app.invalidate();
+    Script.run("size 600 200\nframe", app, out);
+    assertSame(g2, groups.main().active());
+
+    // Ctrl+1 jumps to first group, Ctrl+2 to second, Ctrl+4 (out of range) bubbles.
+    Script.run("size 600 200\nkey 1 control\nframe", app, out);
+    assertSame(g0, groups.main().active());
+    assertSame(find(find(app.tree(), "group-0"), "tablist"), app.focused());
+
+    Script.run("size 600 200\nkey 2 control\nframe", app, out);
+    assertSame(g1, groups.main().active());
+    assertSame(find(find(app.tree(), "group-1"), "tablist"), app.focused());
+
+    Script.run("size 600 200\nkey 4 control\nframe", app, out);
+    assertEquals(List.of("4"), unhandled);
+    assertSame(g1, groups.main().active());
+
+    // F6 cycles forward around the end, Shift+F6 cycles backward.
+    Script.run("size 600 200\nkey F6\nframe", app, out);
+    assertSame(g2, groups.main().active());
+    Script.run("size 600 200\nkey F6\nframe", app, out);
+    assertSame(g0, groups.main().active());
+    Script.run("size 600 200\nkey F6 shift\nframe", app, out);
+    assertSame(g2, groups.main().active());
+
+    // Programmatic focusGroup activates and focuses target group, rejects closed group.
+    groups.focusGroup(g0);
+    app.invalidate();
+    Script.run("size 600 200\nframe", app, out);
+    assertSame(g0, groups.main().active());
+    assertSame(find(find(app.tree(), "group-0"), "tablist"), app.focused());
+    groups.close(g2, 0);
+    assertThrows(IllegalArgumentException.class, () -> groups.focusGroup(g2));
+
+    // F6 from an active empty group in a split moves to the sole non-empty sibling.
+    App<Docs> withEmpty = start();
+    Docs wd = withEmpty.state();
+    wd.groups.splits(true);
+    Script.run("size 400 160 at 100,100\nframe", withEmpty, out);
+    Group<String> ext = wd.groups.toNewWindow(wd.groups.main().active(), 0);
+    wd.groups.closeAll(wd.groups.main());
+    Group<String> emptyMain = wd.groups.main().active();
+    Group<String> nonEmptySibling = wd.groups.split(ext, 0, emptyMain, Side.RIGHT);
+    wd.groups.focusGroup(emptyMain);
+    withEmpty.invalidate();
+    Script.run("size 400 160\nframe\nkey F6\nframe", withEmpty, out);
+    assertSame(nonEmptySibling, wd.groups.main().active());
+    wd.groups.focusGroup(emptyMain);
+    withEmpty.invalidate();
+    Script.run("size 400 160\nframe\nkey F6 shift\nframe", withEmpty, out);
+    assertSame(nonEmptySibling, wd.groups.main().active());
   }
 }

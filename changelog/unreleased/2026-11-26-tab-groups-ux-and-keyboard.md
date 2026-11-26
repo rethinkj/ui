@@ -1,0 +1,1 @@
+- `TabGroups` now supports switching split groups by keyboard (`F6`, `Shift+F6`, `Ctrl+1`–`Ctrl+9`) and `focusGroup(group)`, enables panel drop zones across windows (including while dragging a torn-off window), ignores center drops on the dragged tab's own group so releasing over its own content is a no-op, and renders the drop-zone preview inset with rounded corners.
