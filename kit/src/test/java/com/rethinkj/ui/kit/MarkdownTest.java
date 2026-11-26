@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -299,6 +300,107 @@ class MarkdownTest {
     assertEquals(0, app.state().parentEscapes);
     run(app, "key Escape\nframe");
     assertEquals(1, app.state().parentEscapes);
+  }
+
+  @Test
+  void aContextMenuActsOnTextLinksAndCodeBlocks() throws IOException {
+    App<Doc> app = app(DOC);
+    // On plain text without a selection: Copy is disabled, Select all selects the whole document.
+    String tree = run(app, "frame\npress #heading-guide right\nframe\nadvance 1\nframe");
+    assertEquals("Copy-, Select all", menuItems(tree), tree);
+    run(app, "press label=\"Select all\"\nframe\nadvance 1\nframe");
+    assertTrue(app.state().selection.allSelected());
+    tree = run(app, "press #heading-guide right\nframe\nadvance 1\nframe");
+    assertEquals("Copy, Select all", menuItems(tree), tree);
+    run(app, "press label=\"Copy\"\nframe\nadvance 1\nframe");
+    assertEquals(Markdown.text(app.state().document), app.clipboard().read());
+
+    // Selection across blocks: Copy is enabled and copies the cross-block selection.
+    run(app, """
+        press #heading-guide at left+2
+        press text="Read the spec and the notes, now." at left+30 shift
+        frame""");
+    assertFalse(app.state().selection.allSelected());
+    tree = run(
+        app,
+        "press text=\"Read the spec and the notes, now.\" at left+5 right\nframe\nadvance 1\nframe");
+    assertEquals("Copy, Select all", menuItems(tree), tree);
+    run(app, "press role=menuitem label=\"Copy\"\nframe\nadvance 1\nframe");
+    String cross = app.clipboard().read();
+    assertTrue(cross.startsWith("Guide\nRead"), cross);
+
+    // On a link inside the active selection (right click): Copy stays enabled, plus link actions.
+    tree = run(app, "press role=link label=\"spec\" right\nframe\nadvance 1\nframe");
+    assertEquals("Copy, Select all, Open link, Copy link address", menuItems(tree), tree);
+    run(app, "press role=menuitem label=\"Copy link address\"\nframe\nadvance 1\nframe");
+    assertEquals("https://spec.commonmark.org", app.clipboard().read());
+
+    // Select all from the menu ends the selection across blocks, as Control+A does.
+    run(app, "press role=link label=\"spec\" right\nframe\nadvance 1\nframe");
+    run(app, "press role=menuitem label=\"Select all\"\nframe\nkey Escape\nframe");
+    assertFalse(app.state().selection.allSelected());
+    app.clipboard().write("kept");
+    run(app, "key C control\nframe");
+    assertEquals("kept", app.clipboard().read(), "no selection is left to copy");
+
+    // On a focused link via Menu key: Open link hands the destination to onLink.
+    tree = run(
+        app, "focus role=link label=\"notes\"\nframe\nkey ContextMenu\nframe\nadvance 1\nframe");
+    assertEquals("Copy-, Select all, Open link, Copy link address", menuItems(tree), tree);
+    run(app, "press role=menuitem label=\"Open link\"\nframe\nadvance 1\nframe");
+    assertEquals(List.of("#notes"), app.state().links);
+
+    // On a code block: Copy code copies the block's code.
+    tree = run(app, "press role=code right\nframe\nadvance 1\nframe");
+    assertEquals("Copy-, Select all, Copy code", menuItems(tree), tree);
+    run(app, "press role=menuitem label=\"Copy code\"\nframe\nadvance 1\nframe");
+    assertEquals("SELECT 1;", app.clipboard().read());
+
+    // In a fragment: items whose options are omitted do not show, and Select all selects one block.
+    MarkdownDocument snippet =
+        Markdown.parse("Visit [docs](https://example.com).\n\n```sql\nSELECT 2;\n```");
+    App<Object> bare = new App<>(
+        new Object(),
+        ignored -> col().wFull().hFull().child(Markdown.fragment(snippet, Markdown.options())));
+    tree = run(bare, "frame\npress role=link label=\"docs\" right\nframe\nadvance 1\nframe");
+    assertEquals("Copy-, Select all", menuItems(tree), "no Open link or Copy link address");
+    run(bare, "key Escape\nframe\nadvance 1\nframe");
+    tree = run(bare, "press role=code right\nframe\nadvance 1\nframe");
+    assertEquals("Copy-, Select all", menuItems(tree), "no Copy code without clipboard");
+    run(bare, "press role=menuitem label=\"Select all\"\nframe\nadvance 1\nframe");
+    tree = run(bare, "press role=code right\nframe\nadvance 1\nframe");
+    assertEquals("Copy, Select all", menuItems(tree), tree);
+    run(bare, "press role=menuitem label=\"Copy\"\nframe\nadvance 1\nframe");
+    assertEquals("SELECT 2;", bare.clipboard().read());
+
+    List<String> fragmentLinks = new ArrayList<>();
+    Clipboard fragmentClipboard = Clipboard.inMemory();
+    App<Object> full = new App<>(
+        new Object(),
+        ignored -> col()
+            .wFull()
+            .hFull()
+            .child(Markdown.fragment(
+                snippet, Markdown.options().onLink(fragmentLinks::add).copy(fragmentClipboard))));
+    tree = run(full, "frame\npress role=link label=\"docs\" right\nframe\nadvance 1\nframe");
+    assertEquals("Copy-, Select all, Open link, Copy link address", menuItems(tree), tree);
+    run(full, "press role=menuitem label=\"Open link\"\nframe\nadvance 1\nframe");
+    assertEquals(List.of("https://example.com"), fragmentLinks);
+    tree = run(full, "press role=code right\nframe\nadvance 1\nframe");
+    assertEquals("Copy-, Select all, Copy code", menuItems(tree), tree);
+    run(full, "press role=menuitem label=\"Copy code\"\nframe\nadvance 1\nframe");
+    assertEquals("SELECT 2;", fragmentClipboard.read());
+  }
+
+  private static String menuItems(String tree) {
+    return tree.lines()
+        .filter(l -> l.contains("role=menuitem"))
+        .map(l -> {
+          int from = l.indexOf("label=\"") + "label=\"".length();
+          String label = l.substring(from, l.indexOf('"', from));
+          return l.endsWith(" disabled") ? label + "-" : label;
+        })
+        .collect(Collectors.joining(", "));
   }
 
   @Test

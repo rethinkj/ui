@@ -596,8 +596,7 @@ public final class Menu {
    * Attaches the menu to {@code target} at the point it opened at while {@code state} is open, and
    * opens it there with the secondary button, unless the target has a handler for that already:
    * the rows of a list, for example, can each open it after selecting themselves. A text field
-   * inside the target opens its own menu instead ({@link El#fieldMenu}), unless it is in the rows of
-   * a virtual list.
+   * inside the target opens its own menu instead ({@link El#fieldMenu}).
    *
    * @return the target
    */
