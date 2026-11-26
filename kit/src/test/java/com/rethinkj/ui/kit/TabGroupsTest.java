@@ -1549,4 +1549,201 @@ class TabGroupsTest {
         2,
         "window positioned by TabGroups' own tab bar below the 40px header, y=" + w.y());
   }
+
+  @Test
+  void singleWindowConstructorSplitsWithoutTearOffOrWindowMenuItems() throws IOException {
+    TabGroups<String> groups = new TabGroups<>(List.of("a", "b", "c")).splits(true);
+    App<Object> app = new App<>(new Object(), s -> {
+      El tabs = groups.tabs(groups.main(), Tab::new, t -> t == null ? null : Label.label(t));
+      return col().wFull().hFull().onKey(tabs.onKey()).child(tabs.grow(1));
+    });
+    Script.run("""
+        size 400 160 at 100,100
+        frame
+        down role=tab label="b" at left+5
+        move 80,17
+        frame
+        move screen 600,400
+        frame
+        up screen 600,400
+        frame
+        press #tab-1 right
+        frame
+        advance 1
+        frame
+        snap single-menu
+        key Escape
+        frame""", app, out);
+    assertEquals(1, groups.frames().size(), "no window opened without an opener");
+    assertEquals(List.of("a", "b", "c"), groups.main().active().tabs());
+    String menu = tree("single-menu");
+    assertTrue(menu.contains("label=\"Split right\""), menu);
+    assertFalse(menu.contains("Move to new window"), menu);
+    assertFalse(menu.contains("Move back to main window"), menu);
+    assertThrows(
+        IllegalStateException.class, () -> groups.toNewWindow(groups.main().active(), 0));
+  }
+
+  @Test
+  void tabMenuCloseActionsRespectClosableAndOnCloseTabAndSupportCustomItems() throws IOException {
+    List<String> closeRequests = new ArrayList<>();
+    List<String> duplicated = new ArrayList<>();
+    int[] menuCalls = {0};
+    TabGroups<String> groups = new TabGroups<>(List.of("pin", "a", "b", "c"));
+    groups
+        .onCloseTab((group, index) -> {
+          String tab = group.tabs().get(index);
+          closeRequests.add(tab);
+          if (!tab.equals("keep")) {
+            groups.close(group, index);
+          }
+        })
+        .tabMenu((group, tab) -> {
+          menuCalls[0]++;
+          if (tab.equals("pin")) {
+            return List.of(Menu.separator(), Menu.separator());
+          }
+          return List.of(
+              Menu.separator(),
+              Menu.item("Duplicate " + tab, () -> duplicated.add(tab)),
+              Menu.separator());
+        });
+    App<Object> app = new App<>(new Object(), s -> {
+      El tabs = groups.tabs(
+          groups.main(),
+          t -> new Tab(t, !t.equals("pin"), false),
+          t -> t == null ? null : Label.label(t));
+      return col().wFull().hFull().onKey(tabs.onKey()).child(tabs.grow(1));
+    });
+    Script.run("size 500 160\nframe", app, out);
+    assertEquals(0, menuCalls[0], "tabMenu is not called while menu is closed");
+
+    // On non-closable "pin": Close is disabled, Close others and Close to the right are enabled,
+    // and separator-only custom items add no divider at all (exactly 3 menuitem children).
+    Script.run("""
+        size 500 160
+        press #tab-0 right
+        frame
+        advance 1
+        frame
+        snap pin-menu""", app, out);
+    String pinMenu = tree("pin-menu");
+    assertTrue(line(pinMenu, "label=\"Close\"").contains("disabled"), pinMenu);
+    assertFalse(line(pinMenu, "label=\"Close others\"").contains("disabled"), pinMenu);
+    assertFalse(line(pinMenu, "label=\"Close to the right\"").contains("disabled"), pinMenu);
+    El menuEl = findOverlay(app.tree(), "menu");
+    assertNotNull(menuEl, pinMenu);
+    assertEquals(3, menuEl.children().size(), "separator-only custom list adds no divider");
+    assertTrue(menuEl.children().stream().allMatch(c -> "menuitem".equals(c.role())));
+    Script.run("size 500 160\nkey Escape\nframe", app, out);
+
+    // On "a" (index 1): boundary separators in custom items are trimmed (3 built-in + 1 sep + 1).
+    Script.run("""
+        size 500 160
+        press #tab-1 right
+        frame
+        advance 1
+        frame""", app, out);
+    El aMenu = findOverlay(app.tree(), "menu");
+    assertNotNull(aMenu);
+    assertEquals(5, aMenu.children().size(), "exactly one divider before trimmed custom item");
+    assertNull(aMenu.children().get(3).role(), "single separator between built-in and custom");
+    assertEquals("menuitem", aMenu.children().get(4).role());
+    Script.run("size 500 160\npress label=\"Duplicate a\"\nframe", app, out);
+    assertEquals(List.of("a"), duplicated);
+
+    Script.run("""
+        size 500 160
+        press #tab-1 right
+        frame
+        advance 1
+        frame
+        press label="Close to the right"
+        frame""", app, out);
+    assertEquals(List.of("b", "c"), closeRequests);
+    assertEquals(List.of("pin", "a"), groups.main().active().tabs());
+
+    // Add "keep" (deferred by onCloseTab) and "d"; without onCloseTabs, Close others stops on
+    // "keep" so a single-dialog confirmation handler is not overwritten.
+    groups.add(groups.main().active(), 2, "keep");
+    groups.add(groups.main().active(), 3, "d");
+    app.invalidate();
+    closeRequests.clear();
+    Script.run("""
+        size 500 160
+        frame
+        press role=tab label="a" right
+        frame
+        advance 1
+        frame
+        press label="Close others"
+        frame""", app, out);
+    assertEquals(List.of("keep"), closeRequests, "stops on first deferred tab");
+    assertEquals(List.of("pin", "a", "keep", "d"), groups.main().active().tabs());
+
+    // With onCloseTabs, bulk close delivers the whole closable batch in one callback.
+    List<List<String>> batches = new ArrayList<>();
+    groups.onCloseTabs((group, batch) -> {
+      batches.add(batch);
+      for (String item : batch) {
+        if (!item.equals("keep")) {
+          groups.close(group, group.tabs().indexOf(item));
+        }
+      }
+    });
+    Script.run("""
+        size 500 160
+        press role=tab label="a" right
+        frame
+        advance 1
+        frame
+        press label="Close others"
+        frame""", app, out);
+    assertEquals(List.of(List.of("keep", "d")), batches);
+    assertEquals(List.of("pin", "a", "keep"), groups.main().active().tabs());
+
+    // Close on "a" closes only "a".
+    closeRequests.clear();
+    Script.run("""
+        size 500 160
+        press role=tab label="a" right
+        frame
+        advance 1
+        frame
+        press label="Close"
+        frame""", app, out);
+    assertEquals(List.of("a"), closeRequests);
+    assertEquals(List.of("pin", "keep"), groups.main().active().tabs());
+  }
+
+  private static El findOverlay(El root, String key) {
+    for (El overlay : root.shownOverlays()) {
+      El found = find(overlay, key);
+      if (found != null) {
+        return found;
+      }
+    }
+    return null;
+  }
+
+  @Test
+  void dockAllToTargetGroupMergesInsideDetachedWindow() throws IOException {
+    App<Docs> app = start();
+    Docs d = app.state();
+    d.groups.splits(true);
+    Script.run("size 400 160 at 100,100\nframe", app, out);
+    Group<String> detached = d.groups.toNewWindow(d.groups.main().active(), 1); // [b]
+    d.groups.dock(d.groups.main().active(), 1, detached, 1); // [b, c]
+    Group<String> split = d.groups.split(detached, 1, detached, Side.RIGHT); // [b] | [c]
+    d.groups.dockAll(split, detached);
+    assertEquals(2, d.groups.frames().size(), "detached window stays open");
+    assertEquals(List.of(detached), detached.frame().groups());
+    assertEquals(List.of("b", "c"), detached.tabs());
+    assertEquals(List.of("a", "d"), d.groups.main().active().tabs());
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> d.groups.dockAll(split, d.groups.main().active()));
+    // Repeating 1-arg dockAll on an already emptied/pruned group remains a no-op.
+    d.groups.dockAll(split);
+  }
 }

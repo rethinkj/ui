@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.ObjIntConsumer;
@@ -351,7 +353,9 @@ public final class TabGroups<T> {
   private Consumer<Frame<T>> onWindowClose = this::dockAll;
   private Consumer<T> onClosed = tab -> {};
   private ObjIntConsumer<Group<T>> onCloseTab = this::close;
+  private BiConsumer<Group<T>, List<T>> onCloseTabs;
   private Consumer<Group<T>> onAdd;
+  private BiFunction<Group<T>, T, List<Menu.Item>> tabMenu;
   private boolean splits;
 
   private enum Zone {
@@ -390,12 +394,27 @@ public final class TabGroups<T> {
   private T openingTab; // tab currently being handed to opener.open, to reject re-adding it
 
   /**
+   * Tabs in one window, without tearing tabs off into new windows: for single-window apps that use
+   * {@link #splits(boolean)}, per-tab focus memory, overflow menus, and tab menus.
+   *
+   * @param tabs the main group's tabs, the first active; each must be non-null and distinct by
+   *     identity
+   */
+  public TabGroups(List<T> tabs) {
+    this(tabs, null, false);
+  }
+
+  /**
    * @param tabs the main group's tabs, the first active; each must be non-null and distinct by
    *     identity
    * @param opener opens the window of a new frame
    */
   public TabGroups(List<T> tabs, Opener<T> opener) {
-    this.opener = Objects.requireNonNull(opener, "opener");
+    this(tabs, Objects.requireNonNull(opener, "opener"), true);
+  }
+
+  private TabGroups(List<T> tabs, Opener<T> opener, boolean withOpener) {
+    this.opener = withOpener ? opener : null;
     Objects.requireNonNull(tabs, "tabs");
     Set<T> seen = Collections.newSetFromMap(new IdentityHashMap<>());
     for (T tab : tabs) {
@@ -424,12 +443,24 @@ public final class TabGroups<T> {
   }
 
   /**
-   * What the user's closing of a tab does, by its cross, Control+W or Control+F4: {@link #close}
-   * unless set. A handler that asks first, about changes not yet saved, calls {@link #close} once
-   * the user agrees, or nothing.
+   * What the user's closing of a tab does, by its cross, Control+W, Control+F4, or Close in the
+   * tab menu: {@link #close} unless set. A handler that asks first, about changes not yet saved,
+   * calls {@link #close} once the user agrees, or nothing. For bulk close menu actions (Close
+   * others, Close to the right), see {@link #onCloseTabs}.
    */
   public TabGroups<T> onCloseTab(ObjIntConsumer<Group<T>> handler) {
     this.onCloseTab = Objects.requireNonNull(handler, "handler");
+    return this;
+  }
+
+  /**
+   * What bulk close actions in a tab's menu (Close others, Close to the right) do: receives the
+   * group and the closable tabs in bar order so an app can ask once for the whole batch before
+   * calling {@link #close}. When null (the default), each tab is passed to {@link #onCloseTab} in
+   * order, stopping if a tab remains open (for example, while awaiting confirmation).
+   */
+  public TabGroups<T> onCloseTabs(BiConsumer<Group<T>, List<T>> handler) {
+    this.onCloseTabs = handler;
     return this;
   }
 
@@ -455,6 +486,17 @@ public final class TabGroups<T> {
    */
   public TabGroups<T> splits(boolean on) {
     this.splits = on;
+    return this;
+  }
+
+  /**
+   * Appends app-specific items to each tab's context menu, separated from the built-in items. The
+   * callback runs while the menu is open with the tab's group and the tab the menu opened for;
+   * returning null or an empty list adds nothing. Returned lists must not contain null elements;
+   * leading, trailing, and consecutive separators are trimmed. Passing null clears custom items.
+   */
+  public TabGroups<T> tabMenu(BiFunction<Group<T>, T, List<Menu.Item>> handler) {
+    this.tabMenu = handler;
     return this;
   }
 
@@ -586,6 +628,7 @@ public final class TabGroups<T> {
       Theme theme) {
     group.focused = false;
     boolean alone = alone(group);
+    List<Tabs.Tab> uiTabs = group.tabs.stream().map(tab).toList();
     // The menu opens for the active tab, acts on that tab wherever it goes, and ends with it.
     if (group.tabs.isEmpty()) {
       group.menu.close();
@@ -600,41 +643,8 @@ public final class TabGroups<T> {
     }
     T target = group.menuTab != null ? group.menuTab : group.activeTab();
     List<Menu.Item> items = List.of();
-    if (!group.tabs.isEmpty()) {
-      items = new ArrayList<>();
-      Texts texts = Texts.CURRENT.get();
-      if (splits) {
-        boolean canRight = target != null && canSplit(group, Split.Direction.ROW, theme);
-        boolean canDown = target != null && canSplit(group, Split.Direction.COLUMN, theme);
-        items.add(Menu.item(
-                texts.splitRight(), canRight ? () -> splitAt(group, target, Side.RIGHT) : null)
-            .shortcut(Key.CONTROL, "\\"));
-        items.add(Menu.item(
-            texts.splitDown(), canDown ? () -> splitAt(group, target, Side.BOTTOM) : null));
-        items.add(Menu.separator());
-      }
-      items.add(Menu.item(
-          texts.moveToNewWindow(),
-          alone || target == null
-              ? null
-              : () -> {
-                int at = indexOf(group, target);
-                if (at >= 0) {
-                  toNewWindow(group, at);
-                }
-              }));
-      if (group.frame != main) {
-        items.add(Menu.item(
-            texts.moveToMainWindow(),
-            target == null
-                ? null
-                : () -> {
-                  int at = indexOf(group, target);
-                  if (at >= 0) {
-                    dock(group, at, main.active, main.active.tabs.size());
-                  }
-                }));
-      }
+    if (!group.tabs.isEmpty() && group.menu.isOpen()) {
+      items = buildTabMenu(group, uiTabs, target, alone, theme);
     }
     T active = group.activeTab();
     El body = content.apply(active);
@@ -659,15 +669,15 @@ public final class TabGroups<T> {
                 })
         .overflow(group.overflow)
         .onMove((from, to) -> move(group, from, to))
-        .onTearOff(this::torn)
-        .tearOffAtStart(alone)
+        .onTearOff(opener == null ? null : this::torn)
+        .tearOffAtStart(opener != null && alone)
         .tearOffOutside(splits)
         .onDock((from, i, at) -> {
           if (hasGroup(cast(from)) && hasGroup(group)) { // as onAdd
             dock(cast(from), i, group, at);
           }
         });
-    if (!items.isEmpty()) {
+    if (!group.tabs.isEmpty()) {
       options.contextMenu(group.menu, items);
     }
     if (showZones(group)) {
@@ -686,7 +696,7 @@ public final class TabGroups<T> {
       options.focusBar(group.frame.focusToken);
     }
     El built = Tabs.tabs(
-            group.tabs.stream().map(tab).toList(),
+            uiTabs,
             group.active,
             i -> select(group, i),
             i -> onCloseTab.accept(group, i),
@@ -712,6 +722,163 @@ public final class TabGroups<T> {
       });
     }
     return built;
+  }
+
+  private List<Menu.Item> buildTabMenu(
+      Group<T> group, List<Tabs.Tab> uiTabs, T target, boolean alone, Theme theme) {
+    Texts texts = Texts.CURRENT.get();
+    List<Menu.Item> items = new ArrayList<>();
+    int targetIndex = target == null ? -1 : indexOf(group, target);
+    boolean targetClosable = targetIndex >= 0 && uiTabs.get(targetIndex).closable();
+    List<T> others = new ArrayList<>();
+    List<T> toRight = new ArrayList<>();
+    for (int i = 0; i < group.tabs.size(); i++) {
+      if (!uiTabs.get(i).closable()) {
+        continue;
+      }
+      if (i != targetIndex && targetIndex >= 0) {
+        others.add(group.tabs.get(i));
+      }
+      if (targetIndex >= 0 && i > targetIndex) {
+        toRight.add(group.tabs.get(i));
+      }
+    }
+    addMenuSection(
+        items,
+        List.of(
+            Menu.item(texts.close(), targetClosable ? () -> closeTab(group, target) : null)
+                .shortcut(Key.CONTROL, "W"),
+            Menu.item(
+                texts.closeOthers(), others.isEmpty() ? null : () -> closeTabs(group, others)),
+            Menu.item(
+                texts.closeToTheRight(),
+                toRight.isEmpty() ? null : () -> closeTabs(group, toRight))));
+    if (splits) {
+      boolean canRight = target != null && canSplit(group, Split.Direction.ROW, theme);
+      boolean canDown = target != null && canSplit(group, Split.Direction.COLUMN, theme);
+      addMenuSection(
+          items,
+          List.of(
+              Menu.item(
+                      texts.splitRight(),
+                      canRight ? () -> splitAt(group, target, Side.RIGHT) : null)
+                  .shortcut(Key.CONTROL, "\\"),
+              Menu.item(
+                  texts.splitDown(), canDown ? () -> splitAt(group, target, Side.BOTTOM) : null)));
+    }
+    if (opener != null) {
+      List<Menu.Item> windowItems = new ArrayList<>();
+      windowItems.add(Menu.item(
+          texts.moveToNewWindow(),
+          alone || target == null
+              ? null
+              : () -> {
+                int at = indexOf(group, target);
+                if (at >= 0) {
+                  toNewWindow(group, at);
+                }
+              }));
+      if (group.frame != main) {
+        windowItems.add(Menu.item(
+            texts.moveToMainWindow(),
+            target == null
+                ? null
+                : () -> {
+                  int at = indexOf(group, target);
+                  if (at >= 0) {
+                    dock(group, at, main.active, main.active.tabs.size());
+                  }
+                }));
+      }
+      addMenuSection(items, windowItems);
+    }
+    if (tabMenu != null && target != null) {
+      List<Menu.Item> extra = tabMenu.apply(group, target);
+      if (extra != null && !extra.isEmpty()) {
+        addMenuSection(items, trimSeparators(extra));
+      }
+    }
+    return items;
+  }
+
+  private static List<Menu.Item> trimSeparators(List<Menu.Item> items) {
+    int start = 0;
+    int end = items.size();
+    while (start < end && Objects.requireNonNull(items.get(start), "menu item").isSeparator()) {
+      start++;
+    }
+    while (end > start
+        && Objects.requireNonNull(items.get(end - 1), "menu item").isSeparator()) {
+      end--;
+    }
+    if (start == end) {
+      return List.of();
+    }
+    List<Menu.Item> clean = new ArrayList<>(end - start);
+    boolean prevSep = false;
+    for (int i = start; i < end; i++) {
+      Menu.Item item = Objects.requireNonNull(items.get(i), "menu item");
+      if (item.isSeparator()) {
+        if (!prevSep) {
+          clean.add(item);
+          prevSep = true;
+        }
+      } else {
+        clean.add(item);
+        prevSep = false;
+      }
+    }
+    return clean;
+  }
+
+  private static void addMenuSection(List<Menu.Item> into, List<Menu.Item> section) {
+    if (section.isEmpty()) {
+      return;
+    }
+    if (!into.isEmpty()) {
+      into.add(Menu.separator());
+    }
+    into.addAll(section);
+  }
+
+  private void closeTab(Group<T> group, T tab) {
+    if (!hasGroup(group)) {
+      return;
+    }
+    int at = indexOf(group, tab);
+    if (at >= 0) {
+      onCloseTab.accept(group, at);
+    }
+  }
+
+  private void closeTabs(Group<T> group, List<T> targets) {
+    if (!hasGroup(group)) {
+      return;
+    }
+    if (onCloseTabs != null) {
+      List<T> present = new ArrayList<>(targets.size());
+      for (T tab : targets) {
+        if (indexOf(group, tab) >= 0) {
+          present.add(tab);
+        }
+      }
+      if (!present.isEmpty()) {
+        onCloseTabs.accept(group, Collections.unmodifiableList(present));
+      }
+      return;
+    }
+    for (T tab : targets) {
+      if (!hasGroup(group)) {
+        return;
+      }
+      int at = indexOf(group, tab);
+      if (at >= 0) {
+        onCloseTab.accept(group, at);
+        if (hasGroup(group) && indexOf(group, tab) >= 0) {
+          return; // deferred (e.g. awaiting confirmation): avoid overwriting a pending prompt
+        }
+      }
+    }
   }
 
   private boolean alone(Group<T> group) {
@@ -954,10 +1121,15 @@ public final class TabGroups<T> {
    * Moves a tab into a group of its own, in a window that opens where the system puts it, and
    * returns that group. If the tab is already the only tab in an unsplit detached window, returns
    * its group unchanged.
+   *
+   * @throws IllegalStateException if these groups were created without a window opener
    */
   public Group<T> toNewWindow(Group<T> group, int index) {
     requireOpen(group);
     Objects.checkIndex(index, group.tabs.size());
+    if (opener == null) {
+      throw new IllegalStateException("No window opener was configured");
+    }
     if (alone(group)) {
       return group;
     }
@@ -999,12 +1171,25 @@ public final class TabGroups<T> {
    * closes its window.
    */
   public void dockAll(Group<T> group) {
-    Group<T> target = main.active;
-    if (group == target) {
+    Objects.requireNonNull(group, "group");
+    if (group.tabs.isEmpty()) {
       return;
     }
-    while (!group.tabs.isEmpty()) {
-      dock(group, 0, target, target.tabs.size());
+    dockAll(group, main.active);
+  }
+
+  /**
+   * Moves every tab of {@code from} to the end of {@code to}, never into {@code from} itself; an
+   * emptied group in a split leaves its frame, and a torn-off frame's only group closes its window.
+   */
+  public void dockAll(Group<T> from, Group<T> to) {
+    requireOpen(from);
+    requireOpen(to);
+    if (from == to) {
+      return;
+    }
+    while (!from.tabs.isEmpty()) {
+      dock(from, 0, to, to.tabs.size());
     }
   }
 

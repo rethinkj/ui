@@ -315,6 +315,16 @@ public interface Texts {
     return "Close " + tab;
   }
 
+  /** A tab's menu item that closes every other closable tab in its group. */
+  default String closeOthers() {
+    return "Close others";
+  }
+
+  /** A tab's menu item that closes every closable tab after it in its group. */
+  default String closeToTheRight() {
+    return "Close to the right";
+  }
+
   /** A tab bar's button that opens a new tab. */
   default String newTab() {
     return "New tab";
