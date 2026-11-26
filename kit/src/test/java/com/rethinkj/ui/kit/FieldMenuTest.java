@@ -129,6 +129,19 @@ class FieldMenuTest {
         s.own,
         List.of(Menu.item("Mine", () -> s.chosen = "mine"))));
     run(rows, "press #f1 right\nopen");
-    assertEquals("Mine", items(rows), "a field in a row leaves the press to the list");
+    assertEquals(
+        "Cut-, Copy-, Paste-, Select all", items(rows), "a field in a row opens its own menu");
+    run(rows, "press label=\"Select all\"\npress #f1 right\nopen\npress label=\"Copy\"");
+    assertEquals("hello world", rows.clipboard().read(), "the row field's menu acts on the field");
+
+    App<Form> cleared = app(s -> Menu.contextMenu(
+        col()
+            .w(200)
+            .h(100)
+            .rows(3, 30, i -> textField(s.name, v -> s.name = v).fieldMenu(null).key("f" + i)),
+        s.own,
+        List.of(Menu.item("Mine", () -> s.chosen = "mine"))));
+    run(cleared, "press #f1 right\nopen");
+    assertEquals("Mine", items(cleared), "a field without a field menu leaves it to the list");
   }
 }

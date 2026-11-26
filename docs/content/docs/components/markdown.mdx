@@ -26,7 +26,7 @@ By default, code blocks have no syntax highlighting. Pass highlighters to `langu
 | `onLink(destination -> …)` | Called when a link is clicked (external URL or `#id` heading anchor). Open a URL with [`app.openUri`](/docs/concepts/platform#open-a-web-address) |
 | `images(address -> image)` | Returns an `Image` for a path/URL, or `null` while loading (shows a placeholder) |
 | `languages(language -> highlighter)` | Returns a highlighter for a fenced code block's language (the first word after the opening fence), or `null` for no highlighting |
-| `copy(clipboard)` | Enables the copy button in each code block's header (and full-document Ctrl+A / Ctrl+C copy when `.state(Markdown.State)` is also set) |
+| `copy(clipboard)` | Enables the copy button in each code block's header, context-menu **Copy code** and **Copy link address**, and full-document Ctrl+A / Ctrl+C copy when `.state(Markdown.State)` is also set |
 | `copied(Button.Copied)` | Enables brief check-mark and tooltip confirmation on code-block copy buttons without a `Markdown.State` (overrides the state's own when both are set) |
 | `state(Markdown.State)` | Preserves full-document selection, per-code-block line wrapping (enabling the header's wrap toggle), and default copy-button confirmation state |
 | `textColor(color)` | Overrides the prose text color (`0xAARRGGBB`, such as `theme.code().comment()`) for `markdown`, `fragment`, and `definitions` descriptions |
@@ -38,6 +38,8 @@ Use `Markdown.rowOf(document, id)` with `app.scrollToRow` to jump to a heading, 
 With `images(...)`, images—including images inside links, emphasis, strong, or strikethrough—render as images; a linked image is a focusable `role=link` labeled by its alt text that passes its destination to `onLink`. Consecutive images in a paragraph separated only by spaces or line breaks sit in one wrapping row, while images among text break the paragraph above and below. Headings and table cells holding only images (and links or emphasis around them) show those images; headings and table cells that mix text and images keep the alt text, since a block of text is one field whose lines cannot make room for an image. Without `images(...)`, only an image alone in its paragraph renders as a framed placeholder, and all other images stay their alt text.
 
 Drag or Shift+click to select text across blocks (paragraphs, lists, quotes, tables, and code blocks)—including blocks scrolled out of view—and press Ctrl+C to copy the selected text with line breaks between blocks. Dragging near or past the top or bottom edge scrolls the document while extending the selection.
+
+A right-click, the Menu key, or **Shift+F10** in a document or fragment opens a context menu with **Copy** (enabled when there is a selection, including across blocks or after **Select all**) and **Select all** on text; on a link it adds **Open link** (passing the destination to `onLink`) and **Copy link address**; on a code block it adds **Copy code**. Items whose option (`onLink` or `copy`) was not provided do not show.
 
 Wrap the element `Markdown.markdown` returns with [`Find.find(app, rendered, state.find)`](/docs/components/find) to search across all its blocks in order: **Ctrl+F** opens the find bar from any block, highlights every match in view, displays the match count, and **Enter** / **Shift+Enter** (or **F3** / **Shift+F3**) step between matches, scrolling rows out of view into sight and selecting the current match so **Ctrl+C** copies it.
 
@@ -80,7 +82,7 @@ Every font `Markdown` draws—body, headings, emphasis, strong, strong emphasis,
 
 ## State API
 
-Store one `Markdown.State` per document to track **Ctrl+A** full-document selection (`allSelected()`, `selectAll(boolean)`) and per-code-block line wrapping (`wraps(int)`, `wrap(int, boolean)`, indexed in document order); a pointer press or **Escape** clears full-document selection.
+Store one `Markdown.State` per document to track **Ctrl+A** full-document selection (`allSelected()`, `selectAll(boolean)`) and per-code-block line wrapping (`wraps(int)`, `wrap(int, boolean)`, indexed in document order). A press on the text or outside the document, or **Escape**, clears the full-document selection, while a right-click for the context menu or a press on the scrollbar keeps it.
 
 ## In a tree dump
 

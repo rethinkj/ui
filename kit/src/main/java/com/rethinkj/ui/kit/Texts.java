@@ -136,6 +136,14 @@ public interface Texts {
     return "Copy code";
   }
 
+  default String openLink() {
+    return "Open link";
+  }
+
+  default String copyLinkAddress() {
+    return "Copy link address";
+  }
+
   /** Label and tooltip of the toggle button that wraps long lines in a code block. */
   default String wrapLines() {
     return "Wrap lines";

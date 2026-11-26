@@ -3420,8 +3420,8 @@ public final class El {
    * Gives an {@link #editable} field a menu of its own that a secondary press, the Menu key and
    * Shift+F10 open, unless the field has an {@link #onSecondaryPress} handler, which goes first:
    * the kit's fields have one with Cut, Copy, Paste and Select all. A secondary press on the field
-   * then opens it rather than a menu of an element around it. A field in the rows of a virtual
-   * list ({@link #rows}) opens none and leaves the press to those around it.
+   * then opens it rather than a menu of an element around it, also in the rows of a virtual list
+   * ({@link #rows}).
    *
    * @param menu builds the menu while it is open, or null for none
    */
@@ -3716,7 +3716,7 @@ public final class El {
   /**
    * Runs {@code handler} when the secondary button, usually the right one, is pressed and released
    * on this element or on a descendant that has no such handler of its own, nor a {@link
-   * #fieldMenu} outside the rows of a virtual list, with the position of
+   * #fieldMenu}, with the position of
    * the release in logical pixels of the window: where a context menu opens ({@link #atPoint}).
    * The Menu key and Shift+F10 that no key handler takes run it too, for the focused element or
    * its nearest ancestor that has one, unless a field's menu is nearer, at the bottom left of the

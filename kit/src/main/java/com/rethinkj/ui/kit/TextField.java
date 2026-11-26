@@ -266,11 +266,7 @@ public final class TextField {
    * @return the menu, or null once it is closed
    */
   public static El menu(El field, FieldMenu.Open open, List<Menu.Item> more) {
-    Menu.State state = open.state(() -> {
-      Menu.State opened = new Menu.State();
-      opened.open();
-      return opened;
-    });
+    Menu.State state = menuState(open);
     if (!state.isOpen()) {
       return null;
     }
@@ -286,9 +282,27 @@ public final class TextField {
     items.add(Menu.separator());
     items.add(command(texts.selectAll(), open.canSelectAll(), open::selectAll, "A"));
     items.addAll(more);
-    // While the menu has the keys, those of its items choose them, and do nothing where they cannot
-    // act, as in the field, also a hidden password's Cut and Copy: they do not go on to the app.
-    Map<Key, Menu.Item> keys = new HashMap<>(Map.of(cut.keys(), cut, copy.keys(), copy));
+    // A hidden password's Cut and Copy keys do nothing either: they do not go on to the app.
+    return menu(state, open, items, Map.of(cut.keys(), cut, copy.keys(), copy));
+  }
+
+  /** The state of a field's menu while it is open, open the first time it is asked for. */
+  static Menu.State menuState(FieldMenu.Open open) {
+    return open.state(() -> {
+      Menu.State opened = new Menu.State();
+      opened.open();
+      return opened;
+    });
+  }
+
+  /**
+   * A field's menu of {@code items} at the point it opened. While it has the keys, those of its
+   * items and of {@code alsoKeys} choose them, and do nothing where they cannot act, as in the
+   * field: they do not go on to the app.
+   */
+  static El menu(
+      Menu.State state, FieldMenu.Open open, List<Menu.Item> items, Map<Key, Menu.Item> alsoKeys) {
+    Map<Key, Menu.Item> keys = new HashMap<>(alsoKeys);
     for (Menu.Item item : items) {
       if (item.keys() != null) {
         keys.put(item.keys(), item);

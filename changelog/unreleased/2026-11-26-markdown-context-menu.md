@@ -1,0 +1,1 @@
+- `Markdown.markdown` and `Markdown.fragment` open a context menu with Copy and Select all, Open link and Copy link address on a link, and Copy code on a code block; `El.fieldMenu` now opens in the rows of a virtual list, its Copy copies a selection across a selection scope, and `FieldMenu.Open.openedOn` tells which part of the field it opened on.
