@@ -8528,6 +8528,7 @@ public final class App<S> {
       fieldMenuShown = null;
     } else {
       field.overlay(menu);
+      El.scaleText(menu, scale, systemFonts); // a row's menu comes after the row's text was scaled
       fieldMenuShown = fieldMenu.field();
     }
   }
