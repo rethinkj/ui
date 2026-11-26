@@ -677,7 +677,7 @@ final class Layouts {
         .align(Style.Align.CENTER)
         .children(
             Label.label(Label.Variant.MUTED, "left"),
-            Icon.icon(Symbol.ARROW_DOWN, Icon.Variant.MUTED, 12));
+            Icon.icon(Symbol.ARROW_TRENDING_DOWN, Icon.Variant.MUTED, 12));
     El figure = row()
         .gap(theme.space().s())
         .align(Style.Align.BASELINE)
