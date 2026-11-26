@@ -69,7 +69,8 @@ import java.util.function.Function;
  * are colored by the highlighter {@link Options#languages} gives for their language. A slim header
  * row above the block shows a badge with its language (when it has one), a word-wrap toggle (with
  * {@link Options#state}) and a copy button (with {@link Options#copy}). Task list items show the
- * kit's checkbox, which takes no input.
+ * kit's checkbox; with {@link Options#onTask} a press (or Space while focused) hands the task to
+ * the app, and without it checkboxes stay disabled.
  *
  * <p>Images come from the app: {@link Options#images} gives the image for an address, or null
  * while it has none, and the kit's {@link Image} shows it, or its placeholder with the image's
@@ -143,9 +144,49 @@ public final class Markdown {
     }
   }
 
+  /**
+   * A task list item's box that was pressed: the source of the document it is in, where its {@code
+   * [} is in that source, and the state it asks for.
+   *
+   * @param source the document's source the offset is in
+   * @param offset the index of the {@code [} of {@code [ ]} or {@code [x]} in the source
+   * @param checked whether the task should now be checked
+   */
+  public record Task(String source, int offset, boolean checked) {
+
+    /**
+     * Returns {@code current} with the character inside this task's box set to {@code x} when
+     * {@link #checked} (leaving an {@code X} as it is) or a space when not.
+     *
+     * @throws IllegalArgumentException if {@code current} is not the source the task was read from,
+     *     since the box at the offset may then be another task's, or has no {@code [ ]}, {@code [x]}
+     *     or {@code [X]} at {@link #offset}
+     */
+    public String applyTo(String current) {
+      if (!current.equals(source)) {
+        throw new IllegalArgumentException("Not the source the task was read from");
+      }
+      if (offset < 0 || offset > current.length() - 3) {
+        throw new IllegalArgumentException("No task box at offset " + offset);
+      }
+      char mark = current.charAt(offset + 1);
+      if (current.charAt(offset) != '['
+          || (mark != ' ' && mark != 'x' && mark != 'X')
+          || current.charAt(offset + 2) != ']') {
+        throw new IllegalArgumentException("No task box at offset " + offset);
+      }
+      char replacement = checked ? (mark == 'X' ? 'X' : 'x') : ' ';
+      if (mark == replacement) {
+        return current;
+      }
+      return current.substring(0, offset + 1) + replacement + current.substring(offset + 2);
+    }
+  }
+
   /** What the document does beyond showing itself; each part is off unless set. */
   public static final class Options {
     private Consumer<String> onLink;
+    private Consumer<Task> onTask;
     private Function<String, Highlighter> languages = language -> null;
     private Clipboard clipboard;
     private Button.Copied copied;
@@ -197,6 +238,21 @@ public final class Markdown {
     /** Takes the destination of a link that is pressed, as written: a URL, or {@code #id}. */
     public Options onLink(Consumer<String> handler) {
       this.onLink = handler;
+      return this;
+    }
+
+    /**
+     * Takes a task list item's box that was pressed; without it, task checkboxes stay disabled.
+     * Store the updated source with {@link Task#applyTo} and parse again with {@link
+     * MarkdownDocument#next} so unchanged blocks keep what was made of them:
+     *
+     * <pre>{@code
+     * source = task.applyTo(source);
+     * document = document.next(source);
+     * }</pre>
+     */
+    public Options onTask(Consumer<Task> handler) {
+      this.onTask = handler;
       return this;
     }
 
@@ -1627,13 +1683,29 @@ public final class Markdown {
     MarkdownDocument.Item item = list.items().get(i);
     El marker;
     if (item.task() != null) {
+      Consumer<Task> handler = c.options.onTask;
+      String source = documentOf(c).source;
+      El checkbox = Checkbox.checkbox(
+          item.task(),
+          handler == null || source == null || item.taskOffset() < 0
+              ? null
+              : () -> handler.accept(new Task(source, item.taskOffset(), !item.task())));
+      if (!item.blocks().isEmpty()
+          && item.blocks().getFirst() instanceof MarkdownDocument.Paragraph p) {
+        String label = MarkdownDocument.plainText(p.content());
+        if (!label.isEmpty()) {
+          checkbox.label(label);
+        }
+      }
       // The box on the middle of the first line, which is the body's line height high.
       float line = lineHeight(body);
       marker = row()
           .w(theme.size().checkbox() + theme.space().xs())
           .shrink(0)
+          .align(Style.Align.START)
+          .alignSelf(Style.Align.START)
           .padding(Math.max(0, (line - theme.size().checkbox()) / 2), 0, 0, 0)
-          .child(Checkbox.checkbox(item.task(), null));
+          .child(checkbox);
     } else {
       // The bullet goes by how deep the list is in other lists.
       String text = list.ordered() ? (list.start() + i) + "." : BULLETS[c.depth % BULLETS.length];

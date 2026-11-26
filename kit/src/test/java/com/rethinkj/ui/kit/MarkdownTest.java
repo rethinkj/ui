@@ -148,6 +148,53 @@ class MarkdownTest {
   }
 
   @Test
+  void aTaskCheckboxCallsOnTaskOnPointerPressAndSpace() throws IOException {
+    class State {
+      String source = """
+          - [x] Done
+          - [ ] Open
+            - [ ] Nested
+          """;
+      MarkdownDocument document = Markdown.parse(source);
+      final List<Markdown.Task> received = new ArrayList<>();
+
+      void toggle(Markdown.Task task) {
+        received.add(task);
+        source = task.applyTo(source);
+        document = document.next(source);
+      }
+    }
+    State state = new State();
+    Theme t = Theme.DARK;
+    App<State> app = new App<>(
+        state,
+        s -> col()
+            .wFull()
+            .hFull()
+            .fill(t.surface().panel())
+            .child(Markdown.markdown(s.document, Markdown.options().onTask(s::toggle))
+                .grow(1)));
+
+    String tree = run(app, "frame\npress role=checkbox label=\"Open\"\nframe");
+    assertEquals(1, state.received.size());
+    assertEquals(state.source.indexOf("[x] Open"), state.received.getFirst().offset());
+    assertTrue(state.received.getFirst().checked());
+    assertTrue(state.source.contains("- [x] Open\n"), state.source);
+    assertTrue(line(tree, "role=checkbox label=\"Open\"").contains(" checked"), tree);
+    assertFalse(line(tree, "role=checkbox label=\"Open\"").contains(" disabled"), tree);
+
+    // Tab reaches the task checkbox, and Space toggles it.
+    tree = run(app, "key Tab\nkey Tab\nframe");
+    assertTrue(line(tree, "role=checkbox label=\"Open\"").contains(" focused"), tree);
+    tree = run(app, "key Space\nframe");
+    assertEquals(2, state.received.size());
+    assertEquals(state.source.indexOf("[ ] Open"), state.received.get(1).offset());
+    assertFalse(state.received.get(1).checked());
+    assertTrue(state.source.contains("- [ ] Open\n"), state.source);
+    assertTrue(line(tree, "role=checkbox label=\"Open\"").contains(" checked=false"), tree);
+  }
+
+  @Test
   void tableColumnsUseAvailableWidthWrapBeforeScrollingAndCacheMeasurements() throws IOException {
     String source = """
         | Key | Description |

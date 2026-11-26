@@ -1,8 +1,11 @@
 package com.rethinkj.ui.kit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -426,5 +429,138 @@ class MarkdownParserTest {
     MarkdownDocument fourth = third.next(halfList);
     assertEquals(MarkdownDocument.parse(halfList).tree(), fourth.tree());
     assertInstanceOf(MarkdownDocument.ListBlock.class, fourth.blocks().getLast());
+  }
+
+  @Test
+  void taskOffsetsPointAtOpeningBracketAcrossConstructsAndNext() {
+    String source = "Intro\0.\r\n\r\n"
+        + "- [ ] outer\r\n"
+        + "  * [x] nested bullet\r\n"
+        + "    + [X] deep plus\r\n"
+        + "  - plain\r\n"
+        + "-\t[ ] after tab\r\n"
+        + "- [ ] with heading\r\n\r\n"
+        + "  ## Sub\r\n\r\n"
+        + "> - [ ] in quote\r\n"
+        + ">   1) [x] ordered paren\r\n\r\n"
+        + "1. [ ] ordered dot\r\n";
+    MarkdownDocument doc = MarkdownDocument.parse(source);
+    List<MarkdownDocument.Item> items = new ArrayList<>();
+    collectItems(doc.blocks(), items);
+    assertEquals(9, items.size());
+    for (MarkdownDocument.Item item : items) {
+      if (item.task() == null) {
+        assertEquals(-1, item.taskOffset());
+      } else {
+        int off = item.taskOffset();
+        assertTrue(off >= 0 && off + 2 < source.length(), "offset in bounds: " + off);
+        assertEquals('[', source.charAt(off), "opening bracket at " + off);
+        assertEquals(']', source.charAt(off + 2), "closing bracket at " + off);
+        assertEquals(item.task(), source.charAt(off + 1) != ' ');
+      }
+    }
+    assertEquals(-1, new MarkdownDocument.Item(false, List.of()).taskOffset());
+
+    // Editing text after the list keeps the list block and its offsets; editing before shifts them.
+    String base = "# Title\n\n- [ ] first\n  1) [x] nested\n\n> - [ ] quoted\n\nTail";
+    MarkdownDocument original = MarkdownDocument.parse(base);
+    MarkdownDocument afterEdit = original.next(base + " extended");
+    assertSame(original.blocks().get(1), afterEdit.blocks().get(1), "list reused");
+    assertTaskOffsetsValid(base + " extended", afterEdit);
+
+    String shifted = "# Longer title\n\n- [ ] first\n  1) [x] nested\n\n> - [ ] quoted\n\nTail";
+    MarkdownDocument beforeEdit = original.next(shifted);
+    assertNotSame(
+        original.blocks().get(1),
+        beforeEdit.blocks().get(1),
+        "shifted list must not be reused with stale offsets");
+    assertTaskOffsetsValid(shifted, beforeEdit);
+
+    // Toggling a task and calling next() keeps blocks above it and shifts the rest accurately.
+    MarkdownDocument.ListBlock list =
+        (MarkdownDocument.ListBlock) beforeEdit.blocks().get(1);
+    MarkdownDocument.Item nested = ((MarkdownDocument.ListBlock)
+            list.items().getFirst().blocks().get(1))
+        .items()
+        .getFirst();
+    String toggled = new Markdown.Task(shifted, nested.taskOffset(), false).applyTo(shifted);
+    MarkdownDocument afterToggle = beforeEdit.next(toggled);
+    assertSame(beforeEdit.blocks().getFirst(), afterToggle.blocks().getFirst());
+    assertTaskOffsetsValid(toggled, afterToggle);
+    MarkdownDocument.ListBlock updatedList =
+        (MarkdownDocument.ListBlock) afterToggle.blocks().get(1);
+    MarkdownDocument.Item updatedNested = ((MarkdownDocument.ListBlock)
+            updatedList.items().getFirst().blocks().get(1))
+        .items()
+        .getFirst();
+    assertFalse(updatedNested.task());
+  }
+
+  @Test
+  void taskApplyToTogglesMarkersAndRejectsStaleOffsets() {
+    for (String line : List.of(
+        "- [ ] a",
+        "* [ ] a",
+        "+ [ ] a",
+        "1. [ ] a",
+        "1) [ ] a",
+        "  - [ ] nested",
+        "> - [ ] quoted")) {
+      MarkdownDocument doc = MarkdownDocument.parse(line);
+      List<MarkdownDocument.Item> items = new ArrayList<>();
+      collectItems(doc.blocks(), items);
+      int offset = items.getFirst().taskOffset();
+      String checked = new Markdown.Task(line, offset, true).applyTo(line);
+      assertEquals(line.replace("[ ]", "[x]"), checked);
+      assertEquals(line, new Markdown.Task(checked, offset, false).applyTo(checked));
+    }
+
+    assertEquals("- [X] a", new Markdown.Task("- [X] a", 2, true).applyTo("- [X] a"));
+    assertEquals("- [ ] a", new Markdown.Task("- [X] a", 2, false).applyTo("- [X] a"));
+
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> new Markdown.Task("- [ ]", -1, true).applyTo("- [ ]"));
+    assertThrows(
+        IllegalArgumentException.class, () -> new Markdown.Task("- [ ]", 3, true).applyTo("- [ ]"));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> new Markdown.Task("- [ ]", Integer.MAX_VALUE, true).applyTo("- [ ]"));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> new Markdown.Task("- [a] b", 2, true).applyTo("- [a] b"));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> new Markdown.Task("- [ ] b", 1, true).applyTo("- [ ] b"));
+  }
+
+  private static void assertTaskOffsetsValid(String source, MarkdownDocument doc) {
+    List<MarkdownDocument.Item> items = new ArrayList<>();
+    collectItems(doc.blocks(), items);
+    assertFalse(items.isEmpty());
+    for (MarkdownDocument.Item item : items) {
+      if (item.task() != null) {
+        int off = item.taskOffset();
+        assertEquals('[', source.charAt(off));
+        assertEquals(']', source.charAt(off + 2));
+        assertEquals(item.task(), source.charAt(off + 1) != ' ');
+      }
+    }
+  }
+
+  private static void collectItems(
+      List<MarkdownDocument.Block> blocks, List<MarkdownDocument.Item> out) {
+    for (MarkdownDocument.Block block : blocks) {
+      switch (block) {
+        case MarkdownDocument.ListBlock l -> {
+          for (MarkdownDocument.Item item : l.items()) {
+            out.add(item);
+            collectItems(item.blocks(), out);
+          }
+        }
+        case MarkdownDocument.Quote q -> collectItems(q.blocks(), out);
+        default -> {}
+      }
+    }
   }
 }

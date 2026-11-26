@@ -5,7 +5,7 @@ description: Scrollable Markdown document viewer with syntax-highlighted code bl
 
 `Markdown.markdown` renders a parsed `MarkdownDocument` as a virtualized scrollable page supporting CommonMark plus GitHub tables, task lists, strikethrough, and autolinks. Only visible blocks are built, so long documents scroll smoothly.
 
-Javadoc: [`Markdown`](/api/com/rethinkj/ui/kit/Markdown.html), [`Markdown.Options`](/api/com/rethinkj/ui/kit/Markdown.Options.html), [`Markdown.Section`](/api/com/rethinkj/ui/kit/Markdown.Section.html), [`Markdown.Definition`](/api/com/rethinkj/ui/kit/Markdown.Definition.html), [`MarkdownDocument`](/api/com/rethinkj/ui/kit/MarkdownDocument.html).
+Javadoc: [`Markdown`](/api/com/rethinkj/ui/kit/Markdown.html), [`Markdown.Options`](/api/com/rethinkj/ui/kit/Markdown.Options.html), [`Markdown.Task`](/api/com/rethinkj/ui/kit/Markdown.Task.html), [`Markdown.Section`](/api/com/rethinkj/ui/kit/Markdown.Section.html), [`Markdown.Definition`](/api/com/rethinkj/ui/kit/Markdown.Definition.html), [`MarkdownDocument`](/api/com/rethinkj/ui/kit/MarkdownDocument.html).
 
 <Shot src="examples/manual-{theme}-2x-top" alt="The Manual example showing a Markdown document with headings, text and links" />
 
@@ -24,6 +24,7 @@ By default, code blocks have no syntax highlighting. Pass highlighters to `langu
 | Option | Description |
 | --- | --- |
 | `onLink(destination -> …)` | Called when a link is clicked (external URL or `#id` heading anchor). Open a URL with [`app.openUri`](/docs/concepts/platform#open-a-web-address) |
+| `onTask(task -> …)` | Enables task-list checkboxes; passes a `Markdown.Task(source, offset, checked)` whose `applyTo(source)` returns the source with `[ ]` / `[x]` toggled; it throws for a source that changed since |
 | `images(address -> image)` | Returns an `Image` for a path/URL, or `null` while loading (shows a placeholder) |
 | `languages(language -> highlighter)` | Returns a highlighter for a fenced code block's language (the first word after the opening fence), or `null` for no highlighting |
 | `copy(clipboard)` | Enables the copy button in each code block's header, context-menu **Copy code** and **Copy link address**, and full-document Ctrl+A / Ctrl+C copy when `.state(Markdown.State)` is also set |
@@ -55,6 +56,17 @@ Pair it with `Markdown.definitions(sections, options)` for labeled documentation
 <Shot src="examples/docs/markdown-fragment/view-{theme}" alt="A card containing a compact Markdown fragment and a definition list with Params, Returns and Throws sections" />
 
 ```java snippet="markdown-fragment"
+```
+
+## Task lists
+
+Without `onTask`, task list items render disabled checkboxes. Pass `onTask` to let the user toggle them with a click or with **Space** when focused; apply the `Markdown.Task` to your source string with `task.applyTo(source)` and parse again with `document.next(source)` so unchanged blocks keep their cached state.
+
+<Shot src="examples/docs/markdown-tasks/view-{theme}" alt="A Markdown checklist with one item checked and three open" />
+
+<Shot src="examples/docs/markdown-tasks/toggled-{theme}" alt="The same Markdown checklist after clicking the second checkbox to check it" />
+
+```java snippet="markdown-tasks"
 ```
 
 ## Streaming

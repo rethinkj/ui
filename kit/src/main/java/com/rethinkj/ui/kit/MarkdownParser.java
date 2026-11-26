@@ -135,6 +135,7 @@ final class MarkdownParser {
       rest = new MarkdownParser(previous.references, null);
       rest.scanBlocks(text.replace('\0', '\uFFFD'));
     }
+    rest.baseOffset = cut;
     List<Block> blocks = new ArrayList<>(oldBlocks.subList(0, n));
     for (B b : rest.doc.children) {
       rest.convert(b, blocks);
@@ -206,6 +207,7 @@ final class MarkdownParser {
     List<Align> aligns;
     List<String> header;
     final List<List<String>> rows = new ArrayList<>();
+    int contentStart = -1; // a paragraph's first content in the source, for a task's box
 
     B(int type) {
       this.type = type;
@@ -233,6 +235,8 @@ final class MarkdownParser {
 
   // The line being read, and where in it: an index, a column (tabs to the next multiple of 4).
   private String line = "";
+  private int lineStart;
+  private int baseOffset;
   private int lineNumber;
   private int offset;
   private int column;
@@ -283,6 +287,7 @@ final class MarkdownParser {
       B listBefore = prevBlank ? doc.last() : null;
       int countBefore = doc.children.size();
       boolean openList = listBefore != null && listBefore.type == LIST && listBefore.open;
+      lineStart = at;
       incorporate(text.substring(at, end));
       if (openList
           && !listBefore.open
@@ -800,14 +805,20 @@ final class MarkdownParser {
 
   private void addLine() {
     B b = tip;
+    boolean first = b.content.isEmpty() && !partiallyConsumedTab;
     if (partiallyConsumedTab) {
       offset++; // the rest of the tab
       int spaces = 4 - column % 4;
       b.content.repeat(' ', spaces);
     }
-    String text = line.substring(Math.min(offset, line.length()));
+    int start = Math.min(offset, line.length());
+    String text = line.substring(start);
     if (b.type == PARA) {
-      text = stripLeading(text);
+      int lead = leadingSpaces(text);
+      text = text.substring(lead);
+      if (first) {
+        b.contentStart = lineStart + start + lead;
+      }
     }
     b.content.append(text).append('\n');
   }
@@ -887,6 +898,7 @@ final class MarkdownParser {
       at += n;
     }
     if (at > 0) {
+      para.contentStart = -1; // a task after a definition stays without a position
       para.content.delete(0, at);
     }
   }
@@ -1026,12 +1038,12 @@ final class MarkdownParser {
     }
   }
 
-  private static String stripLeading(String s) {
+  private static int leadingSpaces(String s) {
     int i = 0;
     while (i < s.length() && isSpaceOrTab(s.charAt(i))) {
       i++;
     }
-    return s.substring(i);
+    return i;
   }
 
   // ---- From blocks to the tree
@@ -1069,6 +1081,7 @@ final class MarkdownParser {
         for (B item : b.children) {
           List<Block> blocks = new ArrayList<>();
           Boolean task = null;
+          int taskOffset = -1;
           for (int i = 0; i < item.children.size(); i++) {
             B child = item.children.get(i);
             if (i == 0 && child.type == PARA) {
@@ -1081,6 +1094,7 @@ final class MarkdownParser {
                       || isSpaceOrTab(content.charAt(3))
                       || content.charAt(3) == '\n')) {
                 task = content.charAt(1) != ' ';
+                taskOffset = child.contentStart < 0 ? -1 : baseOffset + child.contentStart;
                 String rest = content.substring(3).strip();
                 if (!rest.isEmpty()) {
                   blocks.add(new MarkdownDocument.Paragraph(inlines(rest)));
@@ -1090,7 +1104,7 @@ final class MarkdownParser {
             }
             convert(child, blocks);
           }
-          items.add(new MarkdownDocument.Item(task, blocks));
+          items.add(new MarkdownDocument.Item(task, taskOffset, blocks));
         }
         out.add(new MarkdownDocument.ListBlock(b.ordered, b.start, b.tight, items));
       }
@@ -1164,8 +1178,9 @@ final class MarkdownParser {
     for (int i = 0; i < items.size(); i++) {
       MarkdownDocument.Item item = items.get(i);
       List<Block> inner = identify(item.blocks(), seen);
-      MarkdownDocument.Item identified =
-          inner == item.blocks() ? item : new MarkdownDocument.Item(item.task(), inner);
+      MarkdownDocument.Item identified = inner == item.blocks()
+          ? item
+          : new MarkdownDocument.Item(item.task(), item.taskOffset(), inner);
       if (identified != item && out == null) {
         out = new ArrayList<>(items.size());
         out.addAll(items.subList(0, i));
