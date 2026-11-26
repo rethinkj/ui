@@ -8006,6 +8006,7 @@ public final class App<S> {
         continue;
       }
       Object rowId = Animator.row(listId, list.firstRow() + i);
+      boolean took = false;
       if (fieldMenu != null && Animator.isBelow(fieldMenu.field(), listId)) {
         El field = Animator.find(row, rowId, fieldMenu.field());
         Map.Entry<Integer, Object> was = fieldMenuRows.get(listId);
@@ -8017,9 +8018,9 @@ public final class App<S> {
           fieldMenuShown = null;
         } else if (field != null) {
           attachFieldMenu(field);
+          took = fieldMenu != null; // the row is laid out again with its menu, as with a look
         }
       }
-      boolean took = false;
       for (Object id : under) {
         if (Animator.isBelow(id, listId)
             && look(Animator.find(row, rowId, id), El::hoverLook, "whenHovered")) {
@@ -8528,7 +8529,6 @@ public final class App<S> {
       fieldMenuShown = null;
     } else {
       field.overlay(menu);
-      El.scaleText(menu, scale, systemFonts); // a row's menu comes after the row's text was scaled
       fieldMenuShown = fieldMenu.field();
     }
   }
