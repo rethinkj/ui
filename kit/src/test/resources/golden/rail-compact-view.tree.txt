@@ -1,0 +1,24 @@
+el 0,0 56x136
+  el #rail role=toolbar label="Tools" 0,0 33x136
+    el #rail-items 0,0 32x136
+      el #entry-item-0 4,4 24x24
+        el #item-0 role=button label="Explorer" 4,4 24x24 checked value="3" focused
+          text label="folder" "\u{E643}" 8,8 16x16
+          el #indicator 0,10 2x12
+        el #count 18,2 12x12
+          text "3" 21,3 6x10
+      el #entry-item-1 4,32 24x24
+        el #item-1 role=button label="Problems" 4,32 24x24 checked=false value="99 problems"
+          text label="warning" "\u{F868}" 8,36 16x16
+        el #count 10,30 20x12
+          text "99+" 12,31 16x10
+      el role=separator 8,62 16x1
+      el #entry-item-2 4,69 24x24
+        el #item-2 role=button label="Search" 4,69 24x24 checked=false
+          text label="search" "\u{EA7C}" 8,73 16x16
+          el 21,72 4x4
+      el #entry-action-0 4,97 24x24
+        el #action-0 role=button label="Settings" 4,97 24x24 disabled value="5"
+          text label="settings" "\u{F6A8}" 8,101 16x16
+        el #count 18,95 12x12
+          text "5" 21,96 6x10

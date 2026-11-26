@@ -1,14 +1,19 @@
 el 0,0 160x240
   el #rail role=toolbar label="Tool windows" 0,0 41x240
-    el #item-0 role=button label="Explorer" 4,4 32x32 checked
-      text label="folder" "\u{E643}" 12,12 16x16
-    el #item-1 role=button label="Search" 4,40 32x32 checked=false
-      text label="search" "\u{EA7C}" 12,48 16x16
-    el role=separator 8,78 24x1
-    el #item-2 role=button label="Problems" 4,85 32x32 checked=false value="3 errors"
-      text label="warning" "\u{F868}" 12,93 16x16
-      el 25,92 4x4
-    el #item-3 role=button label="Settings" 4,204 32x32 checked=false
-      text label="settings" "\u{F6A8}" 12,212 16x16
+    el #rail-items 0,0 40x240
+      el #entry-item-0 4,4 32x32
+        el #item-0 role=button label="Explorer" 4,4 32x32 checked
+          text label="folder" "\u{E643}" 12,12 16x16
+      el #entry-item-1 4,40 32x32
+        el #item-1 role=button label="Search" 4,40 32x32 checked=false
+          text label="search" "\u{EA7C}" 12,48 16x16
+      el role=separator 8,78 24x1
+      el #entry-item-2 4,85 32x32
+        el #item-2 role=button label="Problems" 4,85 32x32 checked=false value="3 errors"
+          text label="warning" "\u{F868}" 12,93 16x16
+          el 25,92 4x4
+      el #entry-item-3 4,204 32x32
+        el #item-3 role=button label="Settings" 4,204 32x32 checked=false
+          text label="settings" "\u{F6A8}" 12,212 16x16
   el 41,0 119x240
     text "Panel 0" 53,12 95x16

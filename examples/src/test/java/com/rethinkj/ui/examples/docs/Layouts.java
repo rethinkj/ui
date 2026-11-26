@@ -805,18 +805,18 @@ final class Layouts {
     El icon = AppIcon.appIcon(16, project, Symbol.DATABASE);
     El bar = TitleBar.titleBar(icon, "shop — staging").fill(Colors.TRANSPARENT);
     El rail = Rail.rail(
-            state.rail,
-            "Tool windows",
-            Side.LEFT,
-            List.of(
-                Rail.item(Symbol.FOLDER, "Explorer").shortcut(Key.CONTROL, "1"),
-                Rail.item(Symbol.SEARCH, "Search").shortcut(Key.CONTROL, "2"),
-                Rail.separator(),
-                Rail.item(Symbol.WARNING, "Problems").dot(Badge.Kind.DANGER, "3 errors")),
-            List.of(Rail.action(Symbol.SETTINGS, "Settings", state::settings)),
-            state.tool,
-            state::tool)
-        .fill(Colors.TRANSPARENT);
+        state.rail,
+        "Tool windows",
+        Side.LEFT,
+        List.of(
+            Rail.item(Symbol.FOLDER, "Explorer").shortcut(Key.CONTROL, "1"),
+            Rail.item(Symbol.SEARCH, "Search").shortcut(Key.CONTROL, "2"),
+            Rail.separator(),
+            Rail.item(Symbol.WARNING, "Problems").dot(Badge.Kind.DANGER, "3 errors")),
+        List.of(Rail.action(Symbol.SETTINGS, "Settings", state::settings)),
+        state.tool,
+        state::tool,
+        Rail.options().surface(Rail.Surface.TRANSPARENT));
     El window = col()
         .wFull()
         .hFull()

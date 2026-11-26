@@ -4,6 +4,8 @@ import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.row;
 import static com.rethinkj.ui.kit.Workbench.dumpLine;
 import static com.rethinkj.ui.kit.Workbench.find;
+import static com.rethinkj.ui.kit.Workbench.x;
+import static com.rethinkj.ui.kit.Workbench.y;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -11,6 +13,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.Background;
+import com.rethinkj.ui.Colors;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Script;
@@ -195,21 +199,255 @@ class RailTest {
     Script.run("size 160 64\nframe\nkey Tab\nframe\n", app, out);
     El problems = find(app, "item-2");
     El settings = find(app, "item-3");
-    assertEquals(Theme.DARK.space().s(), settings.y() - (problems.y() + problems.height()));
+    assertEquals(Theme.DARK.space().s(), y(app, settings) - (y(app, problems) + problems.height()));
 
     Script.run("key ArrowDown\nframe\n", app, out);
     assertEquals("item-1", app.focused().key());
-    double afterArrow = find(app, "rail").scrollY();
+    double afterArrow = find(app, "rail-items").scrollY();
     assertTrue(afterArrow > 0);
-    assertTrue(app.focused().y() + app.focused().height() <= 64);
+    assertTrue(y(app, app.focused()) + app.focused().height() <= 64);
 
     Script.run("key End\nframe\n", app, out);
     assertEquals("item-3", app.focused().key());
-    assertTrue(find(app, "rail").scrollY() > afterArrow);
-    assertTrue(app.focused().y() + app.focused().height() <= 64);
+    assertTrue(find(app, "rail-items").scrollY() > afterArrow);
+    assertTrue(y(app, app.focused()) + app.focused().height() <= 64);
 
     Script.run("key Home\nframe\nwheel #rail 0 40\nframe\n", app, out);
-    assertTrue(find(app, "rail").scrollY() > afterArrow);
+    assertTrue(find(app, "rail-items").scrollY() > afterArrow);
+  }
+
+  @Test
+  void overflowIndicatorsStayAtTheEdgesAndDisappearWhenTheEntriesFit() throws IOException {
+    App<RailTest> app = app(Side.LEFT);
+    Script.run("size 160 64\nframe\n", app, out);
+    assertNull(find(app, "overflow-top"));
+    El bottom = find(app, "overflow-bottom");
+    assertEquals(64, bottom.y() + bottom.height());
+    assertEquals(Theme.DARK.space().l(), bottom.height());
+    assertTrue(bottom.isInert());
+
+    Script.run("wheel 20,63 0 30\nframe\n", app, out);
+    assertEquals(30, find(app, "rail-items").scrollY());
+    assertEquals(0, find(app, "overflow-top").y());
+    assertEquals(bottom.y(), find(app, "overflow-bottom").y());
+
+    Script.run("wheel #rail 0 1000\nframe\n", app, out);
+    assertEquals(0, find(app, "overflow-top").y());
+    assertNull(find(app, "overflow-bottom"));
+
+    Script.run("size 160 240\nframe\n", app, out);
+    assertNull(find(app, "overflow-top"));
+    assertNull(find(app, "overflow-bottom"));
+  }
+
+  @Test
+  void overflowFadesUseTheRailFillAndClearSurfacesUseAHairline() throws IOException {
+    Theme theme = Theme.DARK;
+    Rail.Options options = Rail.options().surface(Rail.Surface.BAND);
+    Integer[] override = {null};
+    App<Rail.State> app = app(rail, state -> {
+      El strip = Rail.rail(
+              state,
+              "Tools",
+              Side.LEFT,
+              List.of(Rail.item(Symbol.FOLDER, "Explorer")),
+              -1,
+              _ -> {},
+              options)
+          .key("rail")
+          .hFull();
+      return override[0] == null ? strip : strip.fill(override[0]);
+    });
+    Script.run("size 160 28\nframe\n", app, out);
+    assertEquals(theme.surface().band(), find(app, "rail").fill());
+    Background.Linear fade = (Background.Linear) find(app, "overflow-bottom").background();
+    assertEquals(theme.surface().band(), fade.from());
+    assertEquals(Colors.alpha(fade.from(), 0), fade.to());
+
+    options.surface(Rail.Surface.TRANSPARENT);
+    app.invalidate();
+    app.frame();
+    assertEquals(Colors.TRANSPARENT, find(app, "rail").fill());
+    El line = find(app, "overflow-bottom");
+    assertEquals(theme.size().stroke(), line.height());
+    assertEquals(theme.border().divider(), line.fill());
+    assertNull(line.background());
+
+    override[0] = theme.surface().popup();
+    app.invalidate();
+    app.frame();
+    fade = (Background.Linear) find(app, "overflow-bottom").background();
+    assertEquals(override[0].intValue(), fade.from());
+
+    options.surface(Rail.Surface.WINDOW);
+    override[0] = Colors.TRANSPARENT;
+    app.invalidate();
+    app.frame();
+    line = find(app, "overflow-bottom");
+    assertEquals(theme.border().divider(), line.fill());
+    assertNull(line.background());
+  }
+
+  @Test
+  void compactRailShowsCountsAndAnActiveEdgeMark() throws IOException {
+    Theme theme = Theme.DARK;
+    App<Rail.State> app = app(
+        rail,
+        state -> row()
+            .wFull()
+            .hFull()
+            .fill(theme.surface().window())
+            .child(Rail.rail(
+                    state,
+                    "Tools",
+                    Side.LEFT,
+                    List.of(
+                        Rail.item(Symbol.FOLDER, "Explorer").count("3"),
+                        Rail.item(Symbol.WARNING, "Problems")
+                            .count(Badge.Kind.DANGER, "99+")
+                            .dot(Badge.Kind.WARNING, "99 problems"),
+                        Rail.separator(),
+                        Rail.item(Symbol.SEARCH, "Search").count("").dot(Badge.Kind.ACCENT, ""),
+                        Rail.action(Symbol.SETTINGS, "Settings", null)
+                            .count(Badge.Kind.DANGER, "5")
+                            .dot(Badge.Kind.ACCENT, "")),
+                    0,
+                    _ -> {},
+                    Rail.options()
+                        .size(Rail.Size.REGULAR)
+                        .surface(Rail.Surface.BAND)
+                        .indicator(true))
+                .key("rail")));
+    List<Path> files = Script.run("""
+        size 56 136
+        frame
+        key Tab
+        frame
+        snap view
+        """, app, out);
+    Golden.assertSnaps("rail-compact-", files, "view");
+
+    El strip = find(app, "rail");
+    float width = Theme.CURRENT.with(theme, () -> Rail.width(Rail.Size.REGULAR));
+    assertEquals(theme.size().control() + 2 * theme.space().s() + theme.size().stroke(), width);
+    assertEquals(width, strip.width());
+    El explorer = find(app, "item-0");
+    assertEquals(theme.size().control(), explorer.width());
+    assertEquals(theme.size().control(), explorer.height());
+    assertEquals("item-0", app.focused().key());
+    El marker = find(app, "indicator");
+    assertEquals(x(app, strip), x(app, marker));
+    assertEquals(y(app, explorer) + explorer.height() / 2, y(app, marker) + marker.height() / 2);
+    assertEquals(theme.accent().edge(), marker.fill());
+
+    El neutral = find(app, "entry-item-0").children().getLast();
+    assertEquals("count", neutral.key());
+    assertEquals(theme.badge().neutral().strong(), neutral.fill());
+    assertTrue(dumpLine(app, "item-0").contains(" value=\"3\""));
+    El problems = find(app, "item-1");
+    assertEquals(1, problems.children().size(), "the pill replaces the dot");
+    El danger = find(app, "entry-item-1").children().getLast();
+    assertEquals(theme.badge().danger().strong(), danger.fill());
+    assertFalse(danger.children().getFirst().text().shortened());
+    assertTrue(dumpLine(app, "item-1").contains(" value=\"99 problems\""));
+    assertEquals(theme.size().dot(), find(app, "item-2").children().getLast().width());
+    assertFalse(dumpLine(app, "item-2").contains(" value="));
+
+    El disabled = find(app, "entry-action-0").children().getLast();
+    assertEquals(theme.badge().neutral().soft(), disabled.fill());
+    assertEquals(theme.text().disabled(), disabled.children().getFirst().text().color());
+    assertTrue(disabled.isInert());
+    assertTrue(dumpLine(app, "action-0").contains(" disabled value=\"5\""));
+  }
+
+  @Test
+  void aDisabledRightEdgeMarkScrollsWithTheOpenItem() throws IOException {
+    Theme theme = Theme.DARK;
+    App<Rail.State> app = app(
+        rail,
+        state -> row()
+            .hFull()
+            .children(
+                col().grow(1),
+                Rail.rail(
+                        state,
+                        "Tools",
+                        Side.RIGHT,
+                        List.of(
+                            Rail.action(Symbol.SETTINGS, "Settings", () -> {}).count("4"),
+                            Rail.item(Symbol.FOLDER, "Explorer").disabled(true)),
+                        0,
+                        _ -> {},
+                        Rail.options().indicator(true))
+                    .key("rail")));
+    Script.run("size 160 56\nframe\n", app, out);
+    El strip = find(app, "rail");
+    El marker = find(app, "indicator");
+    assertEquals(x(app, strip) + strip.width(), x(app, marker) + marker.width());
+    assertEquals(theme.size().icon(), marker.height());
+    assertEquals(theme.text().disabled(), marker.fill());
+    float before = y(app, marker);
+    Script.run("wheel #rail 0 20\nframe\n", app, out);
+    assertEquals(before - 20, y(app, find(app, "indicator")));
+  }
+
+  @Test
+  void contextMenusFollowTheirButtonAndCloseWhenItLosesTheMenu() throws IOException {
+    List<String> commands = new ArrayList<>();
+    List<Menu.Item> explorerMenu =
+        new ArrayList<>(List.of(Menu.item("Copy path", () -> commands.add("copy"))));
+    Rail.Item explorer = Rail.item(Symbol.FOLDER, "Explorer").contextMenu(explorerMenu);
+    explorerMenu.clear();
+    Rail.Action refresh = Rail.action(Symbol.ARROW_CLOCKWISE, "Refresh", () -> presses++)
+        .contextMenu(List.of(Menu.item("Refresh log", () -> commands.add("log"))))
+        .busy(true)
+        .key("refresh");
+    List<Rail.Entry> entries = new ArrayList<>(List.of(explorer, refresh));
+    App<List<Rail.Entry>> app = app(
+        entries, tools -> Rail.rail(rail, "Tools", Side.LEFT, tools, open, index -> open = index));
+    Script.run("size 240 160\nframe\nkey Tab\nframe\npress #item-0 right\nframe\n", app, out);
+    assertTrue(rail.contextMenu().isOpen());
+    assertTrue(app.tree().dump().contains("label=\"Copy path\""));
+    assertFalse(app.tree().dump().contains("label=\"Refresh log\""));
+    Script.run("key ArrowDown\nframe\nkey Enter\nframe\n", app, out);
+    assertEquals(List.of("copy"), commands);
+    assertFalse(rail.contextMenu().isOpen());
+
+    Script.run("key ArrowDown\nframe\nkey F10 shift\nframe\n", app, out);
+    assertTrue(rail.contextMenu().isOpen(), "an enabled busy action still has its menu");
+    assertTrue(app.tree().dump().contains("label=\"Refresh log\""));
+    Script.run("key ArrowDown\nframe\nkey Enter\nframe\n", app, out);
+    assertEquals(List.of("copy", "log"), commands);
+    assertEquals(0, presses);
+    assertEquals(0, open);
+
+    Script.run("press #refresh right\nframe\n", app, out);
+    assertTrue(rail.contextMenu().isOpen());
+    entries.set(1, refresh.disabled(true));
+    app.invalidate();
+    app.frame();
+    assertFalse(rail.contextMenu().isOpen());
+    Script.run("press #refresh right\nframe\n", app, out);
+    assertFalse(rail.contextMenu().isOpen());
+
+    Script.run("focus #item-0\nframe\nkey ContextMenu\nframe\n", app, out);
+    assertTrue(rail.contextMenu().isOpen());
+    entries.set(
+        0,
+        Rail.item(Symbol.SEARCH, "Search")
+            .contextMenu(List.of(Menu.item("Clear search", () -> commands.add("clear")))));
+    app.invalidate();
+    app.frame();
+    assertFalse(rail.contextMenu().isOpen(), "the replacement reuses the same index");
+
+    entries.set(1, refresh);
+    app.invalidate();
+    Script.run("frame\npress #refresh right\nframe\n", app, out);
+    assertTrue(rail.contextMenu().isOpen());
+    entries.set(1, refresh.contextMenu(null));
+    app.invalidate();
+    app.frame();
+    assertFalse(rail.contextMenu().isOpen());
   }
 
   @Test
@@ -234,10 +472,10 @@ class RailTest {
     Script.run("size 160 96\nframe\n", app, out);
     assertEquals(width, find(app, "rail").width());
     El settings = find(app, "item-0");
-    assertEquals(96 - theme.space().s(), settings.y() + settings.height());
+    assertEquals(96 - theme.space().s(), y(app, settings) + settings.height());
 
     Script.run("size 160 32\nframe\nadvance 1\nframe\n", app, out);
-    assertEquals(theme.space().s(), find(app, "item-0").y());
+    assertEquals(theme.space().s(), y(app, find(app, "item-0")));
   }
 
   @Test

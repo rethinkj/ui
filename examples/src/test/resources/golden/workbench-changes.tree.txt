@@ -37,8 +37,10 @@ el 0,0 1000x600
       text label="dismiss" "\u{F367}" 971,14 12x12
   el 0,40 1000x531
     el role=toolbar label="Tool windows" 0,40 41x531
-      el #item-0 role=button label="Connections" 4,44 32x32 checked
-        text label="database" "\u{F0D7}" 12,52 16x16
+      el #rail-items 0,40 40x531
+        el #entry-item-0 4,44 32x32
+          el #item-0 role=button label="Connections" 4,44 32x32 checked
+            text label="database" "\u{F0D7}" 12,52 16x16
     el 49,40 943x523
       el #first 49,40 260x523
         el 49,40 260x523

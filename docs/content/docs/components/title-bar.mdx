@@ -34,7 +34,7 @@ Use `AppIcon.appIcon(16, color, symbol)` to match your window icon. `TitleBar` r
 
 ### Extending the tint across the title bar and rail
 
-To let the same tint continue down a [Rail](/docs/components/rail), give the window's root column the glow instead and clear the fills of the title bar and the rail with `.fill(Colors.TRANSPARENT)`. On the root, the glow reaches down the window's whole height:
+To let the same tint continue down a [Rail](/docs/components/rail), give the window's root column the glow, clear the title bar's fill with `.fill(Colors.TRANSPARENT)`, and give the rail `Rail.options().surface(Rail.Surface.TRANSPARENT)`. On the root, the glow reaches down the window's whole height:
 
 <Shot src="examples/docs/title-bar-rail/view-{theme}" alt="A frameless window with a soft radial project wash carried by the root column through both the title bar and the left icon rail beside two cards" />
 

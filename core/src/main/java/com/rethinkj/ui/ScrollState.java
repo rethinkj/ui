@@ -48,14 +48,16 @@ public final class ScrollState {
   double x;
   double y;
   boolean followEnd;
+  boolean atStart = true;
   boolean atEnd = true;
-  // The answers atEnd() gave since the view was last built again for them: a frame in which
-  // layout or scrolling makes one of them wrong builds the view again.
-  boolean toldEnd;
-  boolean toldAway;
-  int topRow;
+  // The answers atStart() and atEnd() gave since the view was last built again for them.
+  private boolean toldStart;
+  private boolean toldBelow;
+  private boolean toldEnd;
+  private boolean toldAbove;
+  private int topRow;
   // The row topRow() last gave the view, or -1 when not asked since the last change.
-  int toldTopRow = -1;
+  private int toldTopRow = -1;
   // Asked for its end by scrollToEnd until its rows are measured: those rows keep it there.
   boolean toEnd;
   // The element that has it now, the only one whose scrolling writes here: not the one of an
@@ -119,6 +121,17 @@ public final class ScrollState {
   }
 
   /**
+   * Whether the area's vertical offset was at or above its top when last laid out (also {@code
+   * true} when the content fits). A view that asks is built again in the frame in which layout
+   * or scrolling changes the answer, as with {@link #atEnd}.
+   */
+  public boolean atStart() {
+    toldStart |= atStart;
+    toldBelow |= !atStart;
+    return atStart;
+  }
+
+  /**
    * Whether the area's vertical offset was at its bottom end when last laid out (also {@code true}
    * when the content fits and nothing scrolls). A view that asks is built again in the frame in
    * which layout or scrolling changes the answer, so that a "Jump to newest" button shows exactly
@@ -126,8 +139,34 @@ public final class ScrollState {
    */
   public boolean atEnd() {
     toldEnd |= atEnd;
-    toldAway |= !atEnd;
+    toldAbove |= !atEnd;
     return atEnd;
+  }
+
+  /** Whether the view has asked for one of the answers this state tracks. */
+  boolean observed() {
+    return toldTopRow >= 0 || toldStart || toldBelow || toldEnd || toldAbove;
+  }
+
+  /** Forgets answers that scrolling or layout has changed and asks for another build. */
+  boolean answersChanged(int row) {
+    boolean changed = false;
+    if (atStart ? toldBelow : toldStart) {
+      toldStart = false;
+      toldBelow = false;
+      changed = true;
+    }
+    if (atEnd ? toldAbove : toldEnd) {
+      toldEnd = false;
+      toldAbove = false;
+      changed = true;
+    }
+    topRow = row;
+    if (toldTopRow >= 0 && toldTopRow != topRow) {
+      toldTopRow = -1;
+      changed = true;
+    }
+    return changed;
   }
 
   /**
@@ -171,6 +210,7 @@ public final class ScrollState {
     this.x = x;
     this.y = y;
     toEnd = y == Double.POSITIVE_INFINITY;
+    atStart = y <= 0 || atStart && !movedY;
     atEnd = toEnd || atEnd && !movedY; // sideways keeps following
     if (partner != null) {
       partner.followX &= !movedX;

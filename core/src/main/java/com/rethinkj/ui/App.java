@@ -4093,8 +4093,8 @@ public final class App<S> {
     boolean drawn = false;
     takeDue();
     while (scheduler.waiting()) {
-      // The next input goes to a tree built from the state now, and from the answers of topRow
-      // and atEnd that a scroll since the last build changed, as a scroll spy reads them: a
+      // The next input goes to a tree built from the state now, including any ScrollState
+      // answers that a scroll since the last build changed, as a scroll spy reads them: a
       // jump of scrollToRow with a state the view asked lands first, on the rows it measures there.
       // An autofocus in those rows waits for the end of the frame, as when they were built only
       // there: the input queued after the jump goes where the focus was.
@@ -4106,7 +4106,7 @@ public final class App<S> {
                 .map(animator::element)
                 .filter(Objects::nonNull)
                 .map(El::scrollState)
-                .anyMatch(s -> s != null && (s.toldTopRow >= 0 || s.toldEnd || s.toldAway))) {
+                .anyMatch(s -> s != null && s.observed())) {
           drawn |= settle();
         }
         if (handled || changedOutside || scrolledOnly && scrollStatesMoved(root)) {
@@ -4290,7 +4290,7 @@ public final class App<S> {
         tellResized();
         build(false, true);
       }
-      // An answer of atEnd or topRow that the last round made wrong: the next frame builds again.
+      // A scroll state's answer that the last round made wrong: the next frame builds again.
       resizeDue |= resizeRounds >= RESIZE_ROUNDS && scrollStatesMoved(root);
     } finally {
       // What is left, of a view that has not settled or after a throw: the next frame's last
@@ -7924,25 +7924,12 @@ public final class App<S> {
 
   /**
    * Updates each {@link ScrollState#topRow} below {@code el} from the area's layout and reports
-   * whether layout or scrolling made an answer of {@link ScrollState#atEnd} or {@link
-   * ScrollState#topRow} wrong that an area gave the view; forgets the answers of those, so that a
-   * view that does not ask again is not built again for them.
+   * whether layout or scrolling changed an answer the state gave the view. Forgets the changed
+   * answers, so that a view that does not ask again is not built again for them.
    */
   private static boolean scrollStatesMoved(El el) {
-    boolean moved = false;
     ScrollState state = el.scrollState();
-    if (state != null && state.el == el) {
-      if (state.atEnd ? state.toldAway : state.toldEnd) {
-        state.toldEnd = false;
-        state.toldAway = false;
-        moved = true;
-      }
-      state.topRow = el.topRow();
-      if (state.toldTopRow >= 0 && state.toldTopRow != state.topRow) {
-        state.toldTopRow = -1;
-        moved = true;
-      }
-    }
+    boolean moved = state != null && state.el == el && state.answersChanged(el.topRow());
     for (El child : el.children()) {
       moved |= scrollStatesMoved(child);
     }
