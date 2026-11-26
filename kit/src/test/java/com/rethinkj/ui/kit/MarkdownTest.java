@@ -1994,6 +1994,43 @@ class MarkdownTest {
     app.frame();
   }
 
+  /** A jump with one document's state does not move another document shown in the same place. */
+  @Test
+  void scrollToRowLeavesAnotherDocumentInTheSamePlace() {
+    MarkdownDocument document = Markdown.parse(
+        "# Top\n\n" + "Paragraph text that is long enough to need a line.\n\n".repeat(30));
+    ScrollState[] scrolls = {new ScrollState(), new ScrollState()};
+    int[] shown = {0};
+    App<Object> app = new App<>(
+            new Object(),
+            state -> Markdown.markdown(document, Markdown.options().scroll(scrolls[shown[0]]))
+                .key("doc")
+                .hFull())
+        .provide(Theme.CURRENT, state -> Theme.DARK);
+    app.textRendering(TextRendering.LINUX);
+    app.resize(640, 240, 1);
+    app.frame();
+
+    app.post(
+        () -> { // a handler that jumps and then shows the other document
+          app.scrollToRow(scrolls[0], 10);
+          shown[0] = 1;
+        });
+    app.frame();
+    app.frame();
+    assertEquals(0, scrolls[1].y());
+
+    app.post(() -> shown[0] = 0);
+    app.frame();
+    app.post(() -> app.scrollToRow(scrolls[0], 10));
+    app.frame();
+    assertEquals(10, scrolls[0].topRow());
+    app.post(() -> shown[0] = 1); // while the jump's row would still be followed
+    app.frame();
+    app.frame();
+    assertEquals(0, scrolls[1].y());
+  }
+
   private static void collectTableCells(El el, List<El> into) {
     if (("columnheader".equals(el.role()) || "cell".equals(el.role()))
         && !el.children().isEmpty()

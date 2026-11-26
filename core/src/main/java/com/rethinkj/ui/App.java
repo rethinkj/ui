@@ -237,10 +237,14 @@ public final class App<S> {
   // next press, key or wheel: content that grows meanwhile takes the row to the top after all.
   private final Map<Object, RowGoal> rowGoals = new HashMap<>();
 
-  /** A row {@link #scrollToRow} sent a list to, with the version and key of its keyed rows. */
-  private record RowGoal(int row, int version, Object key, int field) {
-    RowGoal(int row, int version, Object key) {
-      this(row, version, key, -1);
+  /**
+   * A row {@link #scrollToRow} sent a list to, with the version and key of its keyed rows, and the
+   * {@link ScrollState} it was sent by, null for a list given as an element: a list of the same
+   * identity with another state, as another document in the same place, is not followed.
+   */
+  private record RowGoal(int row, int version, Object key, int field, ScrollState state) {
+    RowGoal(int row, int version, Object key, ScrollState state) {
+      this(row, version, key, -1, state);
     }
   }
 
@@ -3641,7 +3645,7 @@ public final class App<S> {
     if (row < 0) {
       throw new IllegalArgumentException("row must be 0 or more, was " + row);
     }
-    scrollToRowById(animator.identity(list), row);
+    scrollToRowById(animator.identity(list), row, null);
   }
 
   /**
@@ -3666,17 +3670,17 @@ public final class App<S> {
       throw new IllegalArgumentException(
           "This element is not a list of rows; El.rows(count, rowHeight, row) makes one.");
     }
-    scrollToRowById(state.id, row);
+    scrollToRowById(state.id, row, state);
   }
 
-  private void scrollToRowById(Object id, int row) {
+  private void scrollToRowById(Object id, int row, ScrollState state) {
     enqueue(() -> {
       settle();
       El el = id == null ? null : animator.element(id);
-      if (el != null && el.isVirtualList()) {
+      if (el != null && el.isVirtualList() && (state == null || el.scrollState() == state)) {
         scrolled |= el.scrollTo(el.scrollX(), el.rowOffset(row));
         el.toEnd(false); // the later row wins over a pending end
-        rowGoals.put(id, new RowGoal(row, el.rowsVersion(), el.rowKey(row)));
+        rowGoals.put(id, new RowGoal(row, el.rowsVersion(), el.rowKey(row), state));
       }
       return false;
     });
@@ -3688,11 +3692,14 @@ public final class App<S> {
     for (Iterator<Map.Entry<Object, RowGoal>> i = rowGoals.entrySet().iterator(); i.hasNext(); ) {
       Map.Entry<Object, RowGoal> goal = i.next();
       El el = animator.element(goal.getKey());
-      int row = el == null || !el.isVirtualList() ? -1 : goal.getValue().row();
+      ScrollState state = goal.getValue().state();
+      int row = el == null || !el.isVirtualList() || state != null && el.scrollState() != state
+          ? -1
+          : goal.getValue().row();
       int field = goal.getValue().field();
       if (row >= 0 && el.rowsVersion() != goal.getValue().version()) { // rows came or went
         row = el.rowWithKey(goal.getValue().key());
-        goal.setValue(new RowGoal(row, el.rowsVersion(), goal.getValue().key(), field));
+        goal.setValue(new RowGoal(row, el.rowsVersion(), goal.getValue().key(), field, state));
       }
       if (row < 0 || row > el.rowCount()) {
         i.remove(); // the list or the row is gone: one that comes back is not followed
@@ -5598,7 +5605,11 @@ public final class App<S> {
         rowGoals.put(
             listId,
             new RowGoal(
-                caretPos.row(), list.rowsVersion(), list.rowKey(caretPos.row()), caretPos.field()));
+                caretPos.row(),
+                list.rowsVersion(),
+                list.rowKey(caretPos.row()),
+                caretPos.field(),
+                null));
       }
       if (target != null && target.editor() != null) {
         Editor editor = target.editor();
