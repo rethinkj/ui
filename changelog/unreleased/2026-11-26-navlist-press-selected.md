@@ -1,1 +1,0 @@
-- Changed: pressing the selected item of a `NavList` tells `onSelect` again, so that an outline scrolls back to the heading it marks; the keyboard still tells only a change.

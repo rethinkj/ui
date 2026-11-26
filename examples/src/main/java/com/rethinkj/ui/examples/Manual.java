@@ -311,7 +311,7 @@ public final class Manual {
                     theme.space().m(),
                     theme.space().s(),
                     theme.space().m()),
-            NavList.navList(
+            NavList.outline(
                     outline,
                     Markdown.current(doc.document(), headings, doc.scroll()),
                     index -> state.scrollTo(headings.get(index).id()))

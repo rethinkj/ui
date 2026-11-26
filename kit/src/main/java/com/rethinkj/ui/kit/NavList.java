@@ -13,6 +13,7 @@ import com.rethinkj.ui.Style;
 import com.rethinkj.ui.render.Scene;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntConsumer;
@@ -208,10 +209,27 @@ public final class NavList {
 
   /**
    * @param selected the index of the selected item, -1 for none
-   * @param onSelect told the index of the item the user selects; also told when the user presses
-   *     the selected item, as an outline scrolls back to its heading; null disables the list
+   * @param onSelect told the index of the item the user selects, only when it changes; null
+   *     disables the list
    */
   public static El navList(List<? extends Entry> entries, int selected, IntConsumer onSelect) {
+    return navList(entries, selected, onSelect, false);
+  }
+
+  /**
+   * A table of contents, such as the headings of a document: a {@link #navList} whose {@code
+   * current} item marks the heading in view, and which tells every press, also one on the current
+   * item, so that a press goes back to its heading.
+   *
+   * @param current the index of the item to mark, -1 for none
+   * @param onPress told the index of the item the user presses or moves to with the keyboard
+   */
+  public static El outline(List<? extends Entry> entries, int current, IntConsumer onPress) {
+    return navList(entries, current, Objects.requireNonNull(onPress, "onPress"), true);
+  }
+
+  private static El navList(
+      List<? extends Entry> entries, int selected, IntConsumer onSelect, boolean again) {
     Theme theme = Theme.CURRENT.get();
     boolean twoLine = false;
     for (Entry entry : entries) {
@@ -221,6 +239,7 @@ public final class NavList {
       }
     }
     Rows rows = new Rows(theme, entries.size(), entries::get, selected, onSelect, twoLine);
+    rows.again = again;
     El list = col().scroll();
     for (int i = 0; i < entries.size(); i++) {
       El r = rows.build(i).h(rows.height).shrink(0);
@@ -235,8 +254,7 @@ public final class NavList {
    *
    * @param selected the selected value, found by {@code equals}; null, or a value not among them,
    *     for none
-   * @param onSelect told the value the user selects; also told when the user presses the selected
-   *     item; null disables the list
+   * @param onSelect told the value the user selects, only when it changes; null disables the list
    */
   public static <T> El navList(
       List<T> values, T selected, Function<? super T, Item> item, Consumer<? super T> onSelect) {
@@ -316,6 +334,7 @@ public final class NavList {
     final boolean twoLine;
     final boolean[] focused = {false}; // set by the list's focus look, read by the rows
     El selectedPill; // of a list built at once, which the focus look reaches after the rows
+    boolean again; // a press on the selected item tells it again, as in an outline
 
     Rows(
         Theme theme,
@@ -493,7 +512,11 @@ public final class NavList {
       if (!enabled) {
         return entry.disabled() ? r.disabled(true) : r;
       }
-      r.cursor(Cursor.POINTER).onPress(() -> onSelect.accept(i));
+      r.cursor(Cursor.POINTER).onPress(() -> {
+        if (!on || again) {
+          onSelect.accept(i);
+        }
+      });
       if (!on) {
         El reveal = actions;
         r.whenHovered(e -> {
