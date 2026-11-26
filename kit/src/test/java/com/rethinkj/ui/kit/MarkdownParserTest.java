@@ -433,17 +433,23 @@ class MarkdownParserTest {
 
   @Test
   void taskOffsetsPointAtOpeningBracketAcrossConstructsAndNext() {
-    String source = "Intro\0.\r\n\r\n"
-        + "- [ ] outer\r\n"
-        + "  * [x] nested bullet\r\n"
-        + "    + [X] deep plus\r\n"
-        + "  - plain\r\n"
-        + "-\t[ ] after tab\r\n"
-        + "- [ ] with heading\r\n\r\n"
-        + "  ## Sub\r\n\r\n"
-        + "> - [ ] in quote\r\n"
-        + ">   1) [x] ordered paren\r\n\r\n"
-        + "1. [ ] ordered dot\r\n";
+    String source = """
+        Intro\0.\r
+        \r
+        - [ ] outer\r
+          * [x] nested bullet\r
+            + [X] deep plus\r
+          - plain\r
+        -\t[ ] after tab\r
+        - [ ] with heading\r
+        \r
+          ## Sub\r
+        \r
+        > - [ ] in quote\r
+        >   1) [x] ordered paren\r
+        \r
+        1. [ ] ordered dot\r
+        """;
     MarkdownDocument doc = MarkdownDocument.parse(source);
     List<MarkdownDocument.Item> items = new ArrayList<>();
     collectItems(doc.blocks(), items);
