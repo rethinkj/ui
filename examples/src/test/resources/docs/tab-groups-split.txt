@@ -1,0 +1,13 @@
+size 540 240
+frame
+down role=tab label="Ideas" at left+10
+move 180,25
+frame
+move 460,140
+frame
+snap drop-zone
+up 460,140
+frame
+advance 0.3
+frame
+snap split

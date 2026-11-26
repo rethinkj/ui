@@ -62,6 +62,7 @@ class DocsExamplesTest {
       Map.entry("background", List.of("counting")),
       Map.entry("theme", List.of("view")),
       Map.entry("tab-groups", List.of("moved", "ideas-moved")),
+      Map.entry("tab-groups-split", List.of("drop-zone", "split")),
       Map.entry("status", List.of("view")),
       Map.entry("meter", List.of("view")),
       Map.entry("meter-usage", List.of("view")),
@@ -368,6 +369,7 @@ class DocsExamplesTest {
             },
             420,
             260));
+    all.put("tab-groups-split", new Example(Notebook::splitApp, 540, 240));
     editings(all, "editing", Editings::record, 380, 260);
     editings(all, "editing-pojo", Editings::pojo, 360, 160);
     all.put("tags", new Example(t -> tags(Tags::view), 320, 140));
