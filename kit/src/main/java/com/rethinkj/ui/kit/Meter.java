@@ -264,10 +264,12 @@ public final class Meter {
 
   /**
    * Adds the trailing badges at the right end of the track, in an overlay clipped to the track: a
-   * column that wraps, holding a row as high as the track that wraps too. When the badges do not
-   * fit beside the rightmost segment text that actually draws glyphs, they wrap onto the row's
-   * second line, and the row, now twice as high, wraps into a second column right of the track, so
-   * no partial badge shows.
+   * column that wraps, holding a row that wraps too. Column and row reach {@link
+   * Theme.Sizes#controlLarge} above and below the track, so that a badge taller than a lowered
+   * track still fits on the row's first line, centered on the track. When the badges do not fit
+   * beside the rightmost segment text that actually draws glyphs, they wrap onto the row's second
+   * line, below the track, and the row, now higher than the column, wraps into a second column
+   * right of the track, so no partial badge shows.
    *
    * <p>The row springs with {@link Theme.Motion#move}, as the segments do: when room opens, the
    * badges slide in from the right edge over the whole width of the track, farther than any label
@@ -295,9 +297,11 @@ public final class Meter {
           .fill(theme.surface().window())
           .child(badge));
     }
+    // room above and below the track for a badge taller than a lowered track
+    float bleed = theme.size().controlLarge();
     if (slices.isEmpty()) {
-      El layer =
-          row().key("trailing-layer").absolute(0, 0).wFull().hFull().wrap().clip();
+      El layer = row().key("trailing-layer").absolute(0, -bleed).wFull().wrap().clip();
+      layer.style().bottom = Len.px(-bleed);
       layer.style().alignContent = Style.Content.FLEX_START;
       track.child(layer.child(el().w(0).hFull().grow(1)).child(trailing));
       return;
@@ -317,12 +321,14 @@ public final class Meter {
       }
       return new Measure.Size(0, 0);
     });
-    // as high as the track, so that one line fills the first column and a second one wraps away
+    // a pixel short of the layer, so that one line fits the first column despite float rounding
+    // and a second one wraps away; the layer centers the row on the track
+    float reach = 2 * bleed - 1;
     El reserve = el().shrink(0).minSize(0, 0).measure((knownW, knownH, availW, availH) -> {
       if (availW == Measure.MIN_CONTENT) {
-        return new Measure.Size(0, trackHeight[0]);
+        return new Measure.Size(0, trackHeight[0] + reach);
       }
-      return new Measure.Size(reservedWidth(slices, trackWidth[0], pad), trackHeight[0]);
+      return new Measure.Size(reservedWidth(slices, trackWidth[0], pad), trackHeight[0] + reach);
     });
     El row = row().wFull().shrink(0).minSize(0, 0).wrap().motion(theme.motion().move());
     row.style().alignContent = Style.Content.FLEX_START;
@@ -330,13 +336,14 @@ public final class Meter {
 
     El layer = col()
         .key("trailing-layer")
-        .absolute(0, 0)
+        .absolute(0, -bleed)
         .wFull()
-        .hFull()
+        .justify(Style.Content.CENTER)
         .wrap()
         .clip()
         .child(el().wFull()) // fills the first column to the track's width
         .child(row);
+    layer.style().bottom = Len.px(-bleed);
     layer.style().alignContent = Style.Content.FLEX_START;
     track.child(probe).child(layer);
   }

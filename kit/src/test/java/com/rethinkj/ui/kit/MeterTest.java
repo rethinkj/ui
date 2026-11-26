@@ -232,11 +232,8 @@ class MeterTest {
 
     for (int step = 0; step < 100; step++) {
       El meter = findByKey(app.tree(), "meter");
-      El layer = findByKey(meter, "trailing-layer");
-      El row = layer.children().get(1);
-      El trailing = findByKey(row, "trailing");
-      float badgeLeft = layer.x() + row.x() + trailing.x();
-      float badgeTop = layer.y() + row.y() + trailing.y();
+      float badgeLeft = badgeX(meter);
+      float badgeTop = badgeY(meter);
       El storage = findByKey(meter, "segment-1");
       El label = storage.children().getFirst();
       float labelRight = Math.min(
@@ -253,11 +250,8 @@ class MeterTest {
 
     assertFalse(app.isMoving(), "settled");
     El meter = findByKey(app.tree(), "meter");
-    El layer = findByKey(meter, "trailing-layer");
-    El row = layer.children().get(1);
-    El trailing = findByKey(row, "trailing");
-    float badgeLeft = layer.x() + row.x() + trailing.x();
-    float badgeTop = layer.y() + row.y() + trailing.y();
+    float badgeLeft = badgeX(meter);
+    float badgeTop = badgeY(meter);
     assertTrue(
         badgeLeft >= 0 && badgeLeft < meter.width() && badgeTop >= 0 && badgeTop < meter.height(),
         "settled badge inside track: x=" + badgeLeft + ", y=" + badgeTop);
@@ -321,6 +315,61 @@ class MeterTest {
     assertTrue(
         crowdedTrailing.y() >= crowded.height(),
         "hides trailing badge: y=" + crowdedTrailing.y() + ", h=" + crowded.height());
+  }
+
+  @Test
+  void badgeTallerThanLoweredTrackShowsWhenItFitsAndHidesWhenCrowded() throws IOException {
+    double[] shares = {0.30, 0.20};
+    App<double[]> app = new App<>(
+        shares,
+        state -> col()
+            .wFull()
+            .child(Meter.bar(
+                    List.of(
+                        new Meter.Segment("Compute", state[0], 0),
+                        new Meter.Segment("Storage", state[1], 1)),
+                    Meter.options()
+                        .trailing(Badge.badge("5d 23h", Badge.options().toolbar())))
+                .key("meter")
+                .minSize(0, 0)
+                .size(400, 20)));
+    Script.run("size 420 80\nframe", app, out);
+    El meter = findByKey(app.tree(), "meter");
+    El badge = findByKey(meter, "trailing").children().getFirst();
+    assertTrue(badge.height() > meter.height(), "badge taller than track: " + badge.height());
+    assertTrue(badgeX(meter) < meter.width(), "fitting badge shows: x=" + badgeX(meter));
+    assertEquals((meter.height() - badge.height()) / 2f, badgeY(meter), 0.5f, "centered");
+
+    // crowded: the badge drops below the track at once and stays there while the row springs out
+    shares[0] = 0.78;
+    shares[1] = 0.21;
+    app.invalidate();
+    Script.run("frame", app, out);
+    for (int step = 0; step < 100; step++) {
+      meter = findByKey(app.tree(), "meter");
+      assertTrue(badgeY(meter) >= meter.height(), "step " + step + ": badge top " + badgeY(meter));
+      if (!app.isMoving()) {
+        break;
+      }
+      Script.run("advance 0.015\nframe", app, out);
+    }
+    assertFalse(app.isMoving(), "settled");
+  }
+
+  /** The first trailing badge's left edge relative to the meter. */
+  private static float badgeX(El meter) {
+    El layer = findByKey(meter, "trailing-layer");
+    El row = layer.children().get(1);
+    El trailing = findByKey(row, "trailing");
+    return layer.x() + row.x() + trailing.x() + trailing.children().getFirst().x();
+  }
+
+  /** The first trailing badge's top edge relative to the meter. */
+  private static float badgeY(El meter) {
+    El layer = findByKey(meter, "trailing-layer");
+    El row = layer.children().get(1);
+    El trailing = findByKey(row, "trailing");
+    return layer.y() + row.y() + trailing.y() + trailing.children().getFirst().y();
   }
 
   private static El findByKey(El root, String key) {

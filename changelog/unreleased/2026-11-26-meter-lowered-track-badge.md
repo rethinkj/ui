@@ -1,0 +1,1 @@
+- Fixed: trailing badges of a `Meter` lowered below their height no longer hide although they fit beside the segment labels; they stay centered on the track, clipped at its edges, and still hide as a whole when crowded.

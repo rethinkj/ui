@@ -4,12 +4,12 @@ el 0,0 480x216
       text "Requests 54%" 20,21 84x14
     el #marker label="Target" 328,12 4x32 value="70%"
     el 12,12 456x32
-    el #trailing-layer 12,12 456x32
-      el 12,12 456x0
-      el 12,12 456x32
-        el 12,12 100x32
-        el 112,12 236x32
-        el #trailing 356,12 104x32
+    el #trailing-layer 12,-20 456x96
+      el 12,-20 456x0
+      el 12,-20 456x96
+        el 12,-20 100x96
+        el 112,-20 236x96
+        el #trailing 356,-20 104x96
           el 356,19 39x18
             el label="54%" 356,19 39x18
               text "54%" 362,21 27x14
@@ -31,12 +31,12 @@ el 0,0 480x216
       text "Allocated 100%" 20,141 92x14
     el #marker label="Alert" 419,132 4x32 value="90%"
     el 12,132 456x32
-    el #trailing-layer 12,132 456x32
-      el 12,132 456x0
-      el 12,132 456x32
-        el 12,132 108x32
-        el 120,132 280x32
-        el #trailing 408,132 52x32
+    el #trailing-layer 12,100 456x96
+      el 12,101 456x0
+      el 12,101 456x95
+        el 12,101 108x95
+        el 120,101 280x95
+        el #trailing 408,101 52x95
           el 408,139 52x18
             el label="5d 23h" 408,139 52x18
               text "5d 23h" 414,141 40x14
@@ -45,12 +45,12 @@ el 0,0 480x216
       text "Production traffic 65%" 20,181 82x14
     el #marker label="Limit" 122,172 4x32 value="75%"
     el 12,172 150x32
-    el #trailing-layer 12,172 150x32
-      el 12,172 150x0
-      el 162,172 150x50
-        el 162,172 98x32
-        el 260,172 52x32
-        el #trailing 170,204 67x18
-          el 170,204 67x18
-            el label="Near limit" 170,204 67x18
-              text "Near limit" 176,206 55x14
+    el #trailing-layer 12,140 150x96
+      el 12,188 150x0
+      el 162,132 150x113
+        el 162,132 98x95
+        el 260,132 52x95
+        el #trailing 170,227 67x18
+          el 170,227 67x18
+            el label="Near limit" 170,227 67x18
+              text "Near limit" 176,228 55x15

@@ -22,12 +22,12 @@ el 0,0 720x371
                 text "Chat 72%" 217,80 58x15
               el #marker label="Expected" 314,72 4x32 value="45%"
               el 209,72 237x32
-              el #trailing-layer 209,72 237x32
-                el 209,72 237x0
-                el 209,72 237x32
-                  el 209,72 74x32
-                  el 283,72 36x32
-                  el #trailing 327,72 111x32
+              el #trailing-layer 209,40 237x96
+                el 209,40 237x0
+                el 209,40 237x95
+                  el 209,40 74x95
+                  el 283,40 36x95
+                  el #trailing 327,40 111x95
                     el 327,79 87x18
                       el label="resets now" 327,79 87x18
                         text label="arrow_clockwise" "\u{E0A9}" 333,82 12x12
@@ -40,12 +40,12 @@ el 0,0 720x371
                 text "Code 94%" 462,80 61x15
               el #marker label="Expected" 571,72 4x32 value="50%"
               el 454,72 237x32
-              el #trailing-layer 454,72 237x32
-                el 454,72 237x0
-                el 454,72 237x32
-                  el 454,72 77x32
-                  el 531,72 56x32
-                  el #trailing 595,72 88x32
+              el #trailing-layer 454,40 237x96
+                el 454,40 237x0
+                el 454,40 237x95
+                  el 454,40 77x95
+                  el 531,40 56x95
+                  el #trailing 595,40 88x95
                     el 595,79 64x18
                       el label="6d 10h" 595,79 64x18
                         text label="arrow_clockwise" "\u{E0A9}" 601,82 12x12
@@ -71,12 +71,12 @@ el 0,0 720x371
               text "86%" 217,215 28x15
             el #marker label="Expected" 606,206 4x32 value="83%"
             el 209,206 482x32
-            el #trailing-layer 209,206 482x32
-              el 209,206 482x0
-              el 209,206 482x32
-                el 209,206 44x32
-                el 253,206 357x32
-                el #trailing 618,206 65x32
+            el #trailing-layer 209,174 482x96
+              el 209,175 482x0
+              el 209,175 482x95
+                el 209,175 44x95
+                el 253,175 357x95
+                el #trailing 618,175 65x95
                   el 618,213 65x18
                     el label="5d 23h" 618,213 65x18
                       text label="arrow_clockwise" "\u{E0A9}" 624,216 12x12
@@ -94,12 +94,12 @@ el 0,0 720x371
             el #segment-0 label="" 209,300 482x32 value="100%"
               text "100%" 217,309 36x15
             el 209,300 482x32
-            el #trailing-layer 209,300 482x32
-              el 209,300 482x0
-              el 209,300 482x32
-                el 209,300 52x32
-                el 261,300 349x32
-                el #trailing 618,300 65x32
+            el #trailing-layer 209,268 482x96
+              el 209,269 482x0
+              el 209,269 482x95
+                el 209,269 52x95
+                el 261,269 349x95
+                el #trailing 618,269 65x95
                   el 618,307 65x18
                     el label="5d 23h" 618,307 65x18
                       text label="arrow_clockwise" "\u{E0A9}" 624,310 12x12
