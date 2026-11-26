@@ -6493,6 +6493,16 @@ public final class El {
   }
 
   /**
+   * Whether this element itself has the focus ({@link App#focused}) right now, also in a key
+   * handler: a list's handler tells a key for the list from one that comes up from an element
+   * inside it. Unlike a {@link #whenFocused} look, which the next rebuild gets, it follows a move
+   * of the focus at once.
+   */
+  public boolean isFocused() {
+    return focused;
+  }
+
+  /**
    * Whether a spring ({@link #motion}) is moving this element's box in the frame shown: its
    * position or size is between where it was and where layout put it. The scene draws such a box,
    * and everything inside it, where it is, between physical pixels, and snaps the box to them once

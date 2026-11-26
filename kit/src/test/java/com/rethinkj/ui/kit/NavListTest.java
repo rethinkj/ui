@@ -101,16 +101,53 @@ class NavListTest {
   }
 
   @Test
-  void anOutlineTellsAPressOnItsCurrentItemAndANavListDoesNot() {
+  void anOutlineTellsAPressOnItsCurrentItemAndANavListDoesNot() throws IOException {
     List<NavList.Entry> entries = List.of(NavList.item("A"), NavList.item("B"));
     selected = -1;
     NavList.navList(entries, 1, i -> selected = i).children().get(1).onPress().press(1, 0, 0, 0);
     assertEquals(-1, selected, "a nav list tells only a change");
     NavList.outline(entries, 1, i -> selected = i).children().get(1).onPress().press(1, 0, 0, 0);
     assertEquals(1, selected, "an outline goes back to its current heading");
-    selected = -1;
-    NavList.outline(entries, 1, i -> selected = i).onKey().test(new Key("Enter"));
-    assertEquals(1, selected, "and so does Enter");
+
+    List<Integer> presses = new ArrayList<>();
+    List<String> outerKeys = new ArrayList<>();
+    String[] text = {""};
+    App<NavListTest> app = new App<>(
+        this,
+        s -> col()
+            .wFull()
+            .hFull()
+            .onKey(k -> {
+              if (k.name().equals("Enter") || k.name().equals("Space")) {
+                outerKeys.add(k.name());
+                return true;
+              }
+              return false;
+            })
+            .child(NavList.outline(
+                    List.of(
+                        NavList.item("A"),
+                        NavList.item("B")
+                            .trailing(TextField.textField(text[0], v -> text[0] = v)
+                                .key("field")
+                                .w(80))),
+                    1,
+                    presses::add)
+                .key("outline")));
+    app.textRendering(TextRendering.LINUX);
+
+    // On the outline itself, Enter and Space tell its current item, also in the frame the focus
+    // comes to it.
+    Script.run("size 240 200\nframe\nfocus role=listbox\nkey Enter\nkey Space\nframe\n", app, out);
+    assertEquals(List.of(1, 1), presses, "Enter and Space on the outline tell its current item");
+    assertEquals(List.of(), outerKeys, "the outline takes them");
+
+    // In a field inside an item they go past the outline to a form around it, also in the frame
+    // the focus moves there from the list.
+    presses.clear();
+    Script.run("focus #field\nkey Enter\nkey Space\nframe\n", app, out);
+    assertEquals(List.of(), presses, "keys in an item's field do not go to the outline");
+    assertTrue(outerKeys.contains("Enter"), "Enter reaches the form around the outline");
   }
 
   @Test
