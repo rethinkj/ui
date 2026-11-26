@@ -166,6 +166,8 @@ public final class Button {
     private Tone tone = Tone.NEUTRAL;
     private Size size = Size.REGULAR;
     private Key shortcut;
+    private Side openSide;
+    private Style.Align openAlign;
     private Side tipSide;
     private String tipDescription;
 
@@ -262,6 +264,18 @@ public final class Button {
       return this;
     }
 
+    /**
+     * Which side of a {@link #menu} or {@link #split} button its menu opens on, and how it lines up
+     * along that side ({@link El#side}); where it does not fit there, it falls back to the other
+     * side. Overrides {@link Menu.State#opens(Side)}; when unset, the menu opens on the state's
+     * side (below by default) at {@link Style.Align#START}.
+     */
+    public Options opens(Side side, Style.Align align) {
+      this.openSide = Objects.requireNonNull(side, "side");
+      this.openAlign = Objects.requireNonNull(align, "align");
+      return this;
+    }
+
     /** Which side of the button its tooltip opens on; null for the default. */
     Options tipSide(Side side) {
       this.tipSide = side;
@@ -286,6 +300,8 @@ public final class Button {
       copy.tone = tone;
       copy.size = size;
       copy.shortcut = shortcut;
+      copy.openSide = openSide;
+      copy.openAlign = openAlign;
       copy.tipSide = tipSide;
       copy.tipDescription = tipDescription;
       return copy;
@@ -770,8 +786,8 @@ public final class Button {
    * ({@link State#DISABLED}), both halves are off and there is no menu: one that was open closes.
    * The tone and the size apply to both halves, the shortcut to the main one.
    *
-   * @param options the main half's icon, subtitle, state, busy text, progress and shortcut, and the
-   *     tone and size of both
+   * @param options the main half's icon, subtitle, state, busy text, progress and shortcut, the
+   *     tone and size of both, and where the menu opens
    */
   public static El split(
       Variant variant,
@@ -818,7 +834,9 @@ public final class Button {
       state.close();
       return whole;
     }
-    return Menu.dropdown(whole, state, items);
+    return options.openSide != null
+        ? Menu.dropdown(whole, state, items, options.openSide, options.openAlign)
+        : Menu.dropdown(whole, state, items);
   }
 
   /**
@@ -839,7 +857,8 @@ public final class Button {
    * A menu button with its options. Busy or off, it opens nothing, and a menu that was open
    * closes.
    *
-   * @param options its icon, subtitle, state, busy text, progress, tone, size and shortcut
+   * @param options its icon, subtitle, state, busy text, progress, tone, size, shortcut and where
+   *     the menu opens
    */
   public static El menu(
       Variant variant, String text, Menu.State state, List<Menu.Item> items, Options options) {
@@ -860,7 +879,9 @@ public final class Button {
     if (state.isOpen()) {
       held(theme, button, look);
     }
-    return Menu.dropdown(button, state, items);
+    return options.openSide != null
+        ? Menu.dropdown(button, state, items, options.openSide, options.openAlign)
+        : Menu.dropdown(button, state, items);
   }
 
   /**

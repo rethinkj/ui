@@ -16,7 +16,7 @@ Javadoc: [`Menu`](/api/com/rethinkj/ui/kit/Menu.html), [`Menu.Item`](/api/com/re
 ```java snippet="menu"
 ```
 
-Store a `Menu.State` in your app state, toggle it from the button handler (`state.options.toggle()`), and attach `Menu.dropdown(button, menuState, items)`. Clicking an item closes the menu and runs its handler.
+Store a `Menu.State` in your app state, toggle it from the button handler (`state.options.toggle()`), and attach `Menu.dropdown(button, menuState, items)`. Clicking an item closes the menu and runs its handler. Call `menuState.opens(Side.TOP)` to prefer opening above the anchor, or pass a `Side` and `Style.Align` directly with `Menu.dropdown(button, menuState, items, side, align)` (falling back to the opposite side where it does not fit).
 
 ## Context menu
 
@@ -57,7 +57,7 @@ Attach `Menu.shortcuts(items)` to your root element's `onKey` to run enabled men
 
 ## State API
 
-Keep one [`Menu.State`](/api/com/rethinkj/ui/kit/Menu.State.html) per menu: `isOpen()`, `open()`, `openAt(x, y)`, `close()`, `toggle()`, `active(level)`, and `submenu(level)`.
+Keep one [`Menu.State`](/api/com/rethinkj/ui/kit/Menu.State.html) per menu: `isOpen()`, `open()`, `openAt(x, y)`, `close()`, `toggle()`, `opens(side)`, `active(level)`, and `submenu(level)`.
 
 ## Keyboard
 

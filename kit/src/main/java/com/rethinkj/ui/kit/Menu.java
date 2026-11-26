@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.IntConsumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -390,6 +391,7 @@ public final class Menu {
     private int revealing = -1; // the level whose highlight a key moved, until its panel shows it
     private int opening; // a key opens the menu: 1 highlights its first item, -1 its last
     private int keyed = -1; // the level whose highlight a key moved last, until the pointer does
+    private Side opens = Side.BOTTOM;
 
     public boolean isOpen() {
       return open;
@@ -430,6 +432,21 @@ public final class Menu {
       } else {
         open();
       }
+    }
+
+    /**
+     * Which side of its anchor a {@linkplain #dropdown dropdown} or {@link Select} opens on,
+     * falling back to the other side where it does not fit ({@link El#side}); {@link Side#BOTTOM}
+     * by default.
+     */
+    public State opens(Side side) {
+      this.opens = Objects.requireNonNull(side, "side");
+      return this;
+    }
+
+    /** The side of its anchor this menu prefers to open on. */
+    Side opens() {
+      return opens;
     }
 
     /** The highlighted item of the menu, -1 for none. */
@@ -529,12 +546,27 @@ public final class Menu {
   record Bar(IntConsumer sideways, Runnable leave, Object group) {}
 
   /**
-   * Attaches the menu below {@code anchor}, at its start, while {@code state} is open; where there
-   * is no room below, above it. The anchor is usually a button whose press toggles the state.
+   * Attaches the menu on {@code state}'s {@linkplain State#opens(Side) preferred side} of {@code
+   * anchor} (below by default), at its start, while {@code state} is open; where there is no room
+   * there, on the other side. The anchor is usually a button whose press toggles the state.
    *
    * @return the anchor
    */
   public static El dropdown(El anchor, State state, List<Item> items) {
+    return dropdown(anchor, state, items, state.opens, Style.Align.START);
+  }
+
+  /**
+   * Attaches the menu on {@code side} of {@code anchor}, aligned along it as {@code align} says
+   * ({@link El#side}), while {@code state} is open; where there is no room there, on the other
+   * side. The anchor is usually a button whose press toggles the state.
+   *
+   * @return the anchor
+   */
+  public static El dropdown(
+      El anchor, State state, List<Item> items, Side side, Style.Align align) {
+    Objects.requireNonNull(side, "side");
+    Objects.requireNonNull(align, "align");
     Theme theme = Theme.CURRENT.get();
     El.PressAtHandler press = anchor.onPress();
     if (press != null) {
@@ -543,9 +575,8 @@ public final class Menu {
           anchor.onKey(),
           () -> press.press(1, 0, anchor.width() / 2.0, anchor.height() / 2.0)));
     }
-    El menu = state.isOpen()
-        ? menu(state, items).side(Side.BOTTOM, Style.Align.START, theme.space().xs())
-        : null;
+    El menu =
+        state.isOpen() ? menu(state, items).side(side, align, theme.space().xs()) : null;
     state.opening = 0;
     return anchor.overlay(menu);
   }

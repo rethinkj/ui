@@ -20,7 +20,7 @@ Javadoc: [`ComboBox`](/api/com/rethinkj/ui/kit/ComboBox.html), [`ComboBox.State`
 ```java snippet="combo-items"
 ```
 
-Store a `ComboBox.State` in your app state for each combo box.
+Store a `ComboBox.State` in your app state for each combo box. Call `comboBoxState.opens(Side.TOP)` to prefer opening the list above the box, or `opens(Side.BOTTOM)` for the default; where the list does not fit there, it opens on the other side.
 
 | Method | Description |
 | --- | --- |

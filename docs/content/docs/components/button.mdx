@@ -45,6 +45,7 @@ Here `state.running` and `state.pinned` are booleans, `state.runs` is a counter,
 | `tone(tone)` | `NEUTRAL` (default); `DANGER` for destructive actions (`PRIMARY` filled red, `SECONDARY` red text and border, `GHOST` red text and icon); `SUCCESS`, `WARNING`, or `ACCENT` color only the icon of a `SECONDARY` or `GHOST` button, such as a green check for Apply, and leave its text and the rest neutral. A `PRIMARY` button with one of these three looks as `NEUTRAL` |
 | `size(Size.SMALL)`, `size(Size.LARGE)` | Height `20` or `32` instead of default `24` (`SMALL` for compact rows, `LARGE` for empty-state calls to action) |
 | `shortcut(modifiers, key)` | Displays keyboard shortcut keycaps in the tooltip (e.g., `shortcut(Key.CONTROL \| Key.SHIFT, "C")`). Display-only — bind the actual shortcut in your `onKey` handler |
+| `opens(side, align)` | Preferred side and alignment for a `Button.menu` or `Button.split` dropdown (e.g., `opens(Side.TOP, Style.Align.END)`). Overrides `Menu.State.opens(side)` and falls back to the opposite side when there is not enough room; defaults to the state's side (`Side.BOTTOM`) and `Style.Align.START` |
 
 Pass `options` to `button(...)`, `icon(...)`, `split(...)`, or `menu(...)`.
 

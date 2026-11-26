@@ -5,7 +5,6 @@ import static com.rethinkj.ui.kit.Label.label;
 
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
-import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
 import java.util.ArrayList;
 import java.util.List;
@@ -167,7 +166,7 @@ public final class Select {
         .overlay(
             state.isOpen()
                 ? Menu.menu(state, items)
-                    .side(Side.BOTTOM, Style.Align.STRETCH, theme.space().xs())
+                    .side(state.opens(), Style.Align.STRETCH, theme.space().xs())
                 : null);
   }
 

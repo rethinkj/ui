@@ -62,6 +62,7 @@ public final class MultiSelect {
     private List<String> selected;
     List<FilterList.Entry> entries; // package-private for tests
     private Consumer<String> choose;
+    private Side opens = Side.BOTTOM;
 
     public boolean isOpen() {
       return open;
@@ -92,6 +93,21 @@ public final class MultiSelect {
     public void close() {
       open = false;
       list.reset(-1);
+    }
+
+    /**
+     * Which side of the frame its list opens on, {@link Side#TOP} or {@link Side#BOTTOM} (the
+     * default), falling back to the other side where it does not fit ({@link El#side}).
+     *
+     * @throws IllegalArgumentException for {@link Side#LEFT} or {@link Side#RIGHT}, beside which
+     *     the list, as wide as the frame, would have no width
+     */
+    public State opens(Side side) {
+      if (Objects.requireNonNull(side, "side") == Side.LEFT || side == Side.RIGHT) {
+        throw new IllegalArgumentException("a list opens above or below: " + side);
+      }
+      this.opens = side;
+      return this;
     }
   }
 
@@ -225,7 +241,7 @@ public final class MultiSelect {
         .dismissGroup(state)
         // Clear of the field's focus ring, which lies its gap apart from it; whole pixels, since
         // the overlay's place is rounded.
-        .side(Side.BOTTOM, Style.Align.STRETCH, (float) Math.ceil(Dialog.ring(theme)))
+        .side(state.opens, Style.Align.STRETCH, (float) Math.ceil(Dialog.ring(theme)))
         .onDismiss(state::close)
         .child(list);
     return box.dismissGroup(state).overlay(panel);

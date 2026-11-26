@@ -14,7 +14,7 @@ Javadoc: [`MultiSelect`](/api/com/rethinkj/ui/kit/MultiSelect.html), [`MultiSele
 ```java snippet="multi-select"
 ```
 
-Store the chosen `List<String>` and a `MultiSelect.State` in your app state. Each addition or removal passes a new immutable list to `onChange`; passing a `null` handler disables the control. Reuse the same `choices` list when unchanged so filter results stay cached.
+Store the chosen `List<String>` and a `MultiSelect.State` in your app state. Each addition or removal passes a new immutable list to `onChange`; passing a `null` handler disables the control. Reuse the same `choices` list when unchanged so filter results stay cached. Call `state.opens(Side.TOP)` to prefer opening the list above the frame, or `opens(Side.BOTTOM)` for the default; where the list does not fit there, it opens on the other side.
 
 | Method | Description |
 | --- | --- |

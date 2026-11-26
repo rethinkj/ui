@@ -1,0 +1,1 @@
+- Added: `Button.Options.opens(Side, Style.Align)`, the 5-argument `Menu.dropdown(anchor, state, items, side, align)`, and `opens(Side)` on `Menu.State`, `ComboBox.State`, and `MultiSelect.State` let apps choose the preferred side (and alignment, for dropdown menus) a menu, `Select`, `ComboBox`, or `MultiSelect` opens on, falling back to the opposite side when it does not fit.

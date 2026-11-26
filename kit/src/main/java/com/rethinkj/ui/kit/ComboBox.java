@@ -81,6 +81,7 @@ public final class ComboBox {
     // that the list keeps what it found although the app maps its values anew in every build.
     private List<?> typedValues;
     private List<?> typed;
+    private Side opens = Side.BOTTOM;
 
     public boolean isOpen() {
       return open;
@@ -108,6 +109,21 @@ public final class ComboBox {
       list.reset(-1);
       list.answer = List.of(); // what a search found is not shown again for another text
       list.failure = null;
+    }
+
+    /**
+     * Which side of the box its list opens on, {@link Side#TOP} or {@link Side#BOTTOM} (the
+     * default), falling back to the other side where it does not fit ({@link El#side}).
+     *
+     * @throws IllegalArgumentException for {@link Side#LEFT} or {@link Side#RIGHT}, beside which
+     *     the list, as wide as the box, would have no width
+     */
+    public State opens(Side side) {
+      if (Objects.requireNonNull(side, "side") == Side.LEFT || side == Side.RIGHT) {
+        throw new IllegalArgumentException("a list opens above or below: " + side);
+      }
+      this.opens = side;
+      return this;
     }
   }
 
@@ -656,7 +672,7 @@ public final class ComboBox {
         .dismissGroup(state)
         // Clear of the field's focus ring, which lies its gap apart from it; whole pixels, since
         // the overlay's place is rounded.
-        .side(Side.BOTTOM, Style.Align.STRETCH, (float) Math.ceil(Dialog.ring(theme)))
+        .side(state.opens, Style.Align.STRETCH, (float) Math.ceil(Dialog.ring(theme)))
         .onDismiss(state::close)
         .child(list);
     return box.dismissGroup(state).overlay(panel);

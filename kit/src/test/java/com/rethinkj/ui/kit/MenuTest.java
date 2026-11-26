@@ -1,6 +1,7 @@
 package com.rethinkj.ui.kit;
 
 import static com.rethinkj.ui.El.col;
+import static com.rethinkj.ui.El.row;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -9,6 +10,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.Side;
+import com.rethinkj.ui.Style;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -428,5 +431,72 @@ class MenuTest {
         com.rethinkj.ui.render.Png.decode(
             java.nio.file.Files.readAllBytes(out.resolve(image + ".png"))),
         tree);
+  }
+
+  @Test
+  void aMenuButtonAndSelectAtTheBottomOpenAboveWhenAskedEvenWhenTheyFitBelow() throws IOException {
+    record View(Menu.State menu, Menu.State select) {}
+    View state = new View(new Menu.State(), new Menu.State().opens(Side.TOP));
+    List<Menu.Item> items =
+        List.of(Menu.item("Rename connection", () -> {}), Menu.item("Duplicate", () -> {}));
+    App<View> app = new App<>(
+        state,
+        s -> col()
+            .wFull()
+            .hFull()
+            .justify(Style.Content.END)
+            .padding(0, 20, 80, 20)
+            .child(row()
+                .wFull()
+                .justify(Style.Content.END)
+                .gap(16)
+                .children(
+                    Select.select(List.of("UTF-8", "UTF-16"), 0, s.select, i -> {})
+                        .key("choice"),
+                    Button.menu(
+                            Button.Variant.SECONDARY,
+                            "More",
+                            s.menu,
+                            items,
+                            Button.options().opens(Side.TOP, Style.Align.END))
+                        .key("actions"))));
+
+    run(app, "frame\npress #actions\nframe\n");
+    String[] menuLines = overlayLines(app.tree().dump());
+    assertTrue(menuLines[0].contains("overlay top end gap 2 on #actions "), menuLines[0]);
+    float[] button = rect(menuLines[0]);
+    float[] box = rect(menuLines[1]);
+    assertTrue(
+        button[1] + button[3] + 2 + box[3] <= 240,
+        "menu fits below, so it did not just flip: " + menuLines[0] + " / " + menuLines[1]);
+    assertTrue(
+        box[1] + box[3] <= button[1], "above the button: " + menuLines[0] + " / " + menuLines[1]);
+    assertEquals(button[0] + button[2], box[0] + box[2], 0.01, "right edge aligned with button");
+    assertTrue(
+        box[0] < button[0],
+        "wider menu extends left of the button: " + menuLines[0] + " / " + menuLines[1]);
+
+    run(app, "key Escape\nframe\nadvance 0.3\nframe\npress #choice\nframe\n");
+    String[] selectLines = overlayLines(app.tree().dump());
+    assertTrue(selectLines[0].contains("overlay top stretch gap 2 on #choice "), selectLines[0]);
+    float[] selectButton = rect(selectLines[0]);
+    float[] selectBox = rect(selectLines[1]);
+    assertTrue(
+        selectButton[1] + selectButton[3] + 2 + selectBox[3] <= 240,
+        "select list fits below: " + selectLines[0] + " / " + selectLines[1]);
+    assertTrue(
+        selectBox[1] + selectBox[3] <= selectButton[1],
+        "above the select: " + selectLines[0] + " / " + selectLines[1]);
+  }
+
+  /** The first {@code overlay} line and the line of the overlay's root right after it. */
+  private static String[] overlayLines(String dump) {
+    String[] lines = dump.split("\n");
+    for (int i = 0; i < lines.length - 1; i++) {
+      if (lines[i].startsWith("overlay ")) {
+        return new String[] {lines[i], lines[i + 1]};
+      }
+    }
+    throw new AssertionError("no overlay in:\n" + dump);
   }
 }

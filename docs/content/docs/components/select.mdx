@@ -14,7 +14,7 @@ Javadoc: [`Select`](/api/com/rethinkj/ui/kit/Select.html).
 ```java snippet="select"
 ```
 
-Store the selected index and a `Menu.State` in your app state. Call `Select.select(choices, selected, menuState, onSelect)` (`null` handler disables it).
+Store the selected index and a `Menu.State` in your app state. Call `Select.select(choices, selected, menuState, onSelect)` (`null` handler disables it). Call `menuState.opens(Side.TOP)` to prefer opening the list above the button (falling back to the opposite side where it does not fit).
 
 ## Values instead of indexes
 
