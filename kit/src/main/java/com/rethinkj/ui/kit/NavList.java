@@ -222,7 +222,8 @@ public final class NavList {
    * item, so that a press goes back to its heading.
    *
    * @param current the index of the item to mark, -1 for none
-   * @param onPress told the index of the item the user presses or moves to with the keyboard
+   * @param onPress told the index of the item the user presses or moves to with the keyboard, and
+   *     of the current item for Enter or Space
    */
   public static El outline(List<? extends Entry> entries, int current, IntConsumer onPress) {
     return navList(entries, current, Objects.requireNonNull(onPress, "onPress"), true);
@@ -545,6 +546,15 @@ public final class NavList {
     boolean key(Key k, El list) {
       if (k.modifiers() != 0 || count == 0) {
         return false;
+      }
+      if (again && (k.name().equals("Enter") || k.name().equals("Space"))) {
+        if (selected < 0 || selected >= count || !selectable(selected)) {
+          return false;
+        }
+        if (!k.repeat()) { // as a press on the current item of an outline
+          onSelect.accept(selected);
+        }
+        return true;
       }
       int page = Math.max(1, (int) (list.height() / height));
       int from = selected;
