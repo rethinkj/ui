@@ -19,7 +19,7 @@ mvn -q -pl examples -am compile exec:exec -Dexample=Manual -Dargs="README.md"
 
 ## What to try
 
-- Click any heading under **On this page** to scroll directly to that section.
+- Click any heading under **On this page** to scroll directly to that section, or scroll the document and watch the outline mark the heading at the top of the view. A short last section whose heading never reaches the top leaves the heading above it marked.
 - Click a link: heading links scroll smoothly to the target, while web links open in the system browser.
 - Press **Ctrl+A** to select the document and **Ctrl+C** to copy it.
 
@@ -27,7 +27,7 @@ mvn -q -pl examples -am compile exec:exec -Dexample=Manual -Dargs="README.md"
 
 ### Rendering Markdown
 
-Each document is parsed once with `Markdown.parse`. The view renders it with options for link clicks, clipboard support, text selection, and image lookup:
+Each document is parsed once with `Markdown.parse` and keeps its own `ScrollState`. The view renders it with options for link clicks, clipboard support, text selection, scroll state, and image lookup, and passes `Markdown.current` to the **On this page** outline so it marks the heading at the top of the view:
 
 ```java snippet="manual-markdown"
 ```
@@ -41,7 +41,7 @@ Each document is parsed once with `Markdown.parse`. The view renders it with opt
 
 ### Following links
 
-Clicking a `#id` link finds the heading's block index with `Markdown.rowOf` and scrolls it to the top using `App.scrollToRow`. Any other link goes to `App.openUri`, which opens web addresses in the system browser:
+Clicking a `#id` link or an outline heading finds the heading's row with `Markdown.rowOf` and scrolls the document's `ScrollState` to it using `App.scrollToRow`. Any other link goes to `App.openUri`, which opens web addresses in the system browser:
 
 ```java snippet="manual-links"
 ```

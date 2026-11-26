@@ -929,6 +929,30 @@ final class Editors {
     return Frame.of(card);
   }
 
+  // docs:start markdown-tasks
+  String checklist = """
+      - [x] Review schema migration
+      - [ ] Run backfill on staging
+        - [ ] Verify row counts
+      - [ ] Deploy release""";
+  MarkdownDocument checklistDocument = Markdown.parse(checklist);
+
+  void toggle(Markdown.Task task) {
+    checklist = task.applyTo(checklist);
+    checklistDocument = checklistDocument.next(checklist);
+  }
+
+  static El checklistCard(Editors state) {
+    return Card.card(
+            Markdown.fragment(state.checklistDocument, Markdown.options().onTask(state::toggle)))
+        .wFull();
+  }
+  // docs:end markdown-tasks
+
+  static El markdownTasks(Editors state) {
+    return Frame.of(checklistCard(state));
+  }
+
   final Button.Copied questionCopied = new Button.Copied();
   final Button.Copied answerCopied = new Button.Copied();
   boolean queryToolOpen = true;

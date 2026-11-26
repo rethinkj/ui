@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
@@ -13,6 +14,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.RowHeights;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.ScrollState;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Text;
 import com.rethinkj.ui.render.Pixels;
@@ -143,6 +145,53 @@ class MarkdownTest {
     assertTrue(line(tree, "role=columnheader").startsWith("el role=columnheader"), tree);
     assertTrue(line(tree, "role=blockquote").startsWith("el role=blockquote"), tree);
     assertTrue(line(tree, "role=document").contains(" rows 0-"), tree);
+  }
+
+  @Test
+  void aTaskCheckboxCallsOnTaskOnPointerPressAndSpace() throws IOException {
+    class State {
+      String source = """
+          - [x] Done
+          - [ ] Open
+            - [ ] Nested
+          """;
+      MarkdownDocument document = Markdown.parse(source);
+      final List<Markdown.Task> received = new ArrayList<>();
+
+      void toggle(Markdown.Task task) {
+        received.add(task);
+        source = task.applyTo(source);
+        document = document.next(source);
+      }
+    }
+    State state = new State();
+    Theme t = Theme.DARK;
+    App<State> app = new App<>(
+        state,
+        s -> col()
+            .wFull()
+            .hFull()
+            .fill(t.surface().panel())
+            .child(Markdown.markdown(s.document, Markdown.options().onTask(s::toggle))
+                .grow(1)));
+
+    String tree = run(app, "frame\npress role=checkbox label=\"Open\"\nframe");
+    assertEquals(1, state.received.size());
+    assertEquals(state.source.indexOf("[x] Open"), state.received.getFirst().offset());
+    assertTrue(state.received.getFirst().checked());
+    assertTrue(state.source.contains("- [x] Open\n"), state.source);
+    assertTrue(line(tree, "role=checkbox label=\"Open\"").contains(" checked"), tree);
+    assertFalse(line(tree, "role=checkbox label=\"Open\"").contains(" disabled"), tree);
+
+    // Tab reaches the task checkbox, and Space toggles it.
+    tree = run(app, "key Tab\nkey Tab\nframe");
+    assertTrue(line(tree, "role=checkbox label=\"Open\"").contains(" focused"), tree);
+    tree = run(app, "key Space\nframe");
+    assertEquals(2, state.received.size());
+    assertEquals(state.source.indexOf("[ ] Open"), state.received.get(1).offset());
+    assertFalse(state.received.get(1).checked());
+    assertTrue(state.source.contains("- [ ] Open\n"), state.source);
+    assertTrue(line(tree, "role=checkbox label=\"Open\"").contains(" checked=false"), tree);
   }
 
   @Test
@@ -2176,6 +2225,108 @@ class MarkdownTest {
     for (Text.Line line : wrappedRight.lines()) {
       assertTrue(line.x() > 0, "wrapped right row is indented: " + line);
     }
+  }
+
+  @Test
+  void scrollOptionJumpsToHeadingsAndRebuildsViewWhenCurrentHeadingMoves() {
+    String filler = "Paragraph text to give the section enough height to scroll past the top.\n\n";
+    String source = "Preamble before any heading.\n\n"
+        + "# First\n\n"
+        + filler.repeat(6)
+        + "## Second\n\n"
+        + filler.repeat(6)
+        + "#### Detail\n\n"
+        + filler.repeat(6)
+        + "## Third\n\n"
+        + filler.repeat(12);
+    MarkdownDocument document = Markdown.parse(source);
+    List<MarkdownDocument.Heading> outline =
+        document.headings().stream().filter(h -> h.level() <= 3).toList();
+    ScrollState scroll = new ScrollState();
+    int[] shown = {-2};
+    App<Object> app = new App<>(new Object(), state -> {
+          shown[0] = Markdown.current(document, outline, scroll);
+          return col()
+              .wFull()
+              .hFull()
+              .child(
+                  Markdown.markdown(document, Markdown.options().scroll(scroll)).grow(1));
+        })
+        .provide(Theme.CURRENT, state -> Theme.DARK);
+    app.textRendering(TextRendering.LINUX);
+    app.resize(640, 240, 1);
+    app.frame();
+
+    assertEquals(-1, Markdown.current(document, outline, scroll), "preamble is before First");
+    assertEquals(-1, shown[0]);
+
+    // Jumping to a heading via ScrollState puts its row at the top and rebuilds the view with it.
+    app.scrollToRow(scroll, Markdown.rowOf(document, "second"));
+    app.frame();
+    assertEquals(Markdown.rowOf(document, "second"), scroll.topRow());
+    assertEquals(1, Markdown.current(document, outline, scroll));
+    assertEquals(1, shown[0], "view rebuilt with the heading jumped to");
+
+    // A heading omitted from the outline leaves the previous outline heading active.
+    app.scrollToRow(scroll, Markdown.rowOf(document, "detail"));
+    app.frame();
+    assertEquals(1, Markdown.current(document, outline, scroll));
+    assertEquals(1, shown[0]);
+
+    // User wheel scrolling past Third rebuilds the view so the active heading moves to Third.
+    app.wheel(320, 120, 0, 400);
+    app.frame();
+    assertEquals(2, Markdown.current(document, outline, scroll));
+    assertEquals(2, shown[0], "view rebuilt when wheel moved past Third");
+
+    // Scrolling back to the top returns to -1.
+    app.wheel(320, 120, 0, -5000);
+    app.frame();
+    assertEquals(0, scroll.topRow());
+    assertEquals(-1, Markdown.current(document, outline, scroll));
+    assertEquals(-1, shown[0]);
+
+    // Invalid row throws; an unattached ScrollState is a no-op.
+    assertThrows(IllegalArgumentException.class, () -> app.scrollToRow(scroll, -1));
+    app.scrollToRow(new ScrollState(), 0);
+    app.frame();
+  }
+
+  /** A jump with one document's state does not move another document shown in the same place. */
+  @Test
+  void scrollToRowLeavesAnotherDocumentInTheSamePlace() {
+    MarkdownDocument document = Markdown.parse(
+        "# Top\n\n" + "Paragraph text that is long enough to need a line.\n\n".repeat(30));
+    ScrollState[] scrolls = {new ScrollState(), new ScrollState()};
+    int[] shown = {0};
+    App<Object> app = new App<>(
+            new Object(),
+            state -> Markdown.markdown(document, Markdown.options().scroll(scrolls[shown[0]]))
+                .key("doc")
+                .hFull())
+        .provide(Theme.CURRENT, state -> Theme.DARK);
+    app.textRendering(TextRendering.LINUX);
+    app.resize(640, 240, 1);
+    app.frame();
+
+    app.post(
+        () -> { // a handler that jumps and then shows the other document
+          app.scrollToRow(scrolls[0], 10);
+          shown[0] = 1;
+        });
+    app.frame();
+    app.frame();
+    assertEquals(0, scrolls[1].y());
+
+    app.post(() -> shown[0] = 0);
+    app.frame();
+    app.post(() -> app.scrollToRow(scrolls[0], 10));
+    app.frame();
+    assertEquals(10, scrolls[0].topRow());
+    app.post(() -> shown[0] = 1); // while the jump's row would still be followed
+    app.frame();
+    app.frame();
+    assertEquals(0, scrolls[1].y());
   }
 
   private static void collectTableCells(El el, List<El> into) {

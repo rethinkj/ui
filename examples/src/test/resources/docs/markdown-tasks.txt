@@ -1,0 +1,10 @@
+# A Markdown checklist with interactive checkboxes: initial state, then one task checked.
+size 400 132
+frame
+snap view
+
+press role=checkbox label="Run backfill on staging"
+frame
+advance 1
+frame
+snap toggled

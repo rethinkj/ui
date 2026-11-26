@@ -12,6 +12,7 @@ import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
 import com.rethinkj.ui.RowHeights;
+import com.rethinkj.ui.ScrollState;
 import com.rethinkj.ui.Spans;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.WindowState;
@@ -68,7 +69,8 @@ import java.util.function.Function;
  * are colored by the highlighter {@link Options#languages} gives for their language. A slim header
  * row above the block shows a badge with its language (when it has one), a word-wrap toggle (with
  * {@link Options#state}) and a copy button (with {@link Options#copy}). Task list items show the
- * kit's checkbox, which takes no input.
+ * kit's checkbox; with {@link Options#onTask} a press (or Space while focused) hands the task to
+ * the app, and without it checkboxes stay disabled.
  *
  * <p>Images come from the app: {@link Options#images} gives the image for an address, or null
  * while it has none, and the kit's {@link Image} shows it, or its placeholder with the image's
@@ -142,13 +144,54 @@ public final class Markdown {
     }
   }
 
+  /**
+   * A task list item's box that was pressed: the source of the document it is in, where its {@code
+   * [} is in that source, and the state it asks for.
+   *
+   * @param source the document's source the offset is in
+   * @param offset the index of the {@code [} of {@code [ ]} or {@code [x]} in the source
+   * @param checked whether the task should now be checked
+   */
+  public record Task(String source, int offset, boolean checked) {
+
+    /**
+     * Returns {@code current} with the character inside this task's box set to {@code x} when
+     * {@link #checked} (leaving an {@code X} as it is) or a space when not.
+     *
+     * @throws IllegalArgumentException if {@code current} is not the source the task was read from,
+     *     since the box at the offset may then be another task's, or has no {@code [ ]}, {@code [x]}
+     *     or {@code [X]} at {@link #offset}
+     */
+    public String applyTo(String current) {
+      if (!current.equals(source)) {
+        throw new IllegalArgumentException("Not the source the task was read from");
+      }
+      if (offset < 0 || offset > current.length() - 3) {
+        throw new IllegalArgumentException("No task box at offset " + offset);
+      }
+      char mark = current.charAt(offset + 1);
+      if (current.charAt(offset) != '['
+          || (mark != ' ' && mark != 'x' && mark != 'X')
+          || current.charAt(offset + 2) != ']') {
+        throw new IllegalArgumentException("No task box at offset " + offset);
+      }
+      char replacement = checked ? (mark == 'X' ? 'X' : 'x') : ' ';
+      if (mark == replacement) {
+        return current;
+      }
+      return current.substring(0, offset + 1) + replacement + current.substring(offset + 2);
+    }
+  }
+
   /** What the document does beyond showing itself; each part is off unless set. */
   public static final class Options {
     private Consumer<String> onLink;
+    private Consumer<Task> onTask;
     private Function<String, Highlighter> languages = language -> null;
     private Clipboard clipboard;
     private Button.Copied copied;
     private State state;
+    private ScrollState scroll;
     private Function<String, com.rethinkj.ui.Image> images;
     private int textColor;
     private boolean virtual;
@@ -199,6 +242,21 @@ public final class Markdown {
     }
 
     /**
+     * Takes a task list item's box that was pressed; without it, task checkboxes stay disabled.
+     * Store the updated source with {@link Task#applyTo} and parse again with {@link
+     * MarkdownDocument#next} so unchanged blocks keep what was made of them:
+     *
+     * <pre>{@code
+     * source = task.applyTo(source);
+     * document = document.next(source);
+     * }</pre>
+     */
+    public Options onTask(Consumer<Task> handler) {
+      this.onTask = handler;
+      return this;
+    }
+
+    /**
      * The highlighter for a code block's language, the first word of its info string as written
      * ({@code SQL}, {@code java}), or null for none; without it, no block is colored. Return the
      * same object or an equal one for a language on each call: it is the block's key for what was
@@ -234,6 +292,17 @@ public final class Markdown {
      */
     public Options state(State state) {
       this.state = state;
+      return this;
+    }
+
+    /**
+     * The scroll offsets of the document {@link #markdown} returns ({@link El#scrollState}), so
+     * that it keeps its position across switches, scrolls to a heading with {@code
+     * app.scrollToRow(state, Markdown.rowOf(document, id))}, and reports the heading in view with
+     * {@link #current}. Ignored by {@link #fragment} and {@link #definitions}.
+     */
+    public Options scroll(ScrollState state) {
+      this.scroll = state;
       return this;
     }
 
@@ -304,6 +373,9 @@ public final class Markdown {
                 .child(unit(c, units.get(i))
                     .wFull()
                     .maxSize(theme.prose().measure(), Float.POSITIVE_INFINITY)));
+    if (options.scroll != null) {
+      list.scrollState(options.scroll);
+    }
     State state = options.state;
     if (state != null) {
       list.onPointerDown((clicks, modifiers) -> state.all = false);
@@ -460,17 +532,40 @@ public final class Markdown {
   public static int rowOf(MarkdownDocument document, String id) {
     List<Unit> units = units(document);
     for (int i = 0; i < units.size(); i++) {
-      List<Block> inside = units.get(i).item < 0
-          ? List.of(units.get(i).block)
-          : ((MarkdownDocument.ListBlock) units.get(i).block)
-              .items()
-              .get(units.get(i).item)
-              .blocks();
-      if (new MarkdownDocument(inside).headings().stream().anyMatch(h -> h.id().equals(id))) {
+      if (new MarkdownDocument(inside(units.get(i)))
+          .headings().stream().anyMatch(h -> h.id().equals(id))) {
         return i;
       }
     }
     return -1;
+  }
+
+  /**
+   * The index into {@code headings} of the last heading whose row ({@link #rowOf}) is at or above
+   * {@link ScrollState#topRow scroll.topRow()}, or -1 when none is: for an outline that marks the
+   * heading in view as the document scrolls. {@code headings} are headings of {@code document} in
+   * document order, such as {@link MarkdownDocument#headings} filtered by level.
+   */
+  public static int current(
+      MarkdownDocument document, List<MarkdownDocument.Heading> headings, ScrollState scroll) {
+    List<Unit> units = units(document);
+    int top = Math.min(scroll.topRow(), units.size() - 1);
+    int next = 0;
+    for (int i = 0; i <= top; i++) {
+      for (MarkdownDocument.Heading h : new MarkdownDocument(inside(units.get(i))).headings()) {
+        if (next < headings.size() && h.id().equals(headings.get(next).id())) {
+          next++;
+        }
+      }
+    }
+    return next - 1;
+  }
+
+  /** The blocks of a row: its block, or the blocks of its item. */
+  private static List<Block> inside(Unit u) {
+    return u.item < 0
+        ? List.of(u.block)
+        : ((MarkdownDocument.ListBlock) u.block).items().get(u.item).blocks();
   }
 
   /**
@@ -1614,13 +1709,29 @@ public final class Markdown {
     MarkdownDocument.Item item = list.items().get(i);
     El marker;
     if (item.task() != null) {
+      Consumer<Task> handler = c.options.onTask;
+      String source = documentOf(c).source;
+      El checkbox = Checkbox.checkbox(
+          item.task(),
+          handler == null || source == null || item.taskOffset() < 0
+              ? null
+              : () -> handler.accept(new Task(source, item.taskOffset(), !item.task())));
+      if (!item.blocks().isEmpty()
+          && item.blocks().getFirst() instanceof MarkdownDocument.Paragraph p) {
+        String label = MarkdownDocument.plainText(p.content());
+        if (!label.isEmpty()) {
+          checkbox.label(label);
+        }
+      }
       // The box on the middle of the first line, which is the body's line height high.
       float line = lineHeight(body);
       marker = row()
           .w(theme.size().checkbox() + theme.space().xs())
           .shrink(0)
+          .align(Style.Align.START)
+          .alignSelf(Style.Align.START)
           .padding(Math.max(0, (line - theme.size().checkbox()) / 2), 0, 0, 0)
-          .child(Checkbox.checkbox(item.task(), null));
+          .child(checkbox);
     } else {
       // The bullet goes by how deep the list is in other lists.
       String text = list.ordered() ? (list.start() + i) + "." : BULLETS[c.depth % BULLETS.length];

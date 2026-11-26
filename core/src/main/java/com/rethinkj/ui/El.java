@@ -1585,6 +1585,17 @@ public final class El {
   }
 
   /**
+   * The row at the top of the content box: the last row that starts at or above {@code scrollY},
+   * clamped to {@code 0..rowCount-1}, or 0 when this element is not a virtual list or has no rows.
+   */
+  int topRow() {
+    if (rows == null || rows.rowCount == 0) {
+      return 0;
+    }
+    return Math.clamp(rowAt(scrollY), 0, rows.rowCount - 1);
+  }
+
+  /**
    * The most a {@link #rows virtual list} contributes to layout as its content's height, 2^20
    * logical pixels, where a float still has 3 bits below the pixel, so that sums with the sizes
    * around the list stay exact: a list without a height of its own is at most this tall and
@@ -6479,6 +6490,16 @@ public final class El {
   /** Whether this element is fading out after a rebuild left it out; see {@link #motion}. */
   public boolean isExiting() {
     return exiting;
+  }
+
+  /**
+   * Whether this element itself has the focus ({@link App#focused}) right now, also in a key
+   * handler: a list's handler tells a key for the list from one that comes up from an element
+   * inside it. Unlike a {@link #whenFocused} look, which the next rebuild gets, it follows a move
+   * of the focus at once.
+   */
+  public boolean isFocused() {
+    return focused;
   }
 
   /**

@@ -1,0 +1,1 @@
+- Fixed: `NavList.outline` now takes Enter and Space for its current item only while the list itself has the focus, so Enter or Space in a field or control inside an item no longer triggers the outline and can reach handlers around it.

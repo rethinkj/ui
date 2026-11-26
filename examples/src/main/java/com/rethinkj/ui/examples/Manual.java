@@ -9,6 +9,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Image;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.ScrollState;
 import com.rethinkj.ui.kit.AppIcon;
 import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Card;
@@ -66,15 +67,19 @@ public final class Manual {
    * @param folder where its images are, null for the manual's resources
    */
   record Doc(
-      String title, Symbol icon, MarkdownDocument document, Markdown.State selection, Path folder) {
+      String title,
+      Symbol icon,
+      MarkdownDocument document,
+      Markdown.State selection,
+      ScrollState scroll,
+      Path folder) {
     Doc(String title, Symbol icon, String source, Path folder) {
-      this(title, icon, Markdown.parse(source), new Markdown.State(), folder);
+      this(title, icon, Markdown.parse(source), new Markdown.State(), new ScrollState(), folder);
     }
   }
 
   final List<Doc> docs = new ArrayList<>();
   int doc;
-  int heading = -1;
   boolean dark = true;
   String toast;
   /** The app that runs this state, for scrolling to a heading from a handler. */
@@ -242,39 +247,16 @@ public final class Manual {
 
   /** Scrolls the document so that the block of the heading with this anchor is at its top. */
   void scrollTo(String id) {
-    if (app == null || app.tree() == null) {
+    if (app == null) {
       return;
     }
-    List<El> path = new ArrayList<>();
-    if (!find(app.tree(), "doc-" + doc, path)) {
-      return;
-    }
-    El list = path.getLast();
-    if (id == null) {
-      app.scrollTo(list, 0, 0);
-      return;
-    }
-    int block = Markdown.rowOf(docs.get(doc).document(), id);
-    if (block >= 0) {
-      app.scrollToRow(list, block);
+    Doc current = docs.get(doc);
+    int row = Markdown.rowOf(current.document(), id);
+    if (row >= 0) {
+      app.scrollToRow(current.scroll(), row);
     }
   }
   // docs:end manual-links
-
-  /** The elements from {@code el} down to the one with this key, into {@code path}. */
-  private static boolean find(El el, String key, List<El> path) {
-    path.add(el);
-    if (key.equals(el.key())) {
-      return true;
-    }
-    for (El child : el.children()) {
-      if (find(child, key, path)) {
-        return true;
-      }
-    }
-    path.removeLast();
-    return false;
-  }
 
   public static void main(String[] args) throws IOException {
     int script = Arrays.asList(args).indexOf("--script");
@@ -319,11 +301,7 @@ public final class Manual {
         .grow(1)
         .minSize(0, 0)
         .children(
-            NavList.navList(documents, state.doc, index -> {
-                  state.doc = index;
-                  state.heading = -1;
-                  state.scrollTo(null);
-                })
+            NavList.navList(documents, state.doc, index -> state.doc = index)
                 .key("documents")
                 .label("Documents"),
             Divider.divider().margin(theme.space().s(), 0, theme.space().s(), 0),
@@ -333,10 +311,10 @@ public final class Manual {
                     theme.space().m(),
                     theme.space().s(),
                     theme.space().m()),
-            NavList.navList(outline, state.heading, index -> {
-                  state.heading = index;
-                  state.scrollTo(headings.get(index).id());
-                })
+            NavList.outline(
+                    outline,
+                    Markdown.current(doc.document(), headings, doc.scroll()),
+                    index -> state.scrollTo(headings.get(index).id()))
                 .key("outline")
                 .label("On this page")
                 .grow(1)
@@ -348,6 +326,7 @@ public final class Manual {
                 .onLink(state::link)
                 .copy(state.app == null ? null : state.app.clipboard())
                 .state(doc.selection())
+                .scroll(doc.scroll())
                 .images(source -> state.image(doc, source))
                 .languages(Manual::highlighter))
         .key("doc-" + state.doc)

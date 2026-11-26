@@ -1,0 +1,1 @@
+- Added: `NavList.outline(entries, current, onPress)`, a table of contents that marks the heading in view and tells every press, also one on the marked item, so that a press goes back to its heading.

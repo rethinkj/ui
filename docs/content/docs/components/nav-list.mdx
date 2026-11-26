@@ -22,6 +22,7 @@ Javadoc: [`NavList`](/api/com/rethinkj/ui/kit/NavList.html).
 | --- | --- |
 | `navList(entries, selected, onSelect)` | List of `NavList.Entry` items and headings (`selected` index includes headings) |
 | `navList(count, index -> entry, selected, onSelect)` | Virtualized list for large navigation lists |
+| `outline(entries, current, onPress)` | Table of contents that marks the `current` heading and tells every press, also one on the current item or Enter or Space on it, so a press goes back to its heading |
 | `NavList.item([icon,] label)` | Navigation item with optional `.detail(text)`, `.count(text)`, `.trailing(element)`, `.actions(buttons...)`, `.indent(levels)`, `.key(name)`, and `.disabled(true)` |
 | `NavList.heading(label)` | Non-selectable section heading with optional `.count(text)` and `.open(open, onToggle)` |
 

@@ -152,10 +152,17 @@ public final class MarkdownDocument {
    *
    * @param task null for an ordinary item, {@code false} for {@code [ ]}, {@code true} for {@code
    *     [x]}
+   * @param taskOffset the index in the document's source of the {@code [} of {@code [ ]}/{@code
+   *     [x]}, or -1 for an ordinary item or when the document has no source
    */
-  public record Item(Boolean task, List<Block> blocks) {
+  public record Item(Boolean task, int taskOffset, List<Block> blocks) {
     public Item {
       blocks = List.copyOf(blocks);
+    }
+
+    /** An item without a source position for its task box. */
+    public Item(Boolean task, List<Block> blocks) {
+      this(task, -1, blocks);
     }
   }
 
