@@ -1,0 +1,1 @@
+- `ScrollState.topRow()` and `atEnd()` follow a scroll before the next input of the same frame, so two arrow keys in one frame move a `NavList.outline` that marks `Markdown.current` two headings, not one.

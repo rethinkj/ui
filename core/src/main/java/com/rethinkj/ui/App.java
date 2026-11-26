@@ -4093,8 +4093,21 @@ public final class App<S> {
     boolean drawn = false;
     takeDue();
     while (scheduler.waiting()) {
-      if (handled || changedOutside) { // the next input goes to a tree built from the state now
-        build(handled, false); // after invalidate alone with its rows: an action may look for them
+      // The next input goes to a tree built from the state now, and from the answers of topRow
+      // and atEnd that a scroll since the last build changed, as a scroll spy reads them: a
+      // jump of scrollToRow with a state the view asked lands first, on the rows it measures there.
+      boolean scrolledOnly = scrolled && !handled && !changedOutside && root != null;
+      if (scrolledOnly
+          && rowGoals.keySet().stream()
+              .map(animator::element)
+              .filter(Objects::nonNull)
+              .map(El::scrollState)
+              .anyMatch(s -> s != null && (s.toldTopRow >= 0 || s.toldEnd || s.toldAway))) {
+        drawn |= settle();
+      }
+      if (handled || changedOutside || scrolledOnly && scrollStatesMoved(root)) {
+        // After invalidate alone with its rows: an action may look for them.
+        build(handled || !changedOutside, false);
         drawn = true;
       }
       if (focus.waits()) {

@@ -12,6 +12,7 @@ import com.rethinkj.ui.App;
 import com.rethinkj.ui.Clipboard;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Highlighter;
+import com.rethinkj.ui.Key;
 import com.rethinkj.ui.RowHeights;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.ScrollState;
@@ -2379,6 +2380,61 @@ class MarkdownTest {
     assertThrows(IllegalArgumentException.class, () -> app.scrollToRow(scroll, -1));
     app.scrollToRow(new ScrollState(), 0);
     app.frame();
+  }
+
+  @Test
+  void twoOutlineArrowKeysInOneFrameMoveTwoHeadings() {
+    // Second is near the end, past where the list reaches before its rows are measured.
+    String gap = "Short paragraph.\n\n";
+    String source = "# First\n\n"
+        + gap.repeat(20)
+        + "## Second\n\n"
+        + gap.repeat(2)
+        + "## Third\n\n"
+        + "A wider paragraph with enough words. ".repeat(6);
+    MarkdownDocument document = Markdown.parse(source);
+    List<MarkdownDocument.Heading> headings = document.headings();
+    List<NavList.Entry> entries = headings.stream()
+        .map(h -> (NavList.Entry) NavList.item(MarkdownDocument.plainText(h.content())))
+        .toList();
+    class State {
+      final ScrollState scroll = new ScrollState();
+      App<State> app;
+    }
+    State state = new State();
+    App<State> app = new App<>(
+            state,
+            s -> El.row()
+                .wFull()
+                .hFull()
+                .child(NavList.outline(
+                        entries,
+                        Markdown.current(document, headings, s.scroll),
+                        i -> s.app.scrollToRow(
+                            s.scroll, Markdown.rowOf(document, headings.get(i).id())))
+                    .key("outline")
+                    .w(130))
+                .child(Markdown.markdown(document, Markdown.options().scroll(s.scroll))
+                    .grow(1)))
+        .provide(Theme.CURRENT, ignored -> Theme.DARK);
+    state.app = app;
+    app.textRendering(TextRendering.LINUX);
+    app.resize(280, 300, 1);
+    app.frame();
+
+    assertEquals(0, Markdown.current(document, headings, state.scroll));
+    app.focus(CellEditorTest.find(app, "outline"));
+    app.frame();
+
+    // Two ArrowDown keys in the same frame step from First through Second to Third.
+    app.keyDown(new Key("ArrowDown"));
+    app.keyDown(new Key("ArrowDown"));
+    app.frame();
+    assertEquals(Markdown.rowOf(document, "third"), state.scroll.topRow());
+    assertEquals(2, Markdown.current(document, headings, state.scroll));
+    assertTrue(
+        line(app.tree().dump(), "label=\"Third\"").contains(" selected"),
+        app.tree().dump());
   }
 
   /** A jump with one document's state does not move another document shown in the same place. */
