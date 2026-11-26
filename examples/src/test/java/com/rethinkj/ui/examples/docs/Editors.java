@@ -953,6 +953,59 @@ final class Editors {
     return Frame.of(checklistCard(state));
   }
 
+  final MarkdownDocument queryChange = Markdown.parse("""
+      Include `tax` and filter paid orders:
+
+      ```diff
+       SELECT
+         id,
+      +  tax,
+         total
+       FROM orders
+      -WHERE status = 'pending';
+      +WHERE status = 'paid';
+      ```
+      """);
+
+  // docs:start markdown-blocks
+  final DiffView.State blockDiff = new DiffView.State();
+
+  /** Renders {@code ```diff} blocks with {@link DiffView}; other languages keep the default. */
+  El renderCodeBlock(MarkdownDocument.CodeBlock block) {
+    if (!block.language().equalsIgnoreCase("diff")) {
+      return null;
+    }
+    List<String> before = new ArrayList<>();
+    List<String> after = new ArrayList<>();
+    block.code().lines().forEach(line -> {
+      if (line.startsWith("-")) {
+        before.add(line.substring(1));
+      } else if (line.startsWith("+")) {
+        after.add(line.substring(1));
+      } else {
+        String text = line.startsWith(" ") ? line.substring(1) : line;
+        before.add(text);
+        after.add(text);
+      }
+    });
+    return DiffView.unified(
+            app, String.join("\n", before), String.join("\n", after), blockDiff, Sql.of())
+        .wFull()
+        .h(132);
+  }
+
+  static El markdownBlocksView(Editors state) {
+    return Markdown.markdown(
+            state.queryChange,
+            Markdown.options().languages(Editors::highlighter).codeBlocks(state::renderCodeBlock))
+        .grow(1);
+  }
+  // docs:end markdown-blocks
+
+  static El markdownBlocks(Editors state) {
+    return Frame.of(Card.flush(markdownBlocksView(state)).wFull().grow(1));
+  }
+
   final Button.Copied questionCopied = new Button.Copied();
   final Button.Copied answerCopied = new Button.Copied();
   boolean queryToolOpen = true;

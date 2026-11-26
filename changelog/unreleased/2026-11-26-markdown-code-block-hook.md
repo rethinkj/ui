@@ -1,0 +1,1 @@
+- `Markdown.Options.codeBlocks(block -> element)` lets an app replace fenced code blocks in `Markdown.markdown` and `Markdown.fragment` (including virtual fragments and blocks in lists or quotes) with its own element—such as a `DiffView` or diagram—returning `null` to keep the default code block.

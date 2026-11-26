@@ -2309,6 +2309,109 @@ class MarkdownTest {
     return role(el, "paragraph");
   }
 
+  @Test
+  void codeBlocksHookReplacesMatchingBlocksAndKeepsOthers() throws IOException {
+    MarkdownDocument doc = Markdown.parse("""
+        ```diff
+        -old
+        +new
+        ```
+
+        ```java
+        int x = 1;
+        ```
+
+        > ```diff
+        > -quotedOld
+        > +quotedNew
+        > ```
+
+        - item
+
+          ```diff
+          -listOld
+          +listNew
+          ```
+        """);
+    Function<MarkdownDocument.CodeBlock, El> hook = block -> block.language().equals("diff")
+        ? El.text("diff:" + block.code().strip())
+            .role("region")
+            .label("custom-diff")
+            .editable(text -> {})
+            .readOnly()
+            .w(120)
+        : null;
+    Clipboard clipboard = Clipboard.inMemory();
+    Markdown.State state = new Markdown.State();
+
+    List<Function<Object, El>> views = List.of(
+        ignored -> col()
+            .wFull()
+            .hFull()
+            .child(Markdown.markdown(
+                    doc, Markdown.options().copy(clipboard).state(state).codeBlocks(hook))
+                .grow(1)),
+        ignored -> col()
+            .wFull()
+            .hFull()
+            .child(Markdown.fragment(
+                doc, Markdown.options().copy(clipboard).state(state).codeBlocks(hook))),
+        ignored -> col()
+            .wFull()
+            .hFull()
+            .child(Markdown.fragment(
+                    doc,
+                    Markdown.options().virtual().copy(clipboard).state(state).codeBlocks(hook))
+                .grow(1)));
+
+    for (Function<Object, El> view : views) {
+      App<Object> app = new App<>(new Object(), view).provide(Theme.CURRENT, ignored -> Theme.DARK);
+      String tree = run(app, "frame");
+      List<El> codes = new ArrayList<>();
+      collectRole(app.tree(), "code", codes);
+      assertEquals(1, codes.size(), "only the java block uses the default code block:\n" + tree);
+      assertEquals("java", codes.getFirst().label(), tree);
+      assertEquals("int x = 1;", codes.getFirst().text().string(), tree);
+      assertEquals(1, tree.lines().filter(l -> l.contains("#copy ")).count(), tree);
+      assertEquals(1, tree.lines().filter(l -> l.contains("#wrap ")).count(), tree);
+
+      List<El> custom = new ArrayList<>();
+      collectRole(app.tree(), "region", custom);
+      assertEquals(
+          List.of("diff:-old\n+new", "diff:-quotedOld\n+quotedNew", "diff:-listOld\n+listNew"),
+          custom.stream().map(e -> e.text().string()).toList(),
+          tree);
+      // The element keeps the width it was given, not the document's.
+      assertEquals(
+          3,
+          tree.lines()
+              .filter(l -> l.contains("role=region") && l.contains(" 120x"))
+              .count(),
+          tree);
+    }
+
+    // Focus moving into a field of a replacing element ends the whole-document selection.
+    App<Object> app =
+        new App<>(new Object(), views.getFirst()).provide(Theme.CURRENT, ignored -> Theme.DARK);
+    run(app, "frame");
+    state.selectAll(true);
+    run(app, "press 30,30\nframe"); // on the first replaced block
+    assertFalse(state.allSelected());
+
+    String plain = Markdown.text(doc);
+    assertTrue(plain.contains("-old\n+new"), plain);
+    assertTrue(plain.contains("int x = 1;"), plain);
+  }
+
+  private static void collectRole(El el, String role, List<El> into) {
+    if (role.equals(el.role())) {
+      into.add(el);
+    }
+    for (El child : el.children()) {
+      collectRole(child, role, into);
+    }
+  }
+
   private static El role(El el, String role) {
     if (role.equals(el.role())) {
       return el;

@@ -68,9 +68,11 @@ import java.util.function.Function;
  * <p>Code blocks are in the mono type on the raised surface, scroll sideways unless wrapped, and
  * are colored by the highlighter {@link Options#languages} gives for their language. A slim header
  * row above the block shows a badge with its language (when it has one), a word-wrap toggle (with
- * {@link Options#state}) and a copy button (with {@link Options#copy}). Task list items show the
- * kit's checkbox; with {@link Options#onTask} a press (or Space while focused) hands the task to
- * the app, and without it checkboxes stay disabled.
+ * {@link Options#state}) and a copy button (with {@link Options#copy}). {@link Options#codeBlocks}
+ * replaces a code block with an element of the app's own (or returns null to keep the default),
+ * without the header row or Copy code item. Task list items show the kit's checkbox; with {@link
+ * Options#onTask} a press (or Space while focused) hands the task to the app, and without it
+ * checkboxes stay disabled.
  *
  * <p>Images come from the app: {@link Options#images} gives the image for an address, or null
  * while it has none, and the kit's {@link Image} shows it, or its placeholder with the image's
@@ -188,6 +190,7 @@ public final class Markdown {
     private Consumer<String> onLink;
     private Consumer<Task> onTask;
     private Function<String, Highlighter> languages = language -> null;
+    private Function<MarkdownDocument.CodeBlock, El> codeBlocks = block -> null;
     private Clipboard clipboard;
     private Button.Copied copied;
     private State state;
@@ -264,6 +267,22 @@ public final class Markdown {
      */
     public Options languages(Function<String, Highlighter> highlighters) {
       this.languages = Objects.requireNonNull(highlighters, "highlighters");
+      return this;
+    }
+
+    /**
+     * An element to show in place of a code block, or null to keep the default code block. Asked
+     * on each build of the block's row, so keep any state of the element (such as a {@code
+     * DiffView.State}) in the app's state. Answer the same way for a block of a document in every
+     * view of it, as long as the document lives: selecting and finding keep what they read of a
+     * block; to show a block another way, parse its text again. A replaced block has no code-block
+     * header row, wrap toggle or Copy code menu item; drag selection reaches only text the element
+     * itself makes selectable, while Select all and {@link Markdown#text} copy the
+     * block's source as written. While the element has the focus, it handles its own keys, such as
+     * Control+A, Control+C and Control+F.
+     */
+    public Options codeBlocks(Function<MarkdownDocument.CodeBlock, El> blocks) {
+      this.codeBlocks = Objects.requireNonNull(blocks, "blocks");
       return this;
     }
 
@@ -1093,7 +1112,19 @@ public final class Markdown {
     return switch (block) {
       case MarkdownDocument.Heading h -> heading(c, h);
       case MarkdownDocument.Paragraph p -> paragraph(c, p);
-      case MarkdownDocument.CodeBlock code -> codeBlock(c, code);
+      case MarkdownDocument.CodeBlock code -> {
+        El custom = c.options.codeBlocks.apply(code);
+        if (custom == null) {
+          yield codeBlock(c, code);
+        }
+        // In a column of its own, so the spacing and width the document sets keep the app's.
+        El own = col().child(custom);
+        State state = c.options.state;
+        if (state != null) { // a press in a field of the element reaches no handler of the document
+          own.onFocusIn(() -> state.all = false);
+        }
+        yield own;
+      }
       case MarkdownDocument.Quote q -> {
         El content = col().grow(1).minSize(0, 0);
         blocks(c.muted(), q.blocks(), false, content);

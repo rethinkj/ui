@@ -27,6 +27,7 @@ By default, code blocks have no syntax highlighting. Pass highlighters to `langu
 | `onTask(task -> …)` | Enables task-list checkboxes; passes a `Markdown.Task(source, offset, checked)` whose `applyTo(source)` returns the source with `[ ]` / `[x]` toggled; it throws for a source that changed since |
 | `images(address -> image)` | Returns an `Image` for a path/URL, or `null` while loading (shows a placeholder) |
 | `languages(language -> highlighter)` | Returns a highlighter for a fenced code block's language (the first word after the opening fence), or `null` for no highlighting |
+| `codeBlocks(block -> element)` | Returns an element to show in place of a code block, or `null` to keep the default code block |
 | `copy(clipboard)` | Enables the copy button in each code block's header, context-menu **Copy code** and **Copy link address**, and full-document Ctrl+A / Ctrl+C copy when `.state(Markdown.State)` is also set |
 | `copied(Button.Copied)` | Enables brief check-mark and tooltip confirmation on code-block copy buttons without a `Markdown.State` (overrides the state's own when both are set) |
 | `state(Markdown.State)` | Preserves full-document selection, per-code-block line wrapping (enabling the header's wrap toggle), and default copy-button confirmation state |
@@ -44,6 +45,17 @@ Drag or Shift+click to select text across blocks (paragraphs, lists, quotes, tab
 A right-click, the Menu key, or **Shift+F10** in a document or fragment opens a context menu with **Copy** (enabled when there is a selection, including across blocks or after **Select all**) and **Select all** on text; on a link it adds **Open link** (passing the destination to `onLink`) and **Copy link address**; on a code block it adds **Copy code**. Items whose option (`onLink` or `copy`) was not provided do not show.
 
 Wrap the element `Markdown.markdown` returns with [`Find.find(app, rendered, state.find)`](/docs/components/find) to search across all its blocks in order: **Ctrl+F** opens the find bar from any block, highlights every match in view, displays the match count, and **Enter** / **Shift+Enter** (or **F3** / **Shift+F3**) step between matches, scrolling rows out of view into sight and selecting the current match so **Ctrl+C** copies it.
+
+## Code blocks of your own
+
+Pass a hook to `codeBlocks(block -> element)` to replace fenced code blocks of a language—such as a diff, diagram, or custom widget—with your own element; return `null` to keep the default code block. The hook runs on each build of the block's row in `markdown` and `fragment` (including virtual fragments and blocks inside lists or quotes), so keep any state the element needs (such as a `DiffView.State`) in your app state. Answer the same way for a block of a document in every view of it, as long as the document lives, since selecting and finding keep what they read of a block; to show a block another way, parse its text again. `rethinkj-ui-kit` has no dependency on `rethinkj-ui-editor` or `rethinkj-ui-diagram`; the app plugs them in through the hook.
+
+A replaced block gets no code-block header row, wrap toggle, or **Copy code** menu item. Drag selection reaches only text that your element itself makes selectable, while **Select all** followed by **Copy** (and `Markdown.text(document)`) copies the document with the replaced block's source as written. Focus moving into your element ends a **Select all** of the document; while your element has the focus, it handles its own keys, such as Ctrl+A, Ctrl+C, and Ctrl+F.
+
+<Shot src="examples/docs/markdown-blocks/view-{theme}" alt="A Markdown document rendering a diff fenced code block with DiffView" />
+
+```java snippet="markdown-blocks"
+```
 
 ## Fragments and definition lists
 
