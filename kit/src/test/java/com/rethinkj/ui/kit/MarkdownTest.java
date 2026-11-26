@@ -1080,6 +1080,63 @@ class MarkdownTest {
   }
 
   @Test
+  void aVirtualFragmentFindsOutOfViewCodeBlocksAsTheyAreShown() throws IOException {
+    StringBuilder source = new StringBuilder();
+    for (int i = 0; i < 300; i++) {
+      source.append("Paragraph ").append(i).append(" of the answer.\n\n");
+    }
+    source.append("""
+        ```diff
+        -old
+        +new
+        ```
+
+        > ```diff
+        > -quotedOld
+        > +quotedNew
+        > ```
+        """);
+    MarkdownDocument document = Markdown.parse(source.toString());
+    Function<MarkdownDocument.CodeBlock, El> hook = block -> block.language().equals("diff")
+        ? El.text("replaced:" + block.code().strip())
+            .editable(text -> {})
+            .readOnly()
+            .w(120)
+        : null;
+    boolean[] replace = {true};
+    RowHeights heights = new RowHeights(i -> 100);
+    App<Object> app = new App<>(
+        new Object(),
+        state -> col().wFull().hFull().child(col().grow(1).minSize(0, 0).rows(1, heights, i -> {
+          Markdown.Options options = Markdown.options().virtual();
+          if (replace[0]) {
+            options.codeBlocks(hook);
+          }
+          return Markdown.fragment(document, options).key("scope");
+        })));
+    String tree = run(app, "frame");
+    long built = tree.lines().filter(l -> l.contains("role=paragraph")).count();
+    assertTrue(built > 0 && built < 60, "built " + built + " of 300 blocks");
+
+    String replaced = app.scopeText(CellEditorTest.find(app.tree(), "scope"));
+    assertTrue(replaced.contains("replaced:-old\n+new"), replaced);
+    assertTrue(replaced.contains("replaced:-quotedOld\n+quotedNew"), replaced);
+
+    replace[0] = false;
+    run(app, "frame");
+    String plain = app.scopeText(CellEditorTest.find(app.tree(), "scope"));
+    assertFalse(plain.contains("replaced:"), plain);
+    assertTrue(plain.contains("-old\n+new"), plain);
+    assertTrue(plain.contains("-quotedOld\n+quotedNew"), plain);
+
+    replace[0] = true;
+    run(app, "frame");
+    String replacedAgain = app.scopeText(CellEditorTest.find(app.tree(), "scope"));
+    assertTrue(replacedAgain.contains("replaced:-old\n+new"), replacedAgain);
+    assertTrue(replacedAgain.contains("replaced:-quotedOld\n+quotedNew"), replacedAgain);
+  }
+
+  @Test
   void oneDocumentShowsTheSameParagraphWithAndWithoutItsImages() throws IOException {
     MarkdownDocument document = Markdown.parse("Before ![Inline](inline.png) and [after](#after).");
     Map<String, com.rethinkj.ui.Image> images = Map.of("inline.png", picture(60, 30));
