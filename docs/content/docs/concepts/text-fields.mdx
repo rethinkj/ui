@@ -135,7 +135,7 @@ A read-only multi-line text field lets users select and copy paragraphs. To plac
 ```text file="examples/src/test/resources/golden/docs/range/focused.tree.txt" start="#note" count="2"
 ```
 
-- The child receives clicks, hover styles, cursor shapes, and keyboard focus (Enter activates it) without passing clicks to the parent text field.
+- The child receives clicks, hover and press styles (including `color(...)` to recolor the parent's glyphs inside the range), cursor shapes, and keyboard focus (Enter activates it) without passing clicks to the parent text field.
 - Combine `fitLines()` (auto-height) and `skipTab()` on the text field so Tab jumps cleanly from link to link. [Markdown](/docs/components/markdown) uses this pattern.
 
 ## Built-in keyboard and mouse shortcuts

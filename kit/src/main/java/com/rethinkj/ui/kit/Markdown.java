@@ -1357,6 +1357,10 @@ public final class Markdown {
     for (int i = 0; i < piece.links.size(); i++) {
       Link link = piece.links.get(i);
       El el = link(c, link.label, link.destination).key("link-" + i).range(link.from, link.to);
+      if (c.options.onLink != null) {
+        // Show press through the link's text color alone, with no fill over callouts or code.
+        el.whenPressed(e -> e.fill(0).color(theme.text().primary()));
+      }
       if (!link.title.isEmpty()) {
         Tooltip.tooltip(el, link.title);
       }

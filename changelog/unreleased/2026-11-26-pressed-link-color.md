@@ -1,0 +1,1 @@
+- A pressed link in `Markdown` no longer draws a fill behind it: its text turns to the theme's primary text color, which stays readable on callouts and on inline code in both themes. For this, `El.color` on an element over a `range` of its parent's text now sets the color of the parent's glyphs in that range.

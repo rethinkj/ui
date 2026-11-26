@@ -204,6 +204,7 @@ public final class Text implements Measure {
   private float scale = 1;
   private boolean systemFonts;
   private List<Line> lines = List.of();
+  private int[] lineOffsets = {}; // UTF-16 base offset of each placed line's clusters
 
   // What every measure shares, made on the first one: the paragraphs with their glyphs, the first
   // glyph of each character and the break opportunities. A multi-line field shapes its lines on
@@ -592,6 +593,16 @@ public final class Text implements Measure {
       layOut();
     }
     return lines;
+  }
+
+  /**
+   * The UTF-16 offset in the shown string where glyph {@code glyph} of placed line {@code line}
+   * starts, matching {@link El#range} offsets.
+   */
+  public int glyphOffset(int line, int glyph) {
+    lines();
+    int at = lineOffsets[line] + lines.get(line).glyphs().cluster(glyph);
+    return maskBounds == null ? at : fromGlyphs(at);
   }
 
   /** Whether a {@link Highlighter} colors the text; see {@link El#highlight}. */
@@ -1095,6 +1106,7 @@ public final class Text implements Measure {
     placedHeight = height * scale;
     offsetY = field ? Math.round((placedHeight - spans.size() * lineHeight) / 2) : 0;
     List<Line> placed = new ArrayList<>();
+    int[] offsets = new int[spans.size()];
     shortened = false;
     lineX = new float[spans.size()];
     lineShown = new int[spans.size()];
@@ -1105,6 +1117,7 @@ public final class Text implements Measure {
       Line line;
       if (ellipsis && (!field || unfocused) && (span.cut || span.width > placedWidth + SLACK)) {
         line = shorten(span, baseline, placed.size());
+        offsets[placed.size()] = starts[span.paragraph] + span.from;
         shortened = true;
       } else {
         Para para = paras[span.paragraph];
@@ -1114,12 +1127,14 @@ public final class Text implements Measure {
             baseline,
             para.colors(span.from, span.to),
             0);
+        offsets[placed.size()] = starts[span.paragraph];
       }
       float x = aligned(line.width());
       lineX[placed.size()] = x;
       placed.add(x == 0 ? line : new Line(line.glyphs(), line.width(), baseline, line.colors(), x));
     }
     lines = List.copyOf(placed);
+    lineOffsets = offsets;
     marks = !field && highlighter != null && !placeholderShown && !masked && !spans.isEmpty()
         ? singleLineMarks(spans)
         : List.of();
@@ -1966,7 +1981,8 @@ public final class Text implements Measure {
       return parts[chunkOfOffset(Math.clamp(at, 0, text.length() - 1))] != null;
     }
 
-    void emitLines(float baseline, double viewLeft, double viewRight, List<Line> out) {
+    void emitLines(
+        float baseline, double viewLeft, double viewRight, List<Line> out, List<Integer> offsets) {
       int n = parts.length;
       if (xs[n] <= viewLeft || viewRight <= 0) {
         return;
@@ -1975,6 +1991,7 @@ public final class Text implements Measure {
         Para p = part(i);
         if (xs[i + 1] > viewLeft) {
           out.add(new Line(p.run, p.run.width(), baseline, p.colors, (float) xs[i]));
+          offsets.add(lineStart + bounds[i]);
         }
       }
     }
@@ -3304,6 +3321,7 @@ public final class Text implements Measure {
     int line = lines.lineOfRow(firstRow);
     long skip = line >= 0 ? firstRow - lines.rowsBefore(line) : 0;
     List<Line> laid = new ArrayList<>();
+    List<Integer> offsets = new ArrayList<>();
     List<Row> placed = new ArrayList<>();
     firstInView = -1;
     lastInView = -1;
@@ -3317,7 +3335,19 @@ public final class Text implements Measure {
       if (lineTop >= to) {
         break;
       }
-      pending |= emitLine(line, para, lineTop, skip, to, lh, viewLeft, viewRight, laid, placed);
+      pending |= emitLine(
+          line,
+          lines.start(line),
+          para,
+          lineTop,
+          skip,
+          to,
+          lh,
+          viewLeft,
+          viewRight,
+          laid,
+          offsets,
+          placed);
     }
     if (!wraps) {
       for (Row row : placed) {
@@ -3325,6 +3355,7 @@ public final class Text implements Measure {
       }
     }
     this.lines = List.copyOf(laid);
+    this.lineOffsets = toInts(offsets);
     this.rows = placed;
     highlightPending = pending;
     marks = marks(placed);
@@ -3352,6 +3383,7 @@ public final class Text implements Measure {
       }
     }
     List<Line> laid = new ArrayList<>();
+    List<Integer> offsets = new ArrayList<>();
     List<Row> placed = new ArrayList<>();
     List<PlacedBlock> blocksPlaced = new ArrayList<>();
     firstInView = -1;
@@ -3404,7 +3436,19 @@ public final class Text implements Measure {
         if (lineTop >= to) {
           break;
         }
-        pending |= emitLine(slot, para, lineTop, skip, to, lh, viewLeft, viewRight, laid, placed);
+        pending |= emitLine(
+            slot,
+            lines.start(slot),
+            para,
+            lineTop,
+            skip,
+            to,
+            lh,
+            viewLeft,
+            viewRight,
+            laid,
+            offsets,
+            placed);
       }
     }
     if (!wraps) {
@@ -3413,6 +3457,7 @@ public final class Text implements Measure {
       }
     }
     this.lines = List.copyOf(laid);
+    this.lineOffsets = toInts(offsets);
     this.rows = placed;
     this.placedBlocks = List.copyOf(blocksPlaced);
     highlightPending = pending;
@@ -3425,6 +3470,7 @@ public final class Text implements Measure {
 
   private boolean emitLine(
       int line,
+      int lineStart,
       Para para,
       double lineTop,
       long skip,
@@ -3433,13 +3479,14 @@ public final class Text implements Measure {
       double viewLeft,
       double viewRight,
       List<Line> laid,
+      List<Integer> offsets,
       List<Row> placed) {
     boolean pending = false;
     if (para.chunks != null) {
       if (skip == 0) {
         pending = highlighter != null && !placeholderShown && para.spans == null;
         float baseline = (float) (lineTop - viewY + firstBaseline);
-        para.chunks.emitLines(baseline, viewLeft, viewRight, laid);
+        para.chunks.emitLines(baseline, viewLeft, viewRight, laid, offsets);
         placed.add(new Row(line, 0, para, lineTop));
         if (lineTop < viewY + placedHeight && lineTop + lh > viewY) {
           firstInView = firstInView < 0 ? line : firstInView;
@@ -3460,6 +3507,7 @@ public final class Text implements Measure {
           (float) (top - viewY + firstBaseline),
           para.colors(para.rowStart(r), para.rowEnd(r)),
           rowX(para, r)));
+      offsets.add(lineStart);
       placed.add(new Row(line, r, para, top));
       if (top < viewY + placedHeight && top + lh > viewY) {
         firstInView = firstInView < 0 ? line : firstInView;
@@ -3467,6 +3515,14 @@ public final class Text implements Measure {
       }
     }
     return pending;
+  }
+
+  private static int[] toInts(List<Integer> values) {
+    int[] out = new int[values.size()];
+    for (int i = 0; i < out.length; i++) {
+      out[i] = values.get(i);
+    }
+    return out;
   }
 
   /** Whether the last {@link #layOut} measured a chunk of a long line, which moved what follows. */

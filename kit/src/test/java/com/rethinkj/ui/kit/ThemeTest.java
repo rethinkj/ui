@@ -238,7 +238,6 @@ class ThemeTest {
         "panel", s.panel(),
         "inline code", over(s.panel(), prose.code()),
         "link hovered", over(s.panel(), s.hover()),
-        "link pressed", over(s.panel(), s.pressed()),
         "table header", s.band());
     check(failures, "document text", t.text().primary(), page, 4.5);
     check(
@@ -260,6 +259,12 @@ class ThemeTest {
         Map.of("panel", s.panel(), "inline code", over(s.panel(), prose.code())),
         4.5);
     check(failures, "link", prose.link(), page, 4.5);
+    check(
+        failures,
+        "pressed link",
+        t.text().primary(),
+        Map.of("panel", s.panel(), "inline code", over(s.panel(), prose.code())),
+        4.5);
     check(failures, "quote's line", prose.quote(), Map.of("panel", s.panel()), 1.5);
     check(failures, "disabled text", t.text().disabled(), surfaces, 2);
     check(
@@ -530,6 +535,12 @@ class ThemeTest {
               kind + " callout", fill,
               kind + " callout hovered", hovered,
               kind + " callout inline code", inlineCode),
+          4.5);
+      check(
+          failures,
+          "callout pressed link",
+          t.text().primary(),
+          Map.of(kind + " callout", fill, kind + " callout inline code", inlineCode),
           4.5);
       check(
           failures,

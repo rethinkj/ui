@@ -1,0 +1,11 @@
+el 0,0 360x120
+  el #markdown role=document 0,0 360x120 rows 0-0/1
+    el 24,24 312x51 pos=1/1
+      el role=note label="Note" 24,24 312x51
+        el 28,32 3x35
+        text label="info" "\u{F4A2}" 39,32 16x16
+        el 63,32 265x35
+          text "Note" 63,32 265x16
+          el 63,50 265x17
+            text role=paragraph "See the link docs for details." 63,50 265x17 readonly lines 1-1/1
+              el #link-0 role=link label="the link docs" 92.25,50 98.88x17 value="https://example.com" hovered focused

@@ -2998,6 +2998,25 @@ class MarkdownTest {
     assertTrue(germanTree.contains("role=note label=\"Tipp\""), germanTree);
   }
 
+  @Test
+  void pressedProseLinkRecolorsGlyphsWithoutFill() throws IOException {
+    App<Doc> app = app("""
+        > [!NOTE]
+        > See [the `link` docs](https://example.com) for details.
+        """);
+    app.textRendering(TextRendering.LINUX);
+    String image = "markdown-link-pressed-dark-2x";
+    Script.run("""
+        size 360 120 scale 2
+        frame
+        move role=link label="the link docs"
+        down role=link label="the link docs"
+        frame
+        snap %s""".formatted(image), app, out);
+    String tree = Files.readString(out.resolve(image + ".tree.txt"));
+    Golden.assertMatches(image, Png.decode(Files.readAllBytes(out.resolve(image + ".png"))), tree);
+  }
+
   private static void collectRole(El el, String role, List<El> into) {
     if (role.equals(el.role())) {
       into.add(el);

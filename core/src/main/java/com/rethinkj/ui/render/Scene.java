@@ -1690,13 +1690,40 @@ public final class Scene {
     float clipY = clipGet(glyphs, Y);
     float clipRight = clipX + clipGet(glyphs, WIDTH);
     float clipBottom = clipY + clipGet(glyphs, HEIGHT);
-    boolean drawn = color >>> 24 != 0 || text.highlighted();
+    List<El> coloredRanges = null;
+    if (!text.placeholderShown()) {
+      for (El child : el.children()) {
+        if (child.rangeFrom() >= 0
+            && child.rangeTo() > child.rangeFrom()
+            && child.rangeColor() != 0
+            && child.isPlaced()
+            && child.opacity() > 0) {
+          if (coloredRanges == null) {
+            coloredRanges = new ArrayList<>(1);
+          }
+          coloredRanges.add(child);
+        }
+      }
+    }
+    boolean drawn = color >>> 24 != 0 || text.highlighted() || coloredRanges != null;
     int shareOf = color; // the color `share` is for: a highlighter colors glyphs one by one
-    for (Text.Line line : drawn ? text.lines() : List.<Text.Line>of()) {
+    List<Text.Line> lines = drawn ? text.lines() : List.of();
+    for (int l = 0; l < lines.size(); l++) {
+      Text.Line line = lines.get(l);
       GlyphRun run = line.glyphs();
       int[] colors = text.placeholderShown() ? null : line.colors();
       for (int i = 0; i < run.count(); i++) {
         int glyphColor = colors == null ? color : colors[i];
+        if (coloredRanges != null) {
+          int at = text.glyphOffset(l, i);
+          for (int r = coloredRanges.size() - 1; r >= 0; r--) {
+            El range = coloredRanges.get(r);
+            if (at >= range.rangeFrom() && at < range.rangeTo()) {
+              glyphColor = range.rangeColor();
+              break;
+            }
+          }
+        }
         if (glyphColor >>> 24 == 0) {
           continue;
         }

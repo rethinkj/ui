@@ -177,6 +177,7 @@ public final class El {
   private int baseFill;
   private int rangeFrom = -1; // see #range: characters of the parent's text, -1 for none
   private int rangeTo;
+  private int rangeColor; // see #color on a range element, 0 for the parent's own colors
   private List<Text.Box> rangeBoxes; // the rows of the range, from this element's corner
   private FieldPart fieldPartKey; // non-null on a field's post-layout part; see Animator
   private boolean overflowsBlock; // a block its builder did not clip: wider children show
@@ -1745,9 +1746,20 @@ public final class El {
     return this;
   }
 
-  /** @param argb the text color as 0xAARRGGBB */
+  /**
+   * Sets the text color, or on a {@link #range} element the color of its parent's glyphs inside the
+   * range (0 keeps the parent's own colors).
+   *
+   * @param argb the text color as 0xAARRGGBB
+   */
   public El color(int argb) {
-    textOnly("color").color(argb);
+    if (text != null) {
+      text.color(argb);
+    } else if (rangeFrom >= 0) {
+      rangeColor = argb;
+    } else {
+      textOnly("color");
+    }
     return this;
   }
 
@@ -1800,10 +1812,11 @@ public final class El {
    * #multiline} field, instead of where layout would put it: a link in a paragraph. Its rectangle
    * is the bounding box of the rows the range takes, as the tree dump shows it, but it is hit,
    * filled and ringed only on those rows: one rectangle per row from the range's first character
-   * to its last, which {@link #rangeBoxes} lists. Its fill lies behind the parent's glyphs. It takes
-   * presses, the pointer's cursor, hover looks and, when {@link #focusable}, the focus like any
-   * other element; a press on it is its own, not the field's. A script's selector presses the
-   * middle of its first row. The range is clamped to the text.
+   * to its last, which {@link #rangeBoxes} lists. Its fill lies behind the parent's glyphs, and
+   * {@link #color} sets the color of those glyphs inside the range (0 keeps the parent's own
+   * colors). It takes presses, the pointer's cursor, hover looks and, when {@link #focusable}, the
+   * focus like any other element; a press on it is its own, not the field's. A script's selector
+   * presses the middle of its first row. The range is clamped to the text.
    */
   public El range(int from, int to) {
     if (from < 0 || to < from) {
@@ -1812,6 +1825,24 @@ public final class El {
     rangeFrom = from;
     rangeTo = to;
     return this;
+  }
+
+  /** The start of this element's {@link #range} in its parent's text, or -1 if it has none. */
+  public int rangeFrom() {
+    return rangeFrom;
+  }
+
+  /** The end of this element's {@link #range} in its parent's text, or 0 if it has none. */
+  public int rangeTo() {
+    return rangeTo;
+  }
+
+  /**
+   * The glyph color set on this {@link #range} element with {@link #color}, as 0xAARRGGBB, or 0
+   * when the parent's own colors stay.
+   */
+  public int rangeColor() {
+    return rangeColor;
   }
 
   /**
