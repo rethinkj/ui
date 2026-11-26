@@ -24,4 +24,4 @@ el 0,0 400x160
       el #content-0 1,34 398x125
         text #text "a" 1,34 398x125
       el #drop 1,34 398x125
-        el #zone 200,34 199x125 value="right"
+        el #zone 200,36 197x121 value="right"

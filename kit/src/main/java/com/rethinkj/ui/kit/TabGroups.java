@@ -53,18 +53,18 @@ import java.util.function.Predicate;
  *       frame, whose window opens under the pointer with the tab where the pointer holds it and
  *       follows the pointer until the release. With {@link #splits(boolean)} on, tear-off starts
  *       only once the pointer leaves every window of the app ({@link Tabs.Options#tearOffOutside});
- *       until then, dragging over any group's panel in the drag's starting window offers drop zones
- *       on top of its content — the outer third toward an edge splits the tab out to that side
- *       where both halves fit {@link Theme.Sizes#minTabGroup}, and the middle docks it at the end
- *       of that group (off on the dragged tab's own group when it holds only that tab), with a
- *       preview overlay ({@code #zone} with {@code value=left|right|top|bottom|center}). Once a
- *       window follows the pointer, only tab bars take the tab. Its options are {@link
- *       Window.Options#underPointer}: no opening animation, and the keyboard focus stays with the
- *       window the drag began in until the release. Where the release lands outside every bar the
- *       window stays there, moved wholly into the work area of its display where the release left
- *       it reaching beyond (not on Wayland, which places windows itself), and takes the focus;
- *       over a bar of a group the tab goes there, before the tab the marker shows, and its window
- *       closes. The window under the pointer that takes it is raised.
+ *       dragging over any group's panel in any open window (except the following window itself)
+ *       offers drop zones on top of its content — the outer third toward an edge splits the tab out
+ *       to that side where the target group is non-empty and both halves fit {@link
+ *       Theme.Sizes#minTabGroup}, and the middle docks it at the end of another group (off on the
+ *       dragged tab's own group so releasing over its own content leaves it alone), with an inset
+ *       preview overlay ({@code #zone} with {@code value=left|right|top|bottom|center}). Its
+ *       options are {@link Window.Options#underPointer}: no opening animation, and the keyboard
+ *       focus stays with the window the drag began in until the release. Where the release lands
+ *       outside every bar and drop zone the window stays there, moved wholly into the work area of
+ *       its display where the release left it reaching beyond (not on Wayland, which places windows
+ *       itself), and takes the focus; over a bar or drop zone of a group the tab goes there and its
+ *       window closes. The window under the pointer that takes it is raised.
  *   <li>The only tab of a torn-off frame with one group drags the whole window, from the first
  *       step, and docks the same way. A bar of the main window's only group lets its last tab go,
  *       which leaves the main group empty.
@@ -563,9 +563,56 @@ public final class TabGroups<T> {
     Map<Group<T>, Predicate<Key>> keys = new IdentityHashMap<>();
     El built = buildNode(frame.root, tab, content, theme, keys);
     return built.onKey(k -> {
+      if (handleGroupFocusKey(frame, k)) {
+        return true;
+      }
       Predicate<Key> handler = keys.get(frame.active);
       return handler != null && handler.test(k);
     });
+  }
+
+  private boolean handleGroupFocusKey(Frame<T> frame, Key k) {
+    if (!frame.isSplit()) {
+      return false;
+    }
+    List<Group<T>> all = frame.groups();
+    String name = k.name();
+    if (k.modifiers() == Key.CONTROL && name.length() == 1) {
+      char c = name.charAt(0);
+      if (c >= '1' && c <= '9') {
+        int index = c - '1';
+        if (index < all.size() && !all.get(index).tabs.isEmpty()) {
+          if (frame.active != null) {
+            frame.active.menu.close();
+          }
+          focusGroup(all.get(index));
+          return true;
+        }
+        return false;
+      }
+    }
+    if ((k.modifiers() & ~Key.SHIFT) == 0 && name.equals("F6")) {
+      List<Group<T>> nonEmpty = new ArrayList<>(all.size());
+      for (Group<T> g : all) {
+        if (!g.tabs.isEmpty()) {
+          nonEmpty.add(g);
+        }
+      }
+      int current = nonEmpty.indexOf(frame.active);
+      if (nonEmpty.isEmpty() || (nonEmpty.size() == 1 && current == 0)) {
+        return false;
+      }
+      boolean back = (k.modifiers() & Key.SHIFT) != 0;
+      int next = current < 0
+          ? (back ? nonEmpty.size() - 1 : 0)
+          : Math.floorMod(current + (back ? -1 : 1), nonEmpty.size());
+      if (frame.active != null) {
+        frame.active.menu.close();
+      }
+      focusGroup(nonEmpty.get(next));
+      return true;
+    }
+    return false;
   }
 
   private El buildNode(
@@ -673,8 +720,13 @@ public final class TabGroups<T> {
         .tearOffAtStart(opener != null && alone)
         .tearOffOutside(splits)
         .onDock((from, i, at) -> {
-          if (hasGroup(cast(from)) && hasGroup(group)) { // as onAdd
-            dock(cast(from), i, group, at);
+          Group<T> source = cast(from);
+          if (hasGroup(source) && hasGroup(group)) { // as onAdd
+            Frame<T> fromFrame = source.frame;
+            dock(source, i, group, at);
+            if (fromFrame != group.frame && following == null) {
+              raiseFrame(group.frame);
+            }
           }
         });
     if (!group.tabs.isEmpty()) {
@@ -899,13 +951,16 @@ public final class TabGroups<T> {
   }
 
   private boolean showZones(Group<T> group) {
-    return splits
-        && dragging.isActive()
-        && !dragging.isTorn()
-        && following == null
-        && dragging.bar instanceof Group<?> source
-        && source.frame == group.frame
-        && (source != group || group.tabs.size() > 1);
+    if (!splits || !dragging.isActive() || !(dragging.bar instanceof Group<?> source)) {
+      return false;
+    }
+    if (group.frame == following) {
+      return false;
+    }
+    if (source == group) {
+      return group.tabs.size() > 1;
+    }
+    return !(group == origin && group.tabs.isEmpty() && group.frame.isSplit());
   }
 
   private void clearZone() {
@@ -914,7 +969,7 @@ public final class TabGroups<T> {
   }
 
   private void overZone(Group<T> group, El layer, Theme theme, Drop d) {
-    if (d.payload() != dragging || !dragging.isActive() || dragging.isTorn() || following != null) {
+    if (d.payload() != dragging || !dragging.isActive() || group.frame == following) {
       return;
     }
     if (d.phase() == Drop.Phase.LEAVE) {
@@ -923,44 +978,72 @@ public final class TabGroups<T> {
       }
       return;
     }
-    Zone picked = zoneAt(group, layer.width(), layer.height(), d.x(), d.y(), theme);
+    if (!(dragging.bar instanceof Group<?>)) {
+      return;
+    }
+    Group<T> from = cast(dragging.bar);
+    boolean allowCenter = from != group;
+    boolean allowSplit = !group.tabs.isEmpty();
+    Zone picked =
+        zoneAt(group, layer.width(), layer.height(), d.x(), d.y(), theme, allowCenter, allowSplit);
     if (d.phase() == Drop.Phase.OVER) {
       zoneGroup = picked == null ? null : group;
       zone = picked;
       return;
     }
     clearZone();
-    if (picked == null || !(dragging.bar instanceof Group<?>)) {
+    if (picked == null) {
       return;
     }
-    Group<T> from = cast(dragging.bar);
     int index = dragging.index;
     if (!hasGroup(from) || !hasGroup(group) || index < 0 || index >= from.tabs.size()) {
       return;
     }
+    Frame<T> fromFrame = from.frame;
+    boolean moved = false;
     if (picked.side != null) {
-      if (from != group || from.tabs.size() > 1) {
+      if ((from != group || from.tabs.size() > 1) && !group.tabs.isEmpty()) {
         split(from, index, group, picked.side);
+        moved = true;
       }
-    } else {
+    } else if (from != group) {
       dock(from, index, group, group.tabs.size());
-      if (from == group) { // as after a dock into another group: the moved tab is active
-        select(group, group.tabs.size() - 1);
-        requestFocus(group);
+      moved = true;
+    }
+    if (moved && fromFrame != group.frame && following == null) {
+      raiseFrame(group.frame);
+    }
+  }
+
+  private void raiseFrame(Frame<T> frame) {
+    if (frame.window != null) {
+      frame.window.raise();
+    } else if (frame == main && dragging.window != null) {
+      List<Windows.Handle> all = dragging.window.app().windows().all();
+      if (!all.isEmpty()) {
+        all.getFirst().raise();
       }
     }
   }
 
-  private Zone zoneAt(Group<T> group, float w, float h, double x, double y, Theme theme) {
+  private Zone zoneAt(
+      Group<T> group,
+      float w,
+      float h,
+      double x,
+      double y,
+      Theme theme,
+      boolean allowCenter,
+      boolean allowSplit) {
     if (w <= 0 || h <= 0) {
       return null;
     }
     double fx = x / w;
     double fy = y / h;
-    boolean row = hasSplitRoom(group, Split.Direction.ROW, theme);
-    boolean col = hasSplitRoom(group, Split.Direction.COLUMN, theme);
+    boolean row = allowSplit && hasSplitRoom(group, Split.Direction.ROW, theme);
+    boolean col = allowSplit && hasSplitRoom(group, Split.Direction.COLUMN, theme);
     double best = 1.0 / 3.0;
-    Zone picked = Zone.CENTER;
+    Zone picked = allowCenter ? Zone.CENTER : null;
     if (row) {
       if (fx < best) {
         best = fx;
@@ -985,39 +1068,45 @@ public final class TabGroups<T> {
   }
 
   private static El zonePreview(Zone zone, Theme theme) {
-    float r = theme.radius().large() - theme.size().stroke();
+    float inset = theme.space().xs();
     El preview = El.el()
         .key("zone")
         .value(zone.value)
+        .radius(theme.radius().medium())
         .fill(theme.accent().selection())
         .border(theme.size().indicator(), theme.accent().edge());
     preview.style().position = Style.Position.ABSOLUTE;
     switch (zone) {
       case LEFT -> {
-        preview.style().left = Len.ZERO;
-        preview.style().top = Len.ZERO;
-        preview.style().width = Len.percent(0.5f);
-        preview.hFull().radius(0, 0, 0, r);
+        preview.style().left = Len.px(inset);
+        preview.style().top = Len.px(inset);
+        preview.style().bottom = Len.px(inset);
+        preview.style().right = Len.percent(0.5f);
       }
       case RIGHT -> {
-        preview.style().right = Len.ZERO;
-        preview.style().top = Len.ZERO;
-        preview.style().width = Len.percent(0.5f);
-        preview.hFull().radius(0, 0, r, 0);
+        preview.style().left = Len.percent(0.5f);
+        preview.style().top = Len.px(inset);
+        preview.style().bottom = Len.px(inset);
+        preview.style().right = Len.px(inset);
       }
       case TOP -> {
-        preview.style().left = Len.ZERO;
-        preview.style().top = Len.ZERO;
-        preview.wFull();
-        preview.style().height = Len.percent(0.5f);
+        preview.style().left = Len.px(inset);
+        preview.style().right = Len.px(inset);
+        preview.style().top = Len.px(inset);
+        preview.style().bottom = Len.percent(0.5f);
       }
       case BOTTOM -> {
-        preview.style().left = Len.ZERO;
-        preview.style().bottom = Len.ZERO;
-        preview.wFull().radius(0, 0, r, r);
-        preview.style().height = Len.percent(0.5f);
+        preview.style().left = Len.px(inset);
+        preview.style().right = Len.px(inset);
+        preview.style().top = Len.percent(0.5f);
+        preview.style().bottom = Len.px(inset);
       }
-      case CENTER -> preview.absolute(0, 0).wFull().hFull().radius(0, 0, r, r);
+      case CENTER -> {
+        preview.style().left = Len.px(inset);
+        preview.style().right = Len.px(inset);
+        preview.style().top = Len.px(inset);
+        preview.style().bottom = Len.px(inset);
+      }
     }
     return preview;
   }
@@ -1032,6 +1121,21 @@ public final class TabGroups<T> {
   @SuppressWarnings("unchecked") // the bars' ids are the groups of this object
   private Group<T> cast(Object bar) {
     return (Group<T>) bar;
+  }
+
+  /**
+   * Makes {@code group} its frame's active group and moves keyboard focus to its tab bar when the
+   * group is non-empty.
+   */
+  public void focusGroup(Group<T> group) {
+    requireOpen(group);
+    group.frame.active = group;
+    if (!group.tabs.isEmpty()) {
+      requestFocus(group);
+    } else if (group.frame.focusGroup != group) {
+      group.frame.focusGroup = null;
+      group.frame.focusToken = null;
+    }
   }
 
   /** Makes the tab at {@code index} the active one of its group, and the group its frame's active one. */
