@@ -1,9 +1,9 @@
 ---
 title: Chat
-description: User message bubbles, full-width Markdown agent responses, collapsible tool call rows, a working spinner, and a growing composer card.
+description: Plain and composed user message bubbles, collapsible context blocks, full-width Markdown agent responses, tool call rows, a working spinner, and a growing composer card.
 ---
 
-`Chat` provides the building blocks of a chat transcript and composer in the theme's tokens: right-aligned user message bubbles sized to their text up to `Theme.Chat.bubbleWidth()`, full-width agent answers rendered with `Markdown.fragment` or composed from parts, collapsible one-line tool call rows, a quiet working indicator with a spinner, and a growing multi-line composer with an action bar.
+`Chat` provides the building blocks of a chat transcript and composer in the theme's tokens: right-aligned plain or composed user message bubbles up to `Theme.Chat.bubbleWidth()`, collapsible or static context blocks, full-width agent answers rendered with `Markdown.fragment` or composed from parts, collapsible one-line tool call rows, a quiet working indicator with a spinner, and a growing multi-line composer with an action bar.
 
 Javadoc: [`Chat`](/api/com/rethinkj/ui/kit/Chat.html), [`Chat.Options`](/api/com/rethinkj/ui/kit/Chat.Options.html), [`Chat.ComposerOptions`](/api/com/rethinkj/ui/kit/Chat.ComposerOptions.html), [`Chat.ToolState`](/api/com/rethinkj/ui/kit/Chat.ToolState.html).
 
@@ -17,6 +17,9 @@ Javadoc: [`Chat`](/api/com/rethinkj/ui/kit/Chat.html), [`Chat.Options`](/api/com
 | Method | Description |
 | --- | --- |
 | `user(text)` / `user(text, options)` | Right-aligned user bubble sized to its text up to `Theme.Chat.bubbleWidth()`, with optional quiet footer |
+| `user(options, parts…)` | Composed right-aligned user bubble at `Theme.Chat.bubbleWidth()` stacking arbitrary parts (`Chat.text`, `Chat.context`); `null` parts are skipped |
+| `text(text)` | Read-only selectable paragraph in the prose body font that joins the transcript's selection scope |
+| `context(icon, title, meta, open, onToggle, details…)` | Collapsible (or static when `onToggle` is `null`) context block with optional icon, title, right-aligned metadata, and detail elements when open |
 | `agent(document)` / `agent(document, options)` | Full-width agent answer rendered via `Markdown.fragment` |
 | `agent(parts…)` / `agent(options, parts…)` | Full-width agent answer composed of arbitrary parts (`Chat.tool`, `Markdown.fragment`, `Chat.working`); `null` parts are skipped |
 | `tool(icon, title, state, open, onToggle, details…)` | One-line collapsible tool call row with icon, title, state (`RUNNING`, `DONE`, `FAILED`), and any detail elements when open |
@@ -31,8 +34,8 @@ Configure message footers and Markdown rendering with `Chat.options()`:
 | Option | Description |
 | --- | --- |
 | `time(text)` | Muted timestamp shown in tabular figures under the message |
-| `copy(clipboard)` | Adds a quiet copy button that writes the message text (or `Markdown.text(document)`) to `clipboard` |
-| `copy(clipboard, text)` | Adds a quiet copy button that writes explicit `text` to `clipboard` (for composed `agent(options, parts…)` messages) |
+| `copy(clipboard)` | Adds a quiet copy button that writes the message text (or `Markdown.text(document)`) to `clipboard`; no copy button is shown on composed `user(options, parts…)` or `agent(options, parts…)` messages without explicit text |
+| `copy(clipboard, text)` | Adds a quiet copy button that writes explicit `text` to `clipboard` (for composed `user(options, parts…)` and `agent(options, parts…)` messages, or when copying source text other than the rendered plain text) |
 | `copied(Button.Copied)` | Enables brief check-mark and tooltip confirmation on the copy button (and on code blocks in `agent(document, options)` when `markdown(...)` is omitted); keep one `Button.Copied` per message |
 | `actions(El…)` | Adds extra quiet actions (such as ghost icon buttons) to the message footer |
 | `markdown(Markdown.Options)` | Forwards custom `Markdown.Options` to `Markdown.fragment` in `agent(document, options)` |
@@ -40,6 +43,17 @@ Configure message footers and Markdown rendering with `Chat.options()`:
 ## Tool calls
 
 `Chat.tool` is controlled: keep each tool call's `open` boolean in your app state and pass a toggle handler in `onToggle` (or `null` to disable expanding). Closed by default, the row stays on one line with an optional leading icon, an ellipsized title, a state mark (`Progress.spinner()` while `RUNNING`, check mark when `DONE`, error icon when `FAILED`), and a chevron. When `open` is `true`, its detail elements—plain text, monospace output, a `CodeEditor`, or a `DiffView`—render in a panel below a divider.
+
+## Context blocks
+
+Use `Chat.user(options, parts…)` with `Chat.text` and `Chat.context` to compose structured user messages—such as review comments with code excerpts, attached queries, tables, or file references—while passing the underlying raw prompt to `options.copy(clipboard, text)`. Composed user bubbles always span `Theme.Chat.bubbleWidth()` so opening or closing a context block does not shift the bubble horizontally.
+
+`Chat.context` is controlled like `Chat.tool`: pass the block's `open` flag and an `onToggle` handler, or pass `null` for `onToggle` to render a static row without a chevron (which still shows its details when `open` is `true`). Its details can be any elements: a `Label.Variant.MONO` excerpt, or a read-only [`CodeEditor`](/docs/components/code-editor) for syntax highlighting, as for the query below.
+
+<Shot src="examples/docs/chat-context/view-{theme}" alt="Two composed user bubbles: one with a review note and two code context blocks, and one with table, slow SQL query, and static file context blocks above a question" />
+
+```java snippet="chat-context"
+```
 
 ## Transcript
 
@@ -85,7 +99,7 @@ User bubbles, the composer field, and agent Markdown all read their fonts from [
 
 ## In a tree dump
 
-`Chat.transcript` contains a `role=log` virtual list labeled `Transcript` and, while scrolled away from the end, a `role=button` labeled `Jump to newest`. User and agent messages are `role=article`, tool call headers are `role=button` with `expanded` / `expanded=false` (`busy` while `RUNNING`, `invalid` when `FAILED`) and their state in `value`, `Chat.working` is `role=status`, and `Chat.composer` exposes its `role=textbox` field, chip remove buttons, and `Send` / `Stop` button:
+`Chat.transcript` contains a `role=log` virtual list labeled `Transcript` and, while scrolled away from the end, a `role=button` labeled `Jump to newest`. User and agent messages are `role=article`, tool call headers are `role=button` with `expanded` / `expanded=false` (`busy` while `RUNNING`, `invalid` when `FAILED`) and their state in `value`, context block headers are `role=button` with `expanded` / `expanded=false` and optional metadata in `value` (or `role=group` when `onToggle` is `null`), `Chat.working` is `role=status`, and `Chat.composer` exposes its `role=textbox` field, chip remove buttons, and `Send` / `Stop` button:
 
 ```text file="examples/src/test/resources/golden/docs/chat/view.tree.txt" start="role=article" count="18"
 ```

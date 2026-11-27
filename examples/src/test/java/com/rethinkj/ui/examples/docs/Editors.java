@@ -1106,6 +1106,81 @@ final class Editors {
     return Frame.of(transcript);
   }
 
+  final Button.Copied reviewCopied = new Button.Copied();
+  boolean ordersContextOpen = true;
+  boolean retryContextOpen;
+  boolean tableContextOpen;
+  boolean slowQueryContextOpen = true;
+  final String slowQuery =
+      "SELECT id, total FROM orders\nWHERE status = 'open'\nORDER BY created_at DESC;";
+  final CodeEditor.State slowQueryEditor = new CodeEditor.State().readOnly(true);
+
+  void toggleOrdersContext() {
+    ordersContextOpen = !ordersContextOpen;
+  }
+
+  void toggleRetryContext() {
+    retryContextOpen = !retryContextOpen;
+  }
+
+  void toggleTableContext() {
+    tableContextOpen = !tableContextOpen;
+  }
+
+  void toggleSlowQueryContext() {
+    slowQueryContextOpen = !slowQueryContextOpen;
+  }
+
+  static El chatContext(Editors state) {
+    // docs:start chat-context
+    Clipboard clipboard = state.app.clipboard();
+    String rawPrompt =
+        "Please review these two spots before merging.\n\nOrders.java (L42–58)\nOrderRetry.java (L12–19)";
+    El review = Chat.user(
+        Chat.options().copy(clipboard, rawPrompt).copied(state.reviewCopied).time("14:31"),
+        Chat.text("Please review these two spots before merging."),
+        Chat.context(
+            Symbol.CODE,
+            "Orders.java",
+            "L42–58",
+            state.ordersContextOpen,
+            state::toggleOrdersContext,
+            Label.label(
+                Label.Variant.MONO,
+                "if (order.attempts() >= maxAttempts) {\n  return Result.failed(order);\n}")),
+        Chat.context(
+            Symbol.CODE,
+            "OrderRetry.java",
+            "L12–19",
+            state.retryContextOpen,
+            state::toggleRetryContext,
+            Label.label(
+                Label.Variant.MONO, "Duration backoff = Duration.ofSeconds(1L << attempt);")));
+    El query = Chat.user(
+        Chat.options().time("14:34"),
+        Chat.context(
+            Symbol.TABLE,
+            "orders",
+            "12 columns",
+            state.tableContextOpen,
+            state::toggleTableContext,
+            Label.label(Label.Variant.MONO, "id, customer_id, status, total, created_at")),
+        Chat.context(
+            Symbol.DATABASE,
+            "Slow query",
+            "1.8 s",
+            state.slowQueryContextOpen,
+            state::toggleSlowQueryContext,
+            CodeEditor.codeEditor(state.app, state.slowQuery, state.slowQueryEditor, Sql.of(), null)
+                .lines(3)
+                .wFull()),
+        Chat.context(Symbol.DOCUMENT, "explain-plan.txt", "4 KB", false, null),
+        Chat.text("Why is this query slow?"));
+    El transcript = Card.card(review, query).wFull();
+    // docs:end chat-context
+    return Frame.of(transcript);
+  }
+
   record ChatEntry(int id, boolean fromUser, String text, MarkdownDocument document) {}
 
   final List<ChatEntry> transcriptMessages = new ArrayList<>(

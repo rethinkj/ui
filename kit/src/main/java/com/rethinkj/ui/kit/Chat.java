@@ -23,11 +23,11 @@ import java.util.function.IntFunction;
 
 /**
  * Chat messages, transcript and composer in the theme's tokens: a virtual transcript that follows
- * the newest message ({@link #transcript}), a user message in a bubble at the end side ({@link
- * #user}), an agent's answer as Markdown prose or composed parts over the full width ({@link
- * #agent}), collapsible one-line tool call rows ({@link #tool}), a spinner line while the agent is
- * still working ({@link #working}), and a growing composer card with an action bar ({@link
- * #composer}).
+ * the newest message ({@link #transcript}), a user message in a plain or composed bubble at the end
+ * side ({@link #user}, {@link #text}), collapsible or static context blocks ({@link #context}), an
+ * agent's answer as Markdown prose or composed parts over the full width ({@link #agent}),
+ * collapsible one-line tool call rows ({@link #tool}), a spinner line while the agent is still
+ * working ({@link #working}), and a growing composer card with an action bar ({@link #composer}).
  *
  * <pre>{@code
  * El question = Chat.user(
@@ -50,10 +50,11 @@ import java.util.function.IntFunction;
  *         .onFiles(state::addFiles));
  * }</pre>
  *
- * <p>All state stays in the app: whether a tool call is open is passed in and flipped by its {@code
- * onToggle} handler, copy confirmation uses a caller-owned {@link Button.Copied}, and the composer
- * receives its text, attachments and working flag from the app. Passing a null {@code onToggle}
- * disables expanding a tool call.
+ * <p>All state stays in the app: whether a tool call or context block is open is passed in and
+ * flipped by its {@code onToggle} handler, copy confirmation uses a caller-owned {@link
+ * Button.Copied}, and the composer receives its text, attachments and working flag from the app.
+ * Passing a null {@code onToggle} disables expanding a tool call, and turns a context block's
+ * header into a static row without a chevron.
  *
  * <p>In a tree dump, {@link #transcript} contains a {@code role=log} virtual list labeled by {@link
  * Texts#transcript} and, while scrolled away from the end, a {@code role=button} labeled by {@link
@@ -61,9 +62,11 @@ import java.util.function.IntFunction;
  * Texts#userMessage} and {@link Texts#agentMessage}, a tool call's header row is {@code
  * role=button} with the title as its label, {@link Texts#toolState} as its {@code value}, {@code
  * expanded} or {@code expanded=false}, {@code busy} while running and {@code invalid} when failed,
- * {@link #working} is {@code role=status}, and {@link #composer} contains a {@code role=textbox}
- * field, removable attachment chips, and a {@code role=button} labeled by {@link Texts#send} or
- * {@link Texts#stop}.
+ * a toggleable context block's header is {@code role=button} with the title as its label, optional
+ * metadata as its {@code value} and {@code expanded} / {@code expanded=false} (or {@code
+ * role=group} when static), {@link #working} is {@code role=status}, and {@link #composer} contains
+ * a {@code role=textbox} field, removable attachment chips, and a {@code role=button} labeled by
+ * {@link Texts#send} or {@link Texts#stop}.
  */
 public final class Chat {
 
@@ -101,8 +104,11 @@ public final class Chat {
 
     /**
      * Adds a quiet copy button under the message that writes the message's text to {@code
-     * clipboard}. For {@link #user} this is the message text; for {@link #agent(MarkdownDocument,
-     * Options)} this is {@link Markdown#text(MarkdownDocument)}. Null turns copying off.
+     * clipboard}. For {@link #user(String, Options)} this is the message text; for {@link
+     * #agent(MarkdownDocument, Options)} this is {@link Markdown#text(MarkdownDocument)}. Null
+     * turns copying off. For composed messages ({@link #user(Options, El...)} and {@link
+     * #agent(Options, El...)}), no copy button is shown unless {@link #copy(Clipboard, String)}
+     * supplies the text.
      */
     public Options copy(Clipboard clipboard) {
       return copy(clipboard, null);
@@ -110,8 +116,8 @@ public final class Chat {
 
     /**
      * Adds a quiet copy button under the message that writes {@code text} to {@code clipboard},
-     * for {@link #agent(Options, El...)} or when copying source text other than the rendered plain
-     * text.
+     * for composed messages ({@link #user(Options, El...)} and {@link #agent(Options, El...)}) or
+     * when copying source text other than the rendered plain text.
      */
     public Options copy(Clipboard clipboard, String text) {
       this.clipboard = clipboard;
@@ -242,7 +248,32 @@ public final class Chat {
     Objects.requireNonNull(text, "text");
     Objects.requireNonNull(options, "options");
     Theme theme = Theme.CURRENT.get();
-    Texts texts = Texts.CURRENT.get();
+    El bubble = row().child(text(text));
+    bubble.style().maxWidth = Len.percent(theme.chat().bubbleWidth());
+    return userMessage(theme, options, options.copyText != null ? options.copyText : text, bubble);
+  }
+
+  /**
+   * A composed user message in a right-aligned bubble spanning {@link Theme.Chat#bubbleWidth} of
+   * the message's width, stacking {@code parts} (such as {@link #text} and {@link #context}) in a
+   * column with optional quiet actions and muted time below it. Null parts are skipped. Supply the
+   * raw prompt via {@link Options#copy(Clipboard, String)} to show a copy button in the footer.
+   */
+  public static El user(Options options, El... parts) {
+    Objects.requireNonNull(options, "options");
+    Theme theme = Theme.CURRENT.get();
+    El bubble = col().gap(theme.space().m()).children(Section.present(parts));
+    bubble.style().width = Len.percent(theme.chat().bubbleWidth());
+    return userMessage(theme, options, options.copyText, bubble);
+  }
+
+  /**
+   * A read-only selectable paragraph in {@link Theme.Prose#body} for composed messages, joining
+   * the enclosing {@link #transcript}'s selection scope.
+   */
+  public static El text(String text) {
+    Objects.requireNonNull(text, "text");
+    Theme theme = Theme.CURRENT.get();
     Theme.TextStyle style = theme.prose().body();
     El body = El.text(text)
         .editable(ignored -> {})
@@ -259,30 +290,7 @@ public final class Chat {
         .caretColor(theme.text().primary())
         .shrink(1);
     body.style().minWidth = Len.ZERO;
-    El bubble = row()
-        .padding(theme.space().m(), theme.space().l())
-        .radius(theme.radius().large())
-        .fill(theme.chat().bubble())
-        .border(theme.size().stroke(), theme.border().subtle())
-        .child(body);
-    bubble.style().maxWidth = Len.percent(theme.chat().bubbleWidth());
-    bubble.style().minWidth = Len.ZERO;
-
-    El message = col()
-        .wFull()
-        .role("article")
-        .label(texts.userMessage())
-        .align(Style.Align.END)
-        .gap(theme.space().xs())
-        .child(bubble);
-    El footer = footer(theme, texts, options, options.copyText != null ? options.copyText : text);
-    if (footer != null) {
-      message.child(footer);
-    }
-    if (options.copied != null) {
-      message.overlay(Button.ending(theme, options.copied));
-    }
-    return message;
+    return body;
   }
 
   /** An agent message showing {@code content} as a full-width {@link Markdown#fragment}. */
@@ -339,78 +347,79 @@ public final class Chat {
     Theme theme = Theme.CURRENT.get();
     Texts texts = Texts.CURRENT.get();
     boolean enabled = onToggle != null;
-    El[] present = Section.present(details);
-    boolean showDetails = open && present.length > 0;
     String stateText = texts.toolState(state);
-    float innerRadius = Math.max(0, theme.radius().medium() - theme.size().stroke());
-
-    El head = row()
-        .wFull()
-        .role("button")
-        .label(title)
-        .value(stateText)
-        .expanded(open)
-        .disabled(!enabled)
-        .busy(state == ToolState.RUNNING)
-        .invalid(state == ToolState.FAILED)
-        .padding(theme.space().s(), theme.space().m())
-        .gap(theme.space().s())
-        .align(Style.Align.CENTER)
-        .motion(theme.motion().feedback());
-    head.style().minHeight = Len.px(theme.size().control() + theme.space().s());
-    if (showDetails) {
-      head.radius(innerRadius, innerRadius, 0, 0);
-    } else {
-      head.radius(innerRadius);
-    }
-    if (icon != null) {
-      head.child(icon(icon, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
-    }
-    head.child(label(title)
-        .color(enabled ? theme.text().primary() : theme.text().disabled())
-        .maxLines(1)
-        .ellipsis()
-        .grow(1)
-        .minSize(0, 0));
     El indicator = switch (state) {
       case RUNNING -> Progress.spinner().label(stateText);
       case DONE -> icon(Symbol.CHECKMARK_CIRCLE, Icon.Variant.SUCCESS).label(stateText);
       case FAILED -> icon(Symbol.ERROR_CIRCLE, Icon.Variant.DANGER).label(stateText);
     };
-    head.child(indicator)
-        .child(icon(
-            open ? Symbol.CHEVRON_UP : Symbol.CHEVRON_DOWN,
-            enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
-    if (enabled) {
-      head.focusable()
-          .keepFocus()
-          .focusRing(theme.accent().edge())
-          .cursor(Cursor.POINTER)
-          .onPress(onToggle)
-          .whenHovered(e -> e.fill(theme.surface().hover()))
-          .whenPressed(e -> e.fill(theme.surface().pressed()));
-    }
-    Tooltip.whenShortened(head, title);
+    return disclosure(
+        theme,
+        icon,
+        title,
+        indicator,
+        open,
+        onToggle,
+        !enabled,
+        true,
+        theme.border().subtle(),
+        Section.present(details),
+        head -> Tooltip.whenShortened(head, title)
+            .role("button")
+            .value(stateText)
+            .expanded(open)
+            .disabled(!enabled)
+            .busy(state == ToolState.RUNNING)
+            .invalid(state == ToolState.FAILED));
+  }
 
-    El box = col()
-        .wFull()
-        .radius(theme.radius().medium())
-        .border(theme.size().stroke(), theme.border().subtle())
-        .fill(theme.surface().band())
-        .child(head);
-    if (showDetails) {
-      El body = col()
-          .wFull()
-          .padding(theme.space().m())
-          .gap(theme.space().s())
-          .fill(theme.surface().panel())
-          .radius(0, 0, innerRadius, innerRadius)
-          .clip()
-          .children(present);
-      body.style().minWidth = Len.ZERO;
-      box.child(Divider.divider()).child(body);
-    }
-    return box;
+  /**
+   * A collapsible context block for attached code excerpts, queries, tables or files inside a
+   * message: an optional icon, an ellipsized title, optional right-aligned metadata (such as a
+   * line range or file size), and a chevron that opens to show {@code details} below a divider.
+   * Controlled: {@code open} decides whether the details show and {@code onToggle} runs when
+   * pressed. When {@code onToggle} is null the header is a static row without a chevron; if {@code
+   * open} is true its details still show. Null detail elements are skipped.
+   */
+  public static El context(
+      Icon icon, String title, String meta, boolean open, Runnable onToggle, El... details) {
+    Objects.requireNonNull(title, "title");
+    Theme theme = Theme.CURRENT.get();
+    boolean hasMeta = meta != null && !meta.isEmpty();
+    // The metadata takes only the room the title leaves, so the title is cut short last.
+    El metaLabel = hasMeta
+        ? label(Label.Variant.SMALL, meta)
+            .fontFeatures("+tnum")
+            .maxLines(1)
+            .ellipsis()
+            .textAlign(Style.Align.END)
+            .basis(0)
+            .grow(1)
+            .minSize(0, 0)
+        : null;
+    return disclosure(
+        theme,
+        icon,
+        title,
+        metaLabel,
+        open,
+        onToggle,
+        false,
+        onToggle != null,
+        theme.border().divider(),
+        Section.present(details),
+        head -> {
+          // The whole text of what may be cut short: the title, and the metadata after it.
+          Tooltip.whenShortened(head, hasMeta ? title + " " + meta : title);
+          if (onToggle != null) {
+            head.role("button").expanded(open);
+            if (hasMeta) {
+              head.value(meta);
+            }
+          } else {
+            head.role("group");
+          }
+        });
   }
 
   /** A quiet line with a spinner and {@link Texts#working()} to place under the last message. */
@@ -671,6 +680,109 @@ public final class Chat {
       });
     }
     return card;
+  }
+
+  private static El userMessage(Theme theme, Options options, String copyText, El bubble) {
+    Texts texts = Texts.CURRENT.get();
+    bubble
+        .padding(theme.space().m(), theme.space().l())
+        .radius(theme.radius().large())
+        .fill(theme.chat().bubble())
+        .border(theme.size().stroke(), theme.border().subtle());
+    bubble.style().minWidth = Len.ZERO;
+
+    El message = col()
+        .wFull()
+        .role("article")
+        .label(texts.userMessage())
+        .align(Style.Align.END)
+        .gap(theme.space().xs())
+        .child(bubble);
+    El footer = footer(theme, texts, options, copyText);
+    if (footer != null) {
+      message.child(footer);
+    }
+    if (options.copied != null) {
+      message.overlay(Button.ending(theme, options.copied));
+    }
+    return message;
+  }
+
+  private static El disclosure(
+      Theme theme,
+      Icon icon,
+      String title,
+      El trailing,
+      boolean open,
+      Runnable onToggle,
+      boolean disabled,
+      boolean showChevron,
+      int borderColor,
+      El[] details,
+      Consumer<El> configureHead) {
+    boolean showDetails = open && details.length > 0;
+    float innerRadius = Math.max(0, theme.radius().medium() - theme.size().stroke());
+
+    El head = row()
+        .wFull()
+        .label(title)
+        .padding(theme.space().s(), theme.space().m())
+        .gap(theme.space().s())
+        .align(Style.Align.CENTER)
+        .motion(theme.motion().feedback());
+    head.style().minHeight = Len.px(theme.size().control() + theme.space().s());
+    if (showDetails) {
+      head.radius(innerRadius, innerRadius, 0, 0);
+    } else {
+      head.radius(innerRadius);
+    }
+    configureHead.accept(head);
+    if (icon != null) {
+      head.child(icon(icon, disabled ? Icon.Variant.DISABLED : Icon.Variant.MUTED));
+    }
+    head.child(label(title)
+        .color(disabled ? theme.text().disabled() : theme.text().primary())
+        .maxLines(1)
+        .ellipsis()
+        .grow(trailing != null && trailing.style().grow > 0 ? 0 : 1)
+        .minSize(0, 0));
+    if (trailing != null) {
+      head.child(trailing);
+    }
+    if (showChevron) {
+      head.child(icon(
+          open ? Symbol.CHEVRON_UP : Symbol.CHEVRON_DOWN,
+          disabled ? Icon.Variant.DISABLED : Icon.Variant.MUTED));
+    }
+    if (onToggle != null) {
+      head.focusable()
+          .keepFocus()
+          .focusRing(theme.accent().edge())
+          .cursor(Cursor.POINTER)
+          .onPress(onToggle)
+          .whenHovered(e -> e.fill(theme.surface().hover()))
+          .whenPressed(e -> e.fill(theme.surface().pressed()));
+    }
+
+    El box = col()
+        .wFull()
+        .radius(theme.radius().medium())
+        .border(theme.size().stroke(), borderColor)
+        .fill(theme.surface().band())
+        .child(head);
+    if (showDetails) {
+      El body = col()
+          .wFull()
+          .padding(theme.space().m())
+          .gap(theme.space().s())
+          .fill(theme.surface().panel())
+          .radius(0, 0, innerRadius, innerRadius)
+          .clip()
+          .children(details);
+      body.style().minWidth = Len.ZERO;
+      box.child(Divider.divider()).child(body);
+    }
+    return box;
   }
 
   private static El agentMessage(Options options, String copyText, El[] parts) {
