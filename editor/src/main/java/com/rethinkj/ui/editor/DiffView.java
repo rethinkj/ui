@@ -806,22 +806,14 @@ public final class DiffView {
         },
         null));
 
-    El editor = CodeEditor.codeEditor(app, newText, state.newEditor, highlighter, null)
-        .key("diff-unified")
-        .label(texts.modified())
-        .scrollState(state.newScroll)
-        .alsoDecorate((line, start, text, out) -> {
-          Integer bg = newLineTints.get(line);
-          if (bg != null) {
-            out.lineBackground(bg);
-          }
-          List<Diff.Span> spans = newWordSpans.get(line);
-          if (spans != null) {
-            for (Diff.Span s : spans) {
-              out.background(s.from(), s.to(), diffColors.addedWord());
-            }
-          }
-        })
+    El editor = tinted(
+            CodeEditor.codeEditor(app, newText, state.newEditor, highlighter, null)
+                .key("diff-unified")
+                .label(texts.modified())
+                .scrollState(state.newScroll),
+            newLineTints,
+            newWordSpans,
+            diffColors.addedWord())
         .onKeyFirst(k -> diffKey(app, state, k));
     if (!deletedScrollMarks.isEmpty()) {
       editor.scrollMarks(deletedScrollMarks);
