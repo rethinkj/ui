@@ -1,0 +1,173 @@
+el 0,0 800x340
+  el #diff-side-by-side 12,12 776x316
+    text #old role=textbox label="Original" "-- Monthly revenue report\n-- Owner: analytics\n-- Warehouse: main\n-- Schedule: daily\n-- Retention: 90" … " = false\nORDER BY o.total DESC\nLIMIT 50;" length 245 13,13 387x314 readonly lines 6-15/15
+      el #rail 13,13 80x314
+      el #gutter 13,17 79x298
+        el #line-5 13,33 79x16
+          el 19,41 12x0
+          el #action-line-5 role=button label="Add comment" 35,35 12x12
+            text label="add" "\u{F107}" 35,35 12x12
+          text "6" 51,33 15x16
+          el 70,41 2x0
+          el 76,41 12x0
+        el #line-6 13,49 79x16
+          el 19,57 12x0
+          el #action-line-6 role=button label="Add comment" 35,51 12x12
+            text label="add" "\u{F107}" 35,51 12x12
+          text "7" 51,49 15x16
+          el 70,57 2x0
+          el 76,57 12x0
+        el #line-7 13,65 79x16
+          el 19,73 12x0
+          el #action-line-7 role=button label="Add comment" 35,67 12x12
+            text label="add" "\u{F107}" 35,67 12x12
+          text "8" 51,65 15x16
+          el 70,73 2x0
+          el 76,73 12x0
+        el #line-8 13,97 79x16
+          el 19,105 12x0
+          el #action-line-8 role=button label="Add comment" 35,99 12x12 hovered
+            text label="add" "\u{F107}" 35,99 12x12
+          text "9" 51,97 15x16
+          el 70,105 2x0
+          el 76,105 12x0
+        el #line-9 13,113 79x16
+          el 19,121 12x0
+          el #action-line-9 role=button label="Add comment" 35,115 12x12
+            text label="add" "\u{F107}" 35,115 12x12
+          text "10" 51,113 15x16
+          el 70,121 2x0
+          el 76,121 12x0
+        el #line-10 13,129 79x16
+          el 19,137 12x0
+          el #action-line-10 role=button label="Add comment" 35,131 12x12
+            text label="add" "\u{F107}" 35,131 12x12
+          text "11" 51,129 15x16
+          el #change 70,129 2x16
+          el 76,137 12x0
+        el #line-11 13,145 79x16
+          el 19,153 12x0
+          el #action-line-11 role=button label="Add comment" 35,147 12x12
+            text label="add" "\u{F107}" 35,147 12x12
+          text "12" 51,145 15x16
+          el 70,153 2x0
+          el 76,153 12x0
+        el #line-12 13,255 79x16
+          el 19,263 12x0
+          el #action-line-12 role=button label="Add comment" 35,257 12x12
+            text label="add" "\u{F107}" 35,257 12x12
+          text "13" 51,255 15x16
+          el #change 70,255 2x16
+          el 76,263 12x0
+        el #line-13 13,271 79x16
+          el 19,279 12x0
+          el #action-line-13 role=button label="Add comment" 35,273 12x12
+            text label="add" "\u{F107}" 35,273 12x12
+          text "14" 51,271 15x16
+          el 70,279 2x0
+          el 76,279 12x0
+        el #line-14 13,287 79x16
+          el 19,295 12x0
+          el #action-line-14 role=button label="Add comment" 35,289 12x12
+            text label="add" "\u{F107}" 35,289 12x12
+          text "15" 51,287 15x16
+          el 70,295 2x0
+          el 76,295 12x0
+        el #unchanged-gutter-0 role=button label="5 unchanged lines" 13,17 79x16
+          text label="more_horizontal" "\u{E823}" 47,19 12x12
+      el #unchanged-0 role=button label="5 unchanged lines" 101,17 291x16
+        text label="chevron_down" "\u{F2A1}" 109,19 12x12
+        text "5 unchanged lines" 125,18 104x14
+      el #block-8 101,81 291x16
+      el #spacer-12-13 101,161 291x94
+    el 400,13 1x314
+    text #new role=textbox label="Modified" "-- Monthly revenue report\n-- Owner: analytics\n-- Warehouse: main\n-- Schedule: daily\n-- Retention: 90" … "otal > 0\nORDER BY o.total DESC\nLIMIT 50;" length 228 401,13 386x314 readonly lines 6-15/15
+      el #rail 401,13 80x314
+      el #gutter 401,17 79x298
+        el #line-5 401,33 79x16
+          el 407,41 12x0
+          el #action-line-5 role=button label="Add comment" 423,35 12x12
+            text label="add" "\u{F107}" 423,35 12x12
+          text "6" 439,33 15x16
+          el 458,41 2x0
+          el 464,41 12x0
+        el #line-6 401,49 79x16
+          el 407,57 12x0
+          el #action-line-6 role=button label="Add comment" 423,51 12x12
+            text label="add" "\u{F107}" 423,51 12x12
+          text "7" 439,49 15x16
+          el 458,57 2x0
+          el 464,57 12x0
+        el #line-7 401,65 79x16
+          el 407,73 12x0
+          el #action-line-7 role=button label="Add comment" 423,67 12x12
+            text label="add" "\u{F107}" 423,67 12x12
+          text "8" 439,65 15x16
+          el 458,73 2x0
+          el 464,73 12x0
+        el #line-8 401,81 79x16
+          el 407,89 12x0
+          el #action-line-8 role=button label="Add comment" 423,83 12x12
+            text label="add" "\u{F107}" 423,83 12x12
+          text "9" 439,81 15x16
+          el #change 458,81 2x16
+          el 464,89 12x0
+        el #line-9 401,97 79x16
+          el 407,105 12x0
+          el #action-line-9 role=button label="Add comment" 423,99 12x12
+            text label="add" "\u{F107}" 423,99 12x12
+          text "10" 439,97 15x16
+          el 458,105 2x0
+          el 464,105 12x0
+        el #line-10 401,113 79x16
+          el 407,121 12x0
+          el #action-line-10 role=button label="Add comment" 423,115 12x12
+            text label="add" "\u{F107}" 423,115 12x12
+          text "11" 439,113 15x16
+          el 458,121 2x0
+          el 464,121 12x0
+        el #line-11 401,129 79x16
+          el 407,137 12x0
+          el #action-line-11 role=button label="Add comment" 423,131 12x12
+            text label="add" "\u{F107}" 423,131 12x12
+          text "12" 439,129 15x16
+          el #change 458,129 2x16
+          el 464,137 12x0
+          el #note 478,129 2x16
+        el #line-12 401,145 79x16
+          el 407,153 12x0
+          el #action-line-12 role=button label="Add comment" 423,147 12x12
+            text label="add" "\u{F107}" 423,147 12x12
+          text "13" 439,145 15x16
+          el 458,153 2x0
+          el 464,153 12x0
+          el #note 478,145 2x16
+        el #line-13 401,271 79x16
+          el 407,279 12x0
+          el #action-line-13 role=button label="Add comment" 423,273 12x12
+            text label="add" "\u{F107}" 423,273 12x12
+          text "14" 439,271 15x16
+          el 458,279 2x0
+          el 464,279 12x0
+        el #line-14 401,287 79x16
+          el 407,295 12x0
+          el #action-line-14 role=button label="Add comment" 423,289 12x12
+            text label="add" "\u{F107}" 423,289 12x12
+          text "15" 439,287 15x16
+          el 458,295 2x0
+          el 464,295 12x0
+        el #unchanged-gutter-0 role=button label="5 unchanged lines" 401,17 79x16
+          text label="more_horizontal" "\u{E823}" 435,19 12x12
+      el #unchanged-0 role=button label="5 unchanged lines" 489,17 291x16
+        text label="chevron_down" "\u{F2A1}" 497,19 12x12
+        text "5 unchanged lines" 513,18 104x14
+      el #diff-review-1 489,161 291x94
+        el 489,165 283x86
+          el 498,174 265x20
+            el role=img label="Ada Lovelace" 498,174 20x20
+              text "AL" 503,179 10x10
+            text "Ada Lovelace" 522,176 83x16
+            text "2m ago" 609,177 43x14
+          text "Should this also exclude refunded orders?" 498,198 265x16
+          text #diff-reply role=textbox label="Write a reply" "" 498,218 265x24
+      el #block-13-1 489,255 291x16

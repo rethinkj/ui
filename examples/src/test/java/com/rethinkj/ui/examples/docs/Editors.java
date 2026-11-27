@@ -563,6 +563,7 @@ final class Editors {
     showGutter();
     showHints();
     showReview();
+    showDiffReview();
     int orders = sql.indexOf("orders");
     refused(sql, orders, orders + "orders".length(), "relation \"orders\" does not exist");
     int unindexed = report.indexOf("m.revenue > 0");
@@ -929,6 +930,62 @@ final class Editors {
       ORDER BY o.total DESC
       LIMIT 50;""";
   final DiffView.State diffState = new DiffView.State();
+  // docs:start diff-view-review
+  final DiffView.State reviewedDiff = new DiffView.State();
+  DiffView.Lines reviewedLines;
+  String diffReply = "";
+
+  void commentOnDiff(DiffView.Lines lines) {
+    reviewedLines = lines;
+  }
+
+  void diffReply(String value) {
+    diffReply = value;
+  }
+
+  /** Adds a gutter comment action, a noted range and a review card to the new side. */
+  void showDiffReview() {
+    int rangeFrom = newQuery.indexOf("WHERE");
+    int lineStart = newQuery.indexOf("  AND o.total > 0");
+    int rangeTo = lineStart + "  AND o.total > 0".length();
+    reviewedDiff
+        .lineAction(Symbol.ADD, "Add comment", this::commentOnDiff)
+        .markup(
+            DiffView.Side.NEW,
+            "review",
+            newQuery,
+            List.of(
+                new CodeEditor.Highlight(rangeFrom, rangeTo, CodeEditor.Highlight.Tone.NOTE),
+                new CodeEditor.Block(lineStart, this::diffReviewCard)));
+  }
+
+  El diffReviewCard() {
+    Theme theme = Theme.CURRENT.get();
+    El header = El.row()
+        .align(Style.Align.CENTER)
+        .gap(theme.space().s())
+        .child(Avatar.avatar("Ada Lovelace", null, 20))
+        .child(Label.label(Label.Variant.STRONG, "Ada Lovelace"))
+        .child(Label.label(Label.Variant.SMALL, "2m ago"));
+    El card = El.col()
+        .fill(theme.surface().raised())
+        .border(theme.size().stroke(), theme.border().subtle())
+        .radius(theme.radius().large())
+        .padding(theme.space().m())
+        .gap(theme.space().s())
+        .wFull()
+        .child(header)
+        .child(Label.label("Should this also exclude refunded orders?").wrap())
+        .child(TextField.textField(diffReply, "Write a reply", this::diffReply)
+            .key("diff-reply")
+            .wFull());
+    return El.col()
+        .key("diff-review-1")
+        .wFull()
+        .padding(theme.space().s(), theme.space().m(), theme.space().s(), 0)
+        .child(card);
+  }
+  // docs:end diff-view-review
 
   static El diffSideBySide(Editors state) {
     // docs:start diff-view-side-by-side
@@ -937,6 +994,14 @@ final class Editors {
         .wFull()
         .h(224);
     // docs:end diff-view-side-by-side
+    return Frame.of(diff);
+  }
+
+  static El diffReview(Editors state) {
+    El diff = DiffView.sideBySide(
+            state.app, state.oldQuery, state.newQuery, state.reviewedDiff, Sql.of())
+        .wFull()
+        .h(316);
     return Frame.of(diff);
   }
 

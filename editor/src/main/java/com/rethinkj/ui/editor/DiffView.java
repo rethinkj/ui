@@ -2,6 +2,7 @@ package com.rethinkj.ui.editor;
 
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.Cursor;
+import com.rethinkj.ui.Decorator;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Key;
@@ -15,6 +16,7 @@ import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Texts;
 import com.rethinkj.ui.kit.Theme;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -22,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
 
 /**
  * Displays the {@link Diff} between two texts side by side or unified, using {@link CodeEditor}:
@@ -57,11 +60,46 @@ public final class DiffView {
   /** Maximum number of removed lines placed in a single block in the unified view. */
   private static final int MAX_DELETED_BLOCK_LINES = 100;
 
+  /** Markup layer name reserved for the diff view's own gutter change bars and scrollbar ticks. */
+  private static final String DIFF_LAYER = "diff";
+
+  /** Which side of a {@link DiffView} a mark or line action belongs to. */
+  public enum Side {
+    /** The original text (the left pane side by side). */
+    OLD,
+    /** The modified text (the right pane side by side). */
+    NEW
+  }
+
+  /**
+   * An inclusive range of 0-based lines on one {@link Side} of a {@link DiffView}, reported to
+   * {@link State#lineAction}.
+   *
+   * @param side which side the lines belong to
+   * @param first first line index, 0 or more
+   * @param last last line index, at least {@code first}
+   */
+  public record Lines(Side side, int first, int last) {
+    public Lines {
+      Objects.requireNonNull(side, "side");
+      if (first < 0 || last < first) {
+        throw new IllegalArgumentException(
+            "first must be 0 or more and last at least first, were " + first + " and " + last);
+      }
+    }
+  }
+
   /**
    * A slice {@code [from, to)} of the removed run {@code [runFrom, runTo)} shown by one
    * removed-lines block in unified diff.
    */
   private record DeletedChunk(int from, int to, int runFrom, int runTo) {}
+
+  /** Unique key pairing two blocks at the same side-by-side row and ordinal. */
+  private record PairKey(int oldInsert, int newInsert, int ordinal) {}
+
+  /** Identifies one mark block on a side by its insert line and 0-based ordinal at that line. */
+  private record BlockSlot(int insertLine, int ordinal) {}
 
   /** One collapsible unchanged run between (or outside) hunks, exclusive of end indices. */
   record Region(int oldFrom, int oldTo, int newFrom, int newTo) {
@@ -87,7 +125,8 @@ public final class DiffView {
     }
 
     private final ScrollState newScroll = new ScrollState();
-    private final Set<Integer> expanded = new HashSet<>();
+    // Kept by range: a region that marks split or merge stays open where it overlaps one of them.
+    private final List<Region> expanded = new ArrayList<>();
     private int currentChange = -1;
     private boolean sideBySide = true;
     private App<?> app;
@@ -103,6 +142,7 @@ public final class DiffView {
     private int[] newStarts = {0};
     private Diff diff = new Diff(0, 0, List.of());
     private List<Region> regions = List.of();
+    private boolean regionsDirty = true;
 
     // Cached highlighter start states per old line, for unified deleted-line blocks.
     private Highlighter cachedHighlighter;
@@ -111,6 +151,89 @@ public final class DiffView {
 
     // The widest old line of each split removed run, by its first old line, for unified blocks.
     private final Map<Integer, String> widestRemoved = new HashMap<>();
+
+    /**
+     * Sets the marks of layer {@code layer} on {@code side}, computed for {@code text}, in place
+     * of that layer's marks before ({@link CodeEditor.State#markup}). Marks of all app layers show
+     * together: {@link CodeEditor.Diagnostic}s, gutter {@link CodeEditor.Marker}s, {@link
+     * CodeEditor.Highlight}s (including {@link CodeEditor.Highlight.Tone#NOTE}), {@link
+     * CodeEditor.Change}s, {@link CodeEditor.InlayHint}s and {@link CodeEditor.Block}s between
+     * lines.
+     *
+     * <p>Side by side, each {@link CodeEditor.Block} on one side pairs with a matching block on
+     * the same row of the other side, or gets an empty paired spacer there (splitting any hunk
+     * filler around it), so both sides stay aligned as blocks grow and shrink. Lines carrying any
+     * mark count like changed lines when unchanged regions collapse, so marks and threads are
+     * never hidden in a collapsed region.
+     *
+     * <p>{@link #unified} shows only the {@link Side#NEW} side's marks.
+     *
+     * <p>The layer name {@code "diff"} is reserved for the diff view's own change bars and
+     * scrollbar ticks.
+     *
+     * @param side which side of the diff the marks belong to
+     * @param layer app-chosen layer name, not {@code "diff"}
+     * @param text revision the marks were computed for
+     * @param marks marks to attach, or an empty list to clear {@code layer}
+     * @throws IllegalArgumentException if {@code layer} is {@code "diff"}
+     */
+    public State markup(
+        Side side, String layer, String text, List<? extends CodeEditor.Mark> marks) {
+      CodeEditor.State target = editor(side);
+      checkLayer(layer);
+      target.markup(layer, text, marks);
+      regionsDirty = true;
+      return this;
+    }
+
+    /**
+     * Clears the marks of layer {@code layer} on {@code side} ({@link CodeEditor.State#noMarkup}).
+     *
+     * @param side which side of the diff to clear
+     * @param layer app-chosen layer name, not {@code "diff"}
+     * @throws IllegalArgumentException if {@code layer} is {@code "diff"}
+     */
+    public State noMarkup(Side side, String layer) {
+      CodeEditor.State target = editor(side);
+      checkLayer(layer);
+      target.noMarkup(layer);
+      regionsDirty = true;
+      return this;
+    }
+
+    /**
+     * Offers an action on any line of either side from the gutter and the editor's context menu,
+     * such as starting a review comment ({@link CodeEditor.State#lineAction}). Hovering a line's
+     * gutter cell reveals {@code symbol} left of the line number with {@code label} as its tooltip
+     * and accessible name; pressing or dragging over a side's gutter reports an inclusive 0-based
+     * {@link Lines} range carrying that {@link Side} (a drag stays on the side it started on;
+     * Escape cancels). {@link #unified} offers it on the new side only. Passing a null {@code
+     * symbol} or {@code onPress} removes it from both sides.
+     */
+    public State lineAction(Icon symbol, String label, Consumer<Lines> onPress) {
+      if (symbol == null || onPress == null) {
+        oldEditor.lineAction(null, null, null);
+        newEditor.lineAction(null, null, null);
+        return this;
+      }
+      Objects.requireNonNull(label, "label");
+      oldEditor.lineAction(
+          symbol, label, lines -> onPress.accept(new Lines(Side.OLD, lines.first(), lines.last())));
+      newEditor.lineAction(
+          symbol, label, lines -> onPress.accept(new Lines(Side.NEW, lines.first(), lines.last())));
+      return this;
+    }
+
+    private CodeEditor.State editor(Side side) {
+      return Objects.requireNonNull(side, "side") == Side.OLD ? oldEditor : newEditor;
+    }
+
+    private static void checkLayer(String layer) {
+      Objects.requireNonNull(layer, "layer");
+      if (DIFF_LAYER.equals(layer)) {
+        throw new IllegalArgumentException("layer \"" + DIFF_LAYER + "\" is reserved");
+      }
+    }
 
     /** The 0-based index of the current change hunk, or -1 before navigating or when unchanged. */
     public int currentChange() {
@@ -132,8 +255,8 @@ public final class DiffView {
       stepChange(app, true);
     }
 
-    private void expand(int regionKey) {
-      expanded.add(regionKey);
+    private void expand(Region region) {
+      expanded.add(region);
     }
 
     private void sync(String oldText, String newText) {
@@ -149,12 +272,22 @@ public final class DiffView {
       oldStarts = lineStarts(oldLines);
       newStarts = lineStarts(newLines);
       diff = Diff.diffLines(oldLines, newLines);
-      regions = collapsibleRegions(diff);
+      regionsDirty = true;
       expanded.clear();
       widestRemoved.clear();
       currentChange = -1;
       cachedHighlighterOld = null;
       oldHighlightStates = null;
+    }
+
+    private void ensureRegions(List<CodeEditor.Mark> oldMarks, List<CodeEditor.Mark> newMarks) {
+      if (!regionsDirty) {
+        return;
+      }
+      Set<Integer> oldMarked = markedLines(oldMarks, oldDisplayed, oldStarts);
+      Set<Integer> newMarked = markedLines(newMarks, newDisplayed, newStarts);
+      regions = collapsibleRegions(diff, oldMarked, newMarked);
+      regionsDirty = false;
     }
 
     private Object[] oldStartStates(Highlighter highlighter) {
@@ -254,6 +387,10 @@ public final class DiffView {
     state.oldEditor.oldNumbers(null);
     state.newEditor.oldNumbers(null);
 
+    List<CodeEditor.Mark> oldMarks = state.oldEditor.layerMarks(state.oldDisplayed, DIFF_LAYER);
+    List<CodeEditor.Mark> newMarks = state.newEditor.layerMarks(state.newDisplayed, DIFF_LAYER);
+    state.ensureRegions(oldMarks, newMarks);
+
     Diff diff = state.diff;
     List<Region> collapsed = activeCollapsed(state);
 
@@ -319,7 +456,7 @@ public final class DiffView {
     setDiffMarkup(state.oldEditor, state.oldDisplayed, oldChanges);
     setDiffMarkup(state.newEditor, state.newDisplayed, newChanges);
 
-    // Assemble filler blocks and collapsed unchanged region blocks for each side.
+    // Assemble collapsed regions, filler blocks and paired spacers for review blocks on each side.
     List<El.Block> oldBlocks = new ArrayList<>();
     List<El.Block> newBlocks = new ArrayList<>();
     Map<El.Block, Region> oldCollapsedMap = new HashMap<>();
@@ -333,114 +470,168 @@ public final class DiffView {
       oldCollapsedMap.put(ob, r);
       newCollapsedMap.put(nb, r);
     }
-    for (Diff.Hunk h : diff.hunks()) {
-      int oldCount = h.oldEnd() - h.oldStart();
-      int newCount = h.newEnd() - h.newStart();
-      if (newCount > oldCount) {
-        if (diff.oldLineCount() == 0) { // the empty side's one line, then filler for the rest
-          if (newCount > 1) {
-            oldBlocks.add(El.Block.insert(1).lines(newCount - 1));
-          }
+
+    Map<Integer, Integer> oldBlockCounts =
+        blockCounts(oldMarks, state.oldDisplayed, state.oldStarts);
+    Map<Integer, Integer> newBlockCounts =
+        blockCounts(newMarks, state.newDisplayed, state.newStarts);
+    Map<BlockSlot, PairKey> oldPairs = new HashMap<>();
+    Map<BlockSlot, PairKey> newPairs = new HashMap<>();
+
+    if (diff.oldLineCount() == 0 && diff.newLineCount() == 0) {
+      pairRow(1, 1, oldBlockCounts, newBlockCounts, oldPairs, newPairs, oldBlocks, newBlocks);
+    } else {
+      int oldPos = 0;
+      int newPos = 0;
+      for (Diff.Hunk h : diff.hunks()) {
+        pairMatchedRows(
+            oldPos,
+            newPos,
+            h.oldStart() - oldPos,
+            oldBlockCounts,
+            newBlockCounts,
+            oldPairs,
+            newPairs,
+            oldBlocks,
+            newBlocks);
+        int oldCount = h.oldEnd() - h.oldStart();
+        int newCount = h.newEnd() - h.newStart();
+        if (diff.oldLineCount() == 0) {
+          // The empty side's one line stands beside new line 0, then filler for the rest.
           oldLineTints.put(0, diffColors.filler());
-        } else {
-          oldBlocks.add(El.Block.insert(h.oldEnd()).lines(newCount - oldCount));
-        }
-      } else if (oldCount > newCount) {
-        if (diff.newLineCount() == 0) {
-          if (oldCount > 1) {
-            newBlocks.add(El.Block.insert(1).lines(oldCount - 1));
-          }
+          pairRow(1, 1, oldBlockCounts, newBlockCounts, oldPairs, newPairs, oldBlocks, newBlocks);
+          addSplitFiller(oldBlocks, 1, 1, h.newEnd(), newBlockCounts, newPairs, true);
+        } else if (diff.newLineCount() == 0) {
           newLineTints.put(0, diffColors.filler());
+          pairRow(1, 1, oldBlockCounts, newBlockCounts, oldPairs, newPairs, oldBlocks, newBlocks);
+          addSplitFiller(newBlocks, 1, 1, h.oldEnd(), oldBlockCounts, oldPairs, false);
         } else {
-          newBlocks.add(El.Block.insert(h.newEnd()).lines(oldCount - newCount));
+          int shared = Math.min(oldCount, newCount);
+          pairMatchedRows(
+              h.oldStart(),
+              h.newStart(),
+              shared,
+              oldBlockCounts,
+              newBlockCounts,
+              oldPairs,
+              newPairs,
+              oldBlocks,
+              newBlocks);
+          if (newCount > oldCount) {
+            addSplitFiller(
+                oldBlocks,
+                h.oldEnd(),
+                h.newStart() + shared,
+                h.newEnd(),
+                newBlockCounts,
+                newPairs,
+                true);
+          } else if (oldCount > newCount) {
+            addSplitFiller(
+                newBlocks,
+                h.newEnd(),
+                h.oldStart() + shared,
+                h.oldEnd(),
+                oldBlockCounts,
+                oldPairs,
+                false);
+          }
         }
+        oldPos = h.oldEnd();
+        newPos = h.newEnd();
       }
+      pairMatchedRows(
+          oldPos,
+          newPos,
+          diff.oldLineCount() - oldPos,
+          oldBlockCounts,
+          newBlockCounts,
+          oldPairs,
+          newPairs,
+          oldBlocks,
+          newBlocks);
     }
 
     state.oldEditor.extraBlocks(new CodeEditor.State.ExtraBlocks(
         oldBlocks,
         block -> {
           Region region = oldCollapsedMap.get(block);
-          return region != null ? collapsedRow(theme, texts, state, region) : fillerBlock(theme);
+          if (region != null) {
+            return collapsedRow(theme, texts, state, region);
+          }
+          return block.pair() != null ? spacerBlock(block.pair()) : fillerBlock(theme);
         },
         block -> {
           Region region = oldCollapsedMap.get(block);
           if (region != null) {
-            state.expand(region.newFrom());
+            state.expand(region);
           }
         },
         block -> {
           Region region = oldCollapsedMap.get(block);
           return region != null ? collapsedGutter(theme, texts, state, region) : null;
-        }));
+        },
+        oldPairs.isEmpty()
+            ? null
+            : (insertLine, ordinal) -> oldPairs.get(new BlockSlot(insertLine, ordinal))));
     state.newEditor.extraBlocks(new CodeEditor.State.ExtraBlocks(
         newBlocks,
         block -> {
           Region region = newCollapsedMap.get(block);
-          return region != null ? collapsedRow(theme, texts, state, region) : fillerBlock(theme);
+          if (region != null) {
+            return collapsedRow(theme, texts, state, region);
+          }
+          return block.pair() != null ? spacerBlock(block.pair()) : fillerBlock(theme);
         },
         block -> {
           Region region = newCollapsedMap.get(block);
           if (region != null) {
-            state.expand(region.newFrom());
+            state.expand(region);
           }
         },
         block -> {
           Region region = newCollapsedMap.get(block);
           return region != null ? collapsedGutter(theme, texts, state, region) : null;
-        }));
+        },
+        newPairs.isEmpty()
+            ? null
+            : (insertLine, ordinal) -> newPairs.get(new BlockSlot(insertLine, ordinal))));
 
     // Couple vertical & horizontal scrolling by hunk anchors.
     state.oldScroll.scrollWith(state.newScroll, scrollAnchors(diff));
 
-    El left = CodeEditor.codeEditor(app, oldText, state.oldEditor, highlighter, null)
-        .key("old")
-        .label(texts.original())
-        .radius(0)
-        .border(0, 0, 0, 0, 0)
-        .shadow()
-        .whenFocused(null)
-        .grow(1)
-        .w(0)
-        .hFull()
-        .scrollState(state.oldScroll)
-        .alsoDecorate((line, start, text, out) -> {
-          Integer bg = oldLineTints.get(line);
-          if (bg != null) {
-            out.lineBackground(bg);
-          }
-          List<Diff.Span> spans = oldWordSpans.get(line);
-          if (spans != null) {
-            for (Diff.Span s : spans) {
-              out.background(s.from(), s.to(), diffColors.modifiedWord());
-            }
-          }
-        })
+    El left = tinted(
+            CodeEditor.codeEditor(app, oldText, state.oldEditor, highlighter, null)
+                .key("old")
+                .label(texts.original())
+                .radius(0)
+                .border(0, 0, 0, 0, 0)
+                .shadow()
+                .whenFocused(null)
+                .grow(1)
+                .w(0)
+                .hFull()
+                .scrollState(state.oldScroll),
+            oldLineTints,
+            oldWordSpans,
+            diffColors.modifiedWord())
         .onKeyFirst(k -> diffKey(app, state, k));
 
-    El right = CodeEditor.codeEditor(app, newText, state.newEditor, highlighter, null)
-        .key("new")
-        .label(texts.modified())
-        .radius(0)
-        .border(0, 0, 0, 0, 0)
-        .shadow()
-        .whenFocused(null)
-        .grow(1)
-        .w(0)
-        .hFull()
-        .scrollState(state.newScroll)
-        .alsoDecorate((line, start, text, out) -> {
-          Integer bg = newLineTints.get(line);
-          if (bg != null) {
-            out.lineBackground(bg);
-          }
-          List<Diff.Span> spans = newWordSpans.get(line);
-          if (spans != null) {
-            for (Diff.Span s : spans) {
-              out.background(s.from(), s.to(), diffColors.modifiedWord());
-            }
-          }
-        })
+    El right = tinted(
+            CodeEditor.codeEditor(app, newText, state.newEditor, highlighter, null)
+                .key("new")
+                .label(texts.modified())
+                .radius(0)
+                .border(0, 0, 0, 0, 0)
+                .shadow()
+                .whenFocused(null)
+                .grow(1)
+                .w(0)
+                .hFull()
+                .scrollState(state.newScroll),
+            newLineTints,
+            newWordSpans,
+            diffColors.modifiedWord())
         .onKeyFirst(k -> diffKey(app, state, k));
 
     float stroke = theme.size().stroke();
@@ -453,6 +644,33 @@ public final class DiffView {
         .child(left)
         .child(El.el().w(stroke).hFull().shrink(0).fill(theme.border().divider()))
         .child(right);
+  }
+
+  /**
+   * Tints a side's changed lines under the editor's own marks, so a noted line keeps its tint,
+   * and its changed words over them.
+   */
+  private static El tinted(
+      El editor,
+      Map<Integer, Integer> lineTints,
+      Map<Integer, List<Diff.Span>> wordSpans,
+      int wordColor) {
+    Decorator own = editor.decorator();
+    return editor.decorate((line, start, text, out) -> {
+      Integer bg = lineTints.get(line);
+      if (bg != null) {
+        out.lineBackground(bg);
+      }
+      if (own != null) {
+        own.line(line, start, text, out);
+      }
+      List<Diff.Span> spans = wordSpans.get(line);
+      if (spans != null) {
+        for (Diff.Span span : spans) {
+          out.background(span.from(), span.to(), wordColor);
+        }
+      }
+    });
   }
 
   /**
@@ -480,6 +698,10 @@ public final class DiffView {
     state.sideBySide = false;
     state.app = app;
     state.oldScroll.scrollWith(null, List.of());
+
+    List<CodeEditor.Mark> oldMarks = state.oldEditor.layerMarks(state.oldDisplayed, DIFF_LAYER);
+    List<CodeEditor.Mark> newMarks = state.newEditor.layerMarks(state.newDisplayed, DIFF_LAYER);
+    state.ensureRegions(oldMarks, newMarks);
 
     Diff diff = state.diff;
     List<Region> collapsed = activeCollapsed(state);
@@ -568,7 +790,7 @@ public final class DiffView {
         block -> {
           Region region = collapsedMap.get(block);
           if (region != null) {
-            state.expand(region.newFrom());
+            state.expand(region);
           }
         },
         block -> {
@@ -580,7 +802,8 @@ public final class DiffView {
           return chunk != null
               ? deletedLinesGutter(theme, chunk.from(), chunk.to(), oldColW, newColW)
               : null;
-        }));
+        },
+        null));
 
     El editor = CodeEditor.codeEditor(app, newText, state.newEditor, highlighter, null)
         .key("diff-unified")
@@ -619,9 +842,9 @@ public final class DiffView {
   private static void setDiffMarkup(
       CodeEditor.State editorState, String displayed, List<CodeEditor.Change> changes) {
     if (changes.isEmpty()) {
-      editorState.noMarkup("diff");
+      editorState.noMarkup(DIFF_LAYER);
     } else {
-      editorState.markup("diff", displayed, changes);
+      editorState.markup(DIFF_LAYER, displayed, changes);
     }
   }
 
@@ -659,6 +882,15 @@ public final class DiffView {
    * around every hunk and skipping runs shorter than {@link #MIN_COLLAPSE}.
    */
   static List<Region> collapsibleRegions(Diff diff) {
+    return collapsibleRegions(diff, Set.of(), Set.of());
+  }
+
+  /**
+   * Computes collapsible unchanged regions from {@code diff}, treating lines in {@code oldMarked}
+   * or {@code newMarked} like changed lines so marks and review threads stay visible with context.
+   */
+  static List<Region> collapsibleRegions(
+      Diff diff, Set<Integer> oldMarked, Set<Integer> newMarked) {
     List<Diff.Hunk> hunks = diff.hunks();
     if (hunks.isEmpty()) {
       return List.of();
@@ -670,12 +902,67 @@ public final class DiffView {
       Diff.Hunk h = hunks.get(i);
       int topContext = i == 0 ? 0 : CONTEXT_LINES;
       int bottomContext = CONTEXT_LINES;
-      addRegion(out, oldPos, h.oldStart(), newPos, h.newStart(), topContext, bottomContext);
+      addUnchangedRegions(
+          out,
+          oldPos,
+          h.oldStart(),
+          newPos,
+          h.newStart(),
+          topContext,
+          bottomContext,
+          oldMarked,
+          newMarked);
       oldPos = h.oldEnd();
       newPos = h.newEnd();
     }
-    addRegion(out, oldPos, diff.oldLineCount(), newPos, diff.newLineCount(), CONTEXT_LINES, 0);
+    addUnchangedRegions(
+        out,
+        oldPos,
+        diff.oldLineCount(),
+        newPos,
+        diff.newLineCount(),
+        CONTEXT_LINES,
+        0,
+        oldMarked,
+        newMarked);
     return List.copyOf(out);
+  }
+
+  private static void addUnchangedRegions(
+      List<Region> out,
+      int oldFrom,
+      int oldTo,
+      int newFrom,
+      int newTo,
+      int topContext,
+      int bottomContext,
+      Set<Integer> oldMarked,
+      Set<Integer> newMarked) {
+    if (oldMarked.isEmpty() && newMarked.isEmpty()) {
+      addRegion(out, oldFrom, oldTo, newFrom, newTo, topContext, bottomContext);
+      return;
+    }
+    int count = newTo - newFrom;
+    if (count <= 0 || oldTo - oldFrom != count) {
+      return;
+    }
+    int segStart = 0;
+    int segTop = topContext;
+    for (int i = 0; i < count; i++) {
+      if (oldMarked.contains(oldFrom + i) || newMarked.contains(newFrom + i)) {
+        addRegion(
+            out,
+            oldFrom + segStart,
+            oldFrom + i,
+            newFrom + segStart,
+            newFrom + i,
+            segTop,
+            CONTEXT_LINES);
+        segStart = i + 1;
+        segTop = CONTEXT_LINES;
+      }
+    }
+    addRegion(out, oldFrom + segStart, oldTo, newFrom + segStart, newTo, segTop, bottomContext);
   }
 
   private static void addRegion(
@@ -695,13 +982,181 @@ public final class DiffView {
     }
   }
 
+  /** 0-based line indices touched by any mark in {@code marks}. */
+  private static Set<Integer> markedLines(
+      List<CodeEditor.Mark> marks, String displayed, int[] starts) {
+    if (marks.isEmpty() || starts.length <= 1) {
+      return Set.of();
+    }
+    int len = displayed.length();
+    Set<Integer> lines = new HashSet<>();
+    for (CodeEditor.Mark mark : marks) {
+      switch (mark) {
+        case CodeEditor.Diagnostic d -> addRangeLines(lines, starts, len, d.from(), d.to());
+        case CodeEditor.Highlight h -> addRangeLines(lines, starts, len, h.from(), h.to());
+        case CodeEditor.Change c -> addRangeLines(lines, starts, len, c.from(), c.to());
+        case CodeEditor.Marker m -> addPointLine(lines, starts, len, m.at());
+        case CodeEditor.InlayHint h -> addPointLine(lines, starts, len, h.at());
+        case CodeEditor.Block b -> addPointLine(lines, starts, len, b.at());
+      }
+    }
+    return lines;
+  }
+
+  private static void addPointLine(Set<Integer> lines, int[] starts, int len, int at) {
+    if (at >= 0 && at <= len) {
+      lines.add(lineOf(starts, at));
+    }
+  }
+
+  private static void addRangeLines(Set<Integer> lines, int[] starts, int len, int from, int to) {
+    if (from == to) {
+      addPointLine(lines, starts, len, from);
+      return;
+    }
+    if (from > to || from > len || to <= 0) {
+      return;
+    }
+    int first = lineOf(starts, Math.max(0, from));
+    int last = lineOf(starts, Math.min(len, to - 1));
+    for (int line = first; line <= last; line++) {
+      lines.add(line);
+    }
+  }
+
+  /** Number of {@link CodeEditor.Block} marks at each 1-based insert line ({@code line + 1}). */
+  private static Map<Integer, Integer> blockCounts(
+      List<CodeEditor.Mark> marks, String displayed, int[] starts) {
+    if (marks.isEmpty()) {
+      return Map.of();
+    }
+    int len = displayed.length();
+    Map<Integer, Integer> counts = null;
+    for (CodeEditor.Mark mark : marks) {
+      if (mark instanceof CodeEditor.Block b && b.at() <= len) {
+        int insertLine = lineOf(starts, b.at()) + 1;
+        if (counts == null) {
+          counts = new HashMap<>();
+        }
+        counts.merge(insertLine, 1, Integer::sum);
+      }
+    }
+    return counts == null ? Map.of() : counts;
+  }
+
+  /** 0-based line index of {@code offset} in {@code [0, displayed.length()]}. */
+  private static int lineOf(int[] starts, int offset) {
+    if (starts.length <= 1) {
+      return 0;
+    }
+    int idx = Arrays.binarySearch(starts, offset);
+    return idx >= 0 ? Math.min(idx, starts.length - 2) : -idx - 2;
+  }
+
+  /**
+   * Pairs mark blocks and spacers across {@code count} 1-to-1 matched lines starting at {@code
+   * oldFrom} and {@code newFrom}.
+   */
+  private static void pairMatchedRows(
+      int oldFrom,
+      int newFrom,
+      int count,
+      Map<Integer, Integer> oldBlockCounts,
+      Map<Integer, Integer> newBlockCounts,
+      Map<BlockSlot, PairKey> oldPairs,
+      Map<BlockSlot, PairKey> newPairs,
+      List<El.Block> oldBlocks,
+      List<El.Block> newBlocks) {
+    if (oldBlockCounts.isEmpty() && newBlockCounts.isEmpty()) {
+      return;
+    }
+    for (int i = 0; i < count; i++) {
+      pairRow(
+          oldFrom + i + 1,
+          newFrom + i + 1,
+          oldBlockCounts,
+          newBlockCounts,
+          oldPairs,
+          newPairs,
+          oldBlocks,
+          newBlocks);
+    }
+  }
+
+  /** Pairs mark blocks at one matched row, adding empty spacers on whichever side has fewer. */
+  private static void pairRow(
+      int oldInsert,
+      int newInsert,
+      Map<Integer, Integer> oldBlockCounts,
+      Map<Integer, Integer> newBlockCounts,
+      Map<BlockSlot, PairKey> oldPairs,
+      Map<BlockSlot, PairKey> newPairs,
+      List<El.Block> oldBlocks,
+      List<El.Block> newBlocks) {
+    int oCount = oldBlockCounts.getOrDefault(oldInsert, 0);
+    int nCount = newBlockCounts.getOrDefault(newInsert, 0);
+    if (oCount == 0 && nCount == 0) {
+      return;
+    }
+    int total = Math.max(oCount, nCount);
+    for (int ord = 0; ord < total; ord++) {
+      PairKey key = new PairKey(oldInsert, newInsert, ord);
+      if (ord < oCount) {
+        oldPairs.put(new BlockSlot(oldInsert, ord), key);
+      } else {
+        oldBlocks.add(El.Block.insert(oldInsert).paired(key));
+      }
+      if (ord < nCount) {
+        newPairs.put(new BlockSlot(newInsert, ord), key);
+      } else {
+        newBlocks.add(El.Block.insert(newInsert).paired(key));
+      }
+    }
+  }
+
+  /**
+   * Adds filler blocks at {@code fillerInsert} on the shorter side for lines {@code [fromLine,
+   * toLine)} of the longer side, splitting the filler around empty paired spacers wherever the
+   * longer side has {@link CodeEditor.Block} marks.
+   */
+  private static void addSplitFiller(
+      List<El.Block> fillerBlocks,
+      int fillerInsert,
+      int fromLine,
+      int toLine,
+      Map<Integer, Integer> otherBlockCounts,
+      Map<BlockSlot, PairKey> otherPairs,
+      boolean fillerOnOld) {
+    int run = 0;
+    for (int line = fromLine; line < toLine; line++) {
+      run++;
+      int otherInsert = line + 1;
+      int count = otherBlockCounts.getOrDefault(otherInsert, 0);
+      if (count > 0) {
+        fillerBlocks.add(El.Block.insert(fillerInsert).lines(run));
+        run = 0;
+        for (int ord = 0; ord < count; ord++) {
+          PairKey key = fillerOnOld
+              ? new PairKey(fillerInsert, otherInsert, ord)
+              : new PairKey(otherInsert, fillerInsert, ord);
+          otherPairs.put(new BlockSlot(otherInsert, ord), key);
+          fillerBlocks.add(El.Block.insert(fillerInsert).paired(key));
+        }
+      }
+    }
+    if (run > 0) {
+      fillerBlocks.add(El.Block.insert(fillerInsert).lines(run));
+    }
+  }
+
   private static List<Region> activeCollapsed(State state) {
     if (state.regions.isEmpty()) {
       return List.of();
     }
     List<Region> active = new ArrayList<>();
     for (Region r : state.regions) {
-      if (!state.expanded.contains(r.newFrom())) {
+      if (state.expanded.stream()
+          .noneMatch(e -> e.newFrom() < r.newTo() && r.newFrom() < e.newTo())) {
         active.add(r);
       }
     }
@@ -793,6 +1248,14 @@ public final class DiffView {
     return El.el().wFull().hFull().fill(theme.diff().filler());
   }
 
+  /** Empty paired spacer keeping the opposite side aligned with a review block. */
+  private static El spacerBlock(Object pair) {
+    PairKey key = (PairKey) pair;
+    String name = "spacer-" + key.oldInsert() + "-" + key.newInsert()
+        + (key.ordinal() == 0 ? "" : "-" + key.ordinal());
+    return El.el().key(name);
+  }
+
   /** Clickable 1-line bar replacing a collapsed unchanged region. */
   private static El collapsedRow(Theme theme, Texts texts, State state, Region region) {
     String label = texts.unchangedLines(region.count());
@@ -811,7 +1274,7 @@ public final class DiffView {
         .border(stroke, 0, stroke, 0, theme.border().subtle())
         .cursor(Cursor.POINTER)
         .keepFocus()
-        .onPress(() -> state.expand(region.newFrom()))
+        .onPress(() -> state.expand(region))
         .whenHovered(e -> e.fill(hover))
         .child(Icon.icon(
             Symbol.CHEVRON_DOWN, Icon.Variant.MUTED, theme.type().small().size()))
@@ -834,7 +1297,7 @@ public final class DiffView {
         .border(stroke, 0, stroke, 0, theme.border().subtle())
         .cursor(Cursor.POINTER)
         .keepFocus()
-        .onPress(() -> state.expand(region.newFrom()))
+        .onPress(() -> state.expand(region))
         .whenHovered(e -> e.fill(hover))
         .child(Icon.icon(
             Symbol.MORE_HORIZONTAL, Icon.Variant.MUTED, theme.type().small().size()));

@@ -135,6 +135,7 @@ class DocsExamplesTest {
       Map.entry("code-editor-blocks", List.of("view")),
       Map.entry("highlighter", List.of("view")),
       Map.entry("diff-view-side-by-side", List.of("view")),
+      Map.entry("diff-view-review", List.of("view")),
       Map.entry("diff-view-unified", List.of("view")),
       Map.entry("markdown-fragment", List.of("view")),
       Map.entry("markdown-tasks", List.of("view", "toggled")),
@@ -290,6 +291,7 @@ class DocsExamplesTest {
     editors(all, "code-editor-inlay-hints", Editors::inlayHints, 580, 152);
     editors(all, "code-editor-blocks", Editors::blocks, 540, 202);
     editors(all, "diff-view-side-by-side", Editors::diffSideBySide, 700, 248);
+    editors(all, "diff-view-review", Editors::diffReview, 800, 340);
     editors(all, "diff-view-unified", Editors::diffUnified, 540, 284);
     editors(all, "find", Editors::find, 440, 220);
     all.put(
