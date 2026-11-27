@@ -812,12 +812,7 @@ class CodeEditorMarkupTest {
     // distinct and appear before line 4's CodeVision row.
     Script.run("size 520 360 scale 2\nframe\nsnap initial", app, out);
     String initial = Files.readString(out.resolve("initial.tree.txt"));
-    assertTrue(initial.contains("#doc-0 "), initial);
-    assertTrue(initial.contains("#doc-note "), initial);
-    assertTrue(initial.contains("#review-card "), initial);
-    assertTrue(initial.contains("#second-note "), initial);
-    assertTrue(initial.contains("#vision-4 "), initial);
-    assertTrue(initial.contains("#tail-note "), initial);
+    assertTrue(initial.contains("#tail-note "), initial); // blockY fails on the others' absence
     int docY = blockY(initial, "doc-0");
     int docNoteY = blockY(initial, "doc-note");
     int cardY = blockY(initial, "review-card");
