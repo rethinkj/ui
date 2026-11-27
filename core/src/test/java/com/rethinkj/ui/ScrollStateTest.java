@@ -14,6 +14,7 @@ import com.rethinkj.ui.text.TextLibraries;
 import com.rethinkj.ui.text.TextRendering;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -566,6 +567,52 @@ class ScrollStateTest {
     right = app.tree().children().get(1);
     assertEquals(h1, blockChild(left, "block-2").height(), 0.5f);
     assertEquals(0, blockChild(right, "block-2").height(), 0.5f);
+  }
+
+  @Test
+  void pairedBlocksKeepCoupledViewsAtTheirEnd() {
+    TextLibraries.assumeLoaded();
+    final class Model {
+      final ScrollState left = new ScrollState();
+      final ScrollState right = new ScrollState();
+      float thread = 20;
+    }
+    Model model = new Model();
+    model.left.scrollWith(model.right, List.of());
+    App<Model> app = new App<>(
+        model,
+        m -> El.row()
+            .wFull()
+            .hFull()
+            .children(
+                pane(m.left, b -> el().h(m.thread)), // a thread
+                pane(m.right, b -> el()))); // its spacer
+    app.textRendering(TextRendering.LINUX);
+    app.resize(420, 260, 1);
+    app.frame();
+    model.left.scrollToEnd();
+    app.invalidate();
+    app.frame();
+    double end = app.tree().children().get(0).scrollY();
+    assertEquals(end, app.tree().children().get(1).scrollY());
+
+    model.thread = 80;
+    app.invalidate();
+    app.frame();
+    assertEquals(end + 60, app.tree().children().get(0).scrollY());
+    assertEquals(end + 60, app.tree().children().get(1).scrollY());
+  }
+
+  private static El pane(ScrollState scroll, Function<El.Block, El> block) {
+    return El.text(Coupled.numberedLines(30))
+        .editable(v -> {})
+        .multiline()
+        .font(Font.mono())
+        .fontSize(14)
+        .w(180)
+        .lines(8)
+        .scrollState(scroll)
+        .blocks(List.of(El.Block.insert(28).paired("thread")), block, null);
   }
 
   private static El blockChild(El parent, String key) {

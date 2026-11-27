@@ -4768,14 +4768,14 @@ public final class App<S> {
         partnerEl != null && partnerEl.text() != null && partnerEl.text().multiline()
             ? partnerEl.text().ownPairedBlockHeights()
             : Map.of();
+    boolean atBottom = el.scrollY() > 0 && !el.canScroll(false, 1); // stays there, as in Editor
     float shift = text.syncPairedBlockHeights(partnerHeights);
     if (Float.isNaN(shift)) {
       return false;
     }
-    if (shift != 0) {
-      el.measureScroll();
-      el.setScroll(el.scrollX(), el.scrollY() + shift / text.scale());
-    }
+    el.measureScroll();
+    el.setScroll(
+        el.scrollX(), atBottom ? Double.POSITIVE_INFINITY : el.scrollY() + shift / text.scale());
     return true;
   }
 
