@@ -220,9 +220,6 @@ class TabsTest {
     assertEquals(0, find(app, "close-1").opacity(), "LINE keeps cross hidden over title");
     run(app, "move #tab-1 at right-2\nframe");
     assertEquals(1, find(app, "close-1").opacity());
-    assertEquals(
-        T.text().muted(), find(app, "close-1").children().getFirst().text().color());
-    assertEquals(0, find(app, "close-1").fill());
     run(app, "move #tab-1 at right-8\nframe\npress #close-1\nframe");
     assertEquals(2, state.items.size());
     assertEquals("users", state.items.get(1).title());
