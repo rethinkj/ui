@@ -5,7 +5,7 @@ description: Two versions of a text side by side or unified, with changed lines 
 
 `DiffView` shows how two versions of a text differ, in the code editor's look. The app supplies both strings, such as a file and its version in the app's repository; the framework holds no version control. It lives in `rethinkj-ui-editor`, package `com.rethinkj.ui.editor`, beside [CodeEditor](/docs/components/code-editor).
 
-Javadoc: [`DiffView`](/api/com/rethinkj/ui/editor/DiffView.html), [`Diff`](/api/com/rethinkj/ui/editor/Diff.html).
+Javadoc: [`DiffView`](/api/com/rethinkj/ui/editor/DiffView.html), [`DiffView.State`](/api/com/rethinkj/ui/editor/DiffView.State.html), [`DiffView.Side`](/api/com/rethinkj/ui/editor/DiffView.Side.html), [`DiffView.Lines`](/api/com/rethinkj/ui/editor/DiffView.Lines.html), [`Diff`](/api/com/rethinkj/ui/editor/Diff.html).
 
 - Added lines are tinted green and removed lines red. Side by side, lines that replace others are tinted blue on both sides; unified, they show as removed lines above added ones. The changed words inside them are stronger. The gutter's change lane and the scrollbar mark each change.
 - Unchanged lines more than three away from a change collapse into a row that expands on a press.
@@ -30,4 +30,13 @@ One editor with the new text. Removed lines show above the lines that replace th
 ```java snippet="diff-view-unified"
 ```
 
-Keep one `DiffView.State` per view in the app's state. It holds which change is current and which unchanged lines are expanded, and it can be passed to either layout.
+## Review comments
+
+`DiffView.State.markup(side, layer, text, marks)` puts the marks of a [CodeEditor](/docs/components/code-editor) layer on the old or the new side, and `noMarkup(side, layer)` clears them; the layer name `"diff"` is the view's own. A `CodeEditor.Block` on one side gets empty space of the same height on the other, so the lines below stay beside each other while a thread grows. Lines with marks never collapse. `lineAction(symbol, label, onPress)` offers an action in the gutter of both sides and reports the side and the lines. Unified shows the new side only: its marks and its action.
+
+<Shot src="examples/docs/diff-view-review/view-{theme}" alt="A side-by-side SQL diff with a hovered plus button in the left gutter, a violet noted range on the right, a framed review card below it, and an empty spacer on the left keeping the following lines aligned" />
+
+```java snippet="diff-view-review"
+```
+
+Keep one `DiffView.State` per view in the app's state. It holds which change is current, which unchanged lines are expanded, and the app's markup layers and line action, and it can be passed to either layout.

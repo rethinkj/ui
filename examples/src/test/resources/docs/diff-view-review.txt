@@ -1,0 +1,6 @@
+# Side-by-side diff with a review card, a noted range, and a hovered gutter line action.
+size 800 340 scale 2
+frame
+move 41,105
+frame
+snap view

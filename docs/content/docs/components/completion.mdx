@@ -26,6 +26,15 @@ Example headless script:
 ```text snippet="completion-script"
 ```
 
+## Documentation panel
+
+Call `state.completion.documentation(name, provider)` to show Markdown documentation for the highlighted entry beside the list. The provider runs on a background thread (`App.background`) after the theme's tooltip delay; moving the highlight or closing the list cancels pending work and hides the panel. Returning `null` shows nothing, and passing a `null` provider disables the panel.
+
+<Shot src="examples/docs/completion-documentation/shown-{theme}" alt="A SQL editor with the completion popup open and the documentation panel for the highlighted orders table beside it" />
+
+```java snippet="completion-documentation"
+```
+
 ## Trigger behavior
 
 - Typing letters, digits, `_`, or characters from the highlighter's `wordCharacters()` (such as `$`) opens the popup automatically once the word reaches 2 characters.
@@ -48,4 +57,9 @@ Example headless script:
 Overlay at the caret with `role=listbox` `label="Completions"`. Items are `role=option` with key `#option-<index>` (`selected` on the highlighted item), followed by `#loading` while loading:
 
 ```text file="examples/src/test/resources/golden/docs/code-editor/completions.tree.txt" start="overlay" count="3"
+```
+
+The documentation panel is an overlay beside `#completions`, with key `#documentation`, `role=dialog` and `label="Documentation"`:
+
+```text file="examples/src/test/resources/golden/docs/completion-documentation/shown.tree.txt" start="overlay right" count="2"
 ```

@@ -1,20 +1,25 @@
 package com.rethinkj.ui.editor;
 
 import static com.rethinkj.ui.El.col;
+import static com.rethinkj.ui.El.el;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.El;
 import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.ScrollState;
 import com.rethinkj.ui.Spans;
+import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -378,5 +383,294 @@ class DiffViewTest {
     // A new file: the empty side's one line, under its filler, spans all lines of the other.
     assertTrue(
         DiffView.scrollAnchors(Diff.lines("", "a\nb\nc")).contains(new ScrollState.Anchor(1, 3)));
+  }
+
+  @Test
+  void sideBySideReviewBlocksStayAlignedWhenGrowingBothSidesAndInsideFillers() {
+    final class ReviewModel {
+      final DiffView.State diff = new DiffView.State();
+      App<ReviewModel> app;
+      float threadHeight = 40;
+      float oldPairedHeight = 30;
+      float newPairedHeight = 60;
+      float addedThreadHeight = 50;
+    }
+
+    String oldText = """
+        line 0
+        line 1
+        line 2
+        line 3
+        line 4
+        line 5""";
+    String newText = """
+        line 0
+        line 1 changed
+        line 2
+        line 3
+        added a
+        added b
+        added c
+        line 4
+        line 5""";
+
+    ReviewModel model = new ReviewModel();
+    // 1. Thread on NEW line 1 (paired with OLD line 1) -> empty spacer on OLD.
+    // 2. Blocks on BOTH sides on line 2 -> pair with each other (no spacer).
+    // 3. Thread on NEW line 5 ("added b", inside added hunk past OLD's lines) -> splits OLD filler.
+    model.diff.markup(
+        DiffView.Side.NEW,
+        "review",
+        newText,
+        List.of(
+            new CodeEditor.Block(
+                newText.indexOf("line 1 changed"),
+                () -> el().key("new-thread").h(model.threadHeight)),
+            new CodeEditor.Block(
+                newText.indexOf("line 2"), () -> el().key("new-shared").h(model.newPairedHeight)),
+            new CodeEditor.Block(
+                newText.indexOf("added b"),
+                () -> el().key("added-thread").h(model.addedThreadHeight))));
+    model.diff.markup(
+        DiffView.Side.OLD,
+        "review",
+        oldText,
+        List.of(new CodeEditor.Block(
+            oldText.indexOf("line 2"), () -> el().key("old-shared").h(model.oldPairedHeight))));
+
+    App<ReviewModel> app = new App<>(
+            model,
+            s -> col()
+                .wFull()
+                .hFull()
+                .child(DiffView.sideBySide(s.app, oldText, newText, s.diff, null)
+                    .wFull()
+                    .grow(1)))
+        .provide(Theme.CURRENT, s -> Theme.DARK);
+    model.app = app;
+    app.textRendering(TextRendering.LINUX);
+    app.resize(640, 420, 1);
+    app.frame();
+
+    El oldPane = findByKey(app.tree(), "old");
+    El newPane = findByKey(app.tree(), "new");
+    assertEquals(
+        40, findByKey(oldPane, "spacer-2-2").height(), 0.5f, "spacer matches thread initially");
+    assertEquals(
+        elementTop(oldPane, "line-2"),
+        elementTop(newPane, "line-2"),
+        0.5f,
+        "line after thread aligns on both sides");
+    // Blocks on both sides at line 2 pair with each other (taller side wins, no spacer).
+    assertEquals(60, findByKey(oldPane, "old-shared").height(), 0.5f);
+    assertEquals(60, findByKey(newPane, "new-shared").height(), 0.5f);
+    assertEquals(null, findByKeyOrNull(oldPane, "spacer-3-3"));
+    assertEquals(null, findByKeyOrNull(newPane, "spacer-3-3"));
+    // Spacer inside split filler aligns added lines and trailing unchanged line 4 / line 7.
+    El fillerSpacer = findByKey(oldPane, "spacer-4-6");
+    assertEquals(50, fillerSpacer.height(), 0.5f, "spacer inside filler matches added thread");
+    assertEquals(
+        findByKey(newPane, "added-thread").y(),
+        fillerSpacer.y(),
+        0.5f,
+        "spacer sits at the exact row of the thread inside the filler");
+    assertEquals(
+        elementTop(oldPane, "line-4"),
+        elementTop(newPane, "line-7"),
+        0.5f,
+        "line after added hunk stays aligned");
+
+    // Grow the thread on NEW: spacer grows to match and lines below stay aligned in the same frame.
+    model.threadHeight = 110;
+    model.oldPairedHeight = 95;
+    model.addedThreadHeight = 85;
+    app.invalidate();
+    app.frame();
+
+    oldPane = findByKey(app.tree(), "old");
+    newPane = findByKey(app.tree(), "new");
+    assertEquals(
+        110, findByKey(oldPane, "spacer-2-2").height(), 0.5f, "spacer grew with the thread");
+    assertEquals(
+        elementTop(oldPane, "line-2"),
+        elementTop(newPane, "line-2"),
+        0.5f,
+        "line after grown thread stays aligned");
+    assertEquals(95, findByKey(oldPane, "old-shared").height(), 0.5f);
+    assertEquals(95, findByKey(newPane, "new-shared").height(), 0.5f);
+    assertEquals(85, findByKey(oldPane, "spacer-4-6").height(), 0.5f);
+    assertEquals(
+        findByKey(newPane, "added-thread").y(),
+        findByKey(oldPane, "spacer-4-6").y(),
+        0.5f,
+        "spacer inside filler stays aligned after growth");
+    assertEquals(
+        elementTop(oldPane, "line-4"),
+        elementTop(newPane, "line-7"),
+        0.5f,
+        "lines below stay aligned after all threads grow");
+
+    // Scrolling through the thread inside the added lines keeps the spacer beside it.
+    model.addedThreadHeight = 400;
+    app.invalidate();
+    app.frame();
+    int compared = 0;
+    for (int step = 0; step < 12; step++) {
+      app.wheel(480, 200, 0, 30);
+      app.frame();
+      El thread = findByKeyOrNull(findByKey(app.tree(), "new"), "added-thread");
+      if (thread != null) {
+        El spacer = findByKey(findByKey(app.tree(), "old"), "spacer-4-6");
+        assertEquals(thread.y(), spacer.y(), 0.5f, "spacer beside the thread, step " + step);
+        compared++;
+      }
+    }
+    assertTrue(compared > 2, "scrolled through the thread");
+  }
+
+  @Test
+  void markedLinesAreNotHiddenInCollapsedRegions() {
+    Model model = new Model();
+    // Line 1 ("package shop;") is inside the top 4-line collapsed region of OLD_TEXT / NEW_TEXT.
+    int pkgAt = OLD_TEXT.indexOf("package shop;");
+    App<Model> app = new App<>(
+            model,
+            s -> col()
+                .wFull()
+                .hFull()
+                .child(DiffView.sideBySide(s.app, OLD_TEXT, NEW_TEXT, s.diff, null)
+                    .wFull()
+                    .grow(1)))
+        .provide(Theme.CURRENT, s -> Theme.DARK);
+    model.app = app;
+    app.textRendering(TextRendering.LINUX);
+    app.resize(700, 380, 1);
+    app.frame();
+    assertTrue(app.tree().dump().contains("label=\"4 unchanged lines\""), "collapsed initially");
+
+    // Attaching a review block on an unchanged line prevents collapsing that region.
+    model.diff.markup(
+        DiffView.Side.OLD,
+        "review",
+        OLD_TEXT,
+        List.of(new CodeEditor.Block(pkgAt, () -> el().key("pkg-thread").h(24))));
+    app.invalidate();
+    app.frame();
+    String withMark = app.tree().dump();
+    assertFalse(withMark.contains("#unchanged-0"), "marked line is not collapsed: " + withMark);
+    assertTrue(
+        withMark.contains("#pkg-thread"), "thread on unchanged line is visible: " + withMark);
+    assertTrue(
+        withMark.contains("#spacer-2-2"), "paired spacer appears on opposite side: " + withMark);
+
+    // Clearing the layer lets the unchanged region collapse again.
+    model.diff.noMarkup(DiffView.Side.OLD, "review");
+    app.invalidate();
+    app.frame();
+    assertTrue(app.tree().dump().contains("label=\"4 unchanged lines\""), "collapses once cleared");
+  }
+
+  @Test
+  void lineActionReportsItsSide() {
+    DiffView.State state = new DiffView.State();
+
+    List<DiffView.Lines> pressed = new ArrayList<>();
+    state.lineAction(Symbol.ADD, "Add comment", pressed::add);
+
+    String oldText = "a\nb\nc\nd";
+    String newText = "a\nB\nc\nd";
+    Model model = new Model();
+    model.diff = state;
+    App<Model> app = new App<>(
+            model,
+            s -> col()
+                .wFull()
+                .hFull()
+                .child(DiffView.sideBySide(s.app, oldText, newText, s.diff, null)
+                    .wFull()
+                    .grow(1)))
+        .provide(Theme.CURRENT, s -> Theme.DARK);
+    model.app = app;
+    app.textRendering(TextRendering.LINUX);
+    app.resize(600, 200, 1);
+    app.frame();
+
+    // Press line 1 action button on OLD side.
+    El oldPane = findByKey(app.tree(), "old");
+    El oldAction = findByKey(oldPane, "action-line-1");
+    float[] oldCenter = absCenter(app.tree(), oldAction);
+    app.pointerMove(oldCenter[0], oldCenter[1]);
+    app.frame();
+    app.pointerDown(oldCenter[0], oldCenter[1]);
+    app.pointerUp(oldCenter[0], oldCenter[1]);
+    app.frame();
+
+    // Drag across lines 1..2 on NEW side's gutter.
+    El newPane = findByKey(app.tree(), "new");
+    El newAction1 = findByKey(newPane, "action-line-1");
+    El newLine2 = findByKey(newPane, "line-2");
+    float[] start = absCenter(app.tree(), newAction1);
+    float[] end = absCenter(app.tree(), newLine2);
+    app.pointerMove(start[0], start[1]);
+    app.frame();
+    app.pointerDown(start[0], start[1]);
+    app.pointerMove(start[0], end[1]);
+    app.frame();
+    app.pointerUp(start[0], end[1]);
+    app.frame();
+
+    assertEquals(
+        List.of(
+            new DiffView.Lines(DiffView.Side.OLD, 1, 1),
+            new DiffView.Lines(DiffView.Side.NEW, 1, 2)),
+        pressed);
+  }
+
+  private static El findByKey(El root, String key) {
+    El found = findByKeyOrNull(root, key);
+    if (found == null) {
+      throw new AssertionError("no element #" + key + " in\n" + root.dump());
+    }
+    return found;
+  }
+
+  private static El findByKeyOrNull(El root, String key) {
+    if (key.equals(root.key())) {
+      return root;
+    }
+    for (El child : root.children()) {
+      El found = findByKeyOrNull(child, key);
+      if (found != null) {
+        return found;
+      }
+    }
+    return null;
+  }
+
+  private static float elementTop(El pane, String key) {
+    return findByKey(pane, key).y();
+  }
+
+  private static float[] absCenter(El root, El target) {
+    float[] pos = absPos(root, target, 0, 0);
+    if (pos == null) {
+      throw new AssertionError("target not in tree");
+    }
+    return new float[] {pos[0] + target.width() / 2f, pos[1] + target.height() / 2f};
+  }
+
+  private static float[] absPos(El current, El target, float ox, float oy) {
+    float x = ox + current.x();
+    float y = oy + current.y();
+    if (current == target) {
+      return new float[] {x, y};
+    }
+    for (El child : current.children()) {
+      float[] found = absPos(child, target, x, y);
+      if (found != null) {
+        return found;
+      }
+    }
+    return null;
   }
 }

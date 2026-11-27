@@ -1,0 +1,33 @@
+el 0,0 680x190
+  text #query role=textbox label="Query" "SELECT id, total\nFROM or" 12,12 656x114 lines 1-2/2 focused caret 24 (2:8)
+    el #rail 13,13 56x112
+    el #gutter 13,17 55x96
+      el #line-0 13,17 55x16
+        el 19,25 12x0
+        text "1" 35,17 7x16
+        el 46,25 2x0
+        el 52,25 12x0
+      el #line-1 13,33 55x16
+        el 19,41 12x0
+        text "2" 35,33 7x16
+        el 46,41 2x0
+        el 52,41 12x0
+overlay bottom start gap 2 on #query role=textbox label="Query" 12,12 656x114
+  el #completions role=listbox label="Completions" 128,51 200x58 rows 0-1/2
+    el #option-0 role=option label="orders" 133,56 190x24 selected pos=1/2
+      el 133,56 190x24
+        el 141,60 16x16
+          text label="table" "\u{EBF4}" 141,60 16x16
+        text "orders" 165,60 102x16
+        text "table" 287,61 28x15
+    el #option-1 role=option label="order_items" 133,80 190x24 pos=2/2
+      el 133,80 190x24
+        el 141,84 16x16
+          text label="table" "\u{EBF4}" 141,84 16x16
+        text "order_items" 165,84 102x16
+        text "table" 287,85 28x15
+overlay right start gap 2 on #completions role=listbox label="Completions" 128,51 200x58
+  el #documentation role=dialog label="Documentation" 330,51 320x102
+    el 343,64 294x76
+      text role=paragraph "Table orders" 343,64 294x17 readonly lines 1-1/1
+      text role=paragraph "Customer orders placed in the store. Columns: id, customer_id, total, status." 343,89 294x51 readonly lines 1-1/1

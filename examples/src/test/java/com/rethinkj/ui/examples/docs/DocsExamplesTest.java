@@ -118,6 +118,7 @@ class DocsExamplesTest {
       Map.entry("theming", List.of("system")),
       Map.entry("customers", List.of("loaded", "invalid", "saved")),
       Map.entry("code-editor", List.of("completions")),
+      Map.entry("completion-documentation", List.of("shown")),
       Map.entry("code-editor-placeholder", List.of("view")),
       Map.entry("code-editor-excerpt", List.of("view")),
       Map.entry("code-editor-json", List.of("view")),
@@ -135,6 +136,7 @@ class DocsExamplesTest {
       Map.entry("code-editor-blocks", List.of("view")),
       Map.entry("highlighter", List.of("view")),
       Map.entry("diff-view-side-by-side", List.of("view")),
+      Map.entry("diff-view-review", List.of("view")),
       Map.entry("diff-view-unified", List.of("view")),
       Map.entry("markdown-fragment", List.of("view")),
       Map.entry("markdown-tasks", List.of("view", "toggled")),
@@ -274,6 +276,7 @@ class DocsExamplesTest {
             520,
             300));
     editors(all, "code-editor", Editors::codeEditor, 520, 260);
+    editors(all, "completion-documentation", Editors::completionDocumentation, 680, 190);
     editors(all, "code-editor-placeholder", Editors::placeholderAndReadOnly, 520, 180);
     editors(all, "code-editor-excerpt", Editors::excerpt, 520, 106);
     editors(all, "code-editor-json", Editors::json, 520, 200);
@@ -290,6 +293,7 @@ class DocsExamplesTest {
     editors(all, "code-editor-inlay-hints", Editors::inlayHints, 580, 152);
     editors(all, "code-editor-blocks", Editors::blocks, 540, 202);
     editors(all, "diff-view-side-by-side", Editors::diffSideBySide, 700, 248);
+    editors(all, "diff-view-review", Editors::diffReview, 800, 340);
     editors(all, "diff-view-unified", Editors::diffUnified, 540, 284);
     editors(all, "find", Editors::find, 440, 220);
     all.put(

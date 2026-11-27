@@ -1,0 +1,1 @@
+- `Completion.State.documentation(name, provider)` shows the documentation of the highlighted completion beside the list, loaded in the background after a short delay; `Markdown.documentation(document)` is the panel it shares with the code editor's quick documentation.

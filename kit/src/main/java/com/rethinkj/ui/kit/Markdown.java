@@ -551,6 +551,26 @@ public final class Markdown {
     return out;
   }
 
+  /**
+   * A documentation popover panel for {@code document}: a scrollable popup surface of width {@link
+   * Theme.Sizes#tooltip} with key {@code documentation}, {@code role=dialog} and {@link
+   * Texts#documentation} as its label, showing {@code document} as a {@link #fragment}. Callers add
+   * placement ({@link El#side}), focus behavior ({@link El#keepFocus}) and dismissal handlers.
+   */
+  public static El documentation(MarkdownDocument document) {
+    Objects.requireNonNull(document, "document");
+    Theme theme = Theme.CURRENT.get();
+    return Popup.frame(theme, col())
+        .key("documentation")
+        .role("dialog")
+        .label(Texts.CURRENT.get().documentation())
+        .w(theme.size().tooltip())
+        .padding(theme.space().l())
+        .scroll()
+        .scrollbars(theme.scrollbars())
+        .child(fragment(document, options()));
+  }
+
   private static float labelColumn(List<Section> sections) {
     float widest = 0;
     for (Section section : sections) {

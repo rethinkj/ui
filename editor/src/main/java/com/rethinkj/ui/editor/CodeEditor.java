@@ -604,7 +604,13 @@ public final class CodeEditor {
         List<El.Block> blocks,
         Function<El.Block, El> builder,
         Consumer<El.Block> reveal,
-        Function<El.Block, El> gutter) {}
+        Function<El.Block, El> gutter,
+        BlockPair pair) {}
+
+    @FunctionalInterface
+    interface BlockPair {
+      Object key(int insertLine, int ordinal);
+    }
 
     record OldNumbers(int maxLine, int newMaxLine, IntFunction<String> label) {}
 
@@ -1697,6 +1703,22 @@ public final class CodeEditor {
       return new Marks(
           diagnostics, current, allMarkers, highlights, usageHighlights, changes, hints, blocks);
     }
+
+    /** All marks of layers other than {@code skipLayer}, moved to {@code displayedText}. */
+    List<Mark> layerMarks(String displayedText, String skipLayer) {
+      if (layers.isEmpty()) {
+        return List.of();
+      }
+      long revision = field.revision(displayedText);
+      List<Mark> out = new ArrayList<>();
+      for (Map.Entry<String, Layer> entry : layers.entrySet()) {
+        if (skipLayer != null && skipLayer.equals(entry.getKey())) {
+          continue;
+        }
+        out.addAll(entry.getValue().marksFor(displayedText, revision, this));
+      }
+      return out;
+    }
   }
 
   /**
@@ -2100,6 +2122,8 @@ public final class CodeEditor {
     // instance using identity maps.
     Map<El.Block, Block> markMap =
         markBlocks.isEmpty() ? Map.of() : new IdentityHashMap<>(markBlocks.size());
+    State.BlockPair blockPair = extra == null ? null : extra.pair();
+    Map<Integer, Integer> markOrdinals = blockPair == null ? null : new HashMap<>();
     if (!markBlocks.isEmpty()) {
       String text = state.builtText;
       int len = text.length();
@@ -2119,6 +2143,13 @@ public final class CodeEditor {
           insertLine++;
         }
         El.Block block = El.Block.insert(insertLine).pinned(true);
+        if (blockPair != null) {
+          int ordinal = markOrdinals.merge(insertLine, 1, Integer::sum) - 1;
+          Object pairKey = blockPair.key(insertLine, ordinal);
+          if (pairKey != null) {
+            block = block.paired(pairKey);
+          }
+        }
         blocks.add(block);
         markMap.put(block, markBlock);
       }
@@ -3840,7 +3871,7 @@ public final class CodeEditor {
     if (state.doc == null) {
       return;
     }
-    editor.overlay(documentationPanel(theme, state));
+    editor.overlay(documentationPanel(state));
   }
 
   private static void hoverDocumentation(
@@ -4109,22 +4140,9 @@ public final class CodeEditor {
         error -> state.clearDeclWorkFields());
   }
 
-  private static El documentationPanel(Theme theme, State state) {
-    Texts texts = Texts.CURRENT.get();
-    El panel = El.col()
-        .key("documentation")
-        .role("dialog")
-        .label(texts.documentation())
+  private static El documentationPanel(State state) {
+    El panel = Markdown.documentation(state.doc)
         .keepFocus()
-        .w(theme.size().tooltip())
-        .radius(theme.radius().medium())
-        .fill(theme.surface().popup())
-        .border(theme.size().stroke(), theme.border().control())
-        .shadow(theme.elevation().popup())
-        .motion(theme.motion().fade())
-        .padding(theme.space().l())
-        .scroll()
-        .scrollbars(theme.scrollbars())
         .onPressOutside(state::closeDocumentation)
         .onKey(k -> {
           if (k.name().equals("Escape") && k.modifiers() == 0) {
@@ -4133,7 +4151,6 @@ public final class CodeEditor {
           }
           return false;
         })
-        .child(Markdown.fragment(state.doc, Markdown.options()))
         .side(Side.BOTTOM, Style.Align.START, 0); // no gap the pointer would cross off the word
     if (state.docHover) {
       panel.onHover(over -> {

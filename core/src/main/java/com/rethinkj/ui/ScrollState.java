@@ -228,7 +228,9 @@ public final class ScrollState {
    * fractional line (counting blocks between lines) piecewise linearly between surrounding {@code
    * anchors}, shifted by the first or last anchor's difference outside them (or line {@code n} to
    * line {@code n} when {@code anchors} is empty), and converts back to the follower's pixel offset
-   * by its own line tops. Horizontally both keep the same offset. {@link El.Block#paired Paired}
+   * by its own line tops. While either field has {@link El.Block#paired paired} blocks, it maps by
+   * pixels instead, linearly between the anchors' line tops, so that paired blocks stay beside
+   * each other. Horizontally both keep the same offset. Paired
    * blocks with equal pair keys take the larger of their heights in both fields in the same frame,
    * growing and shrinking together; a block that is not yet measured takes its partner's height
    * once measured, or counts as one line of its field until then, the same on both sides of equal
@@ -326,7 +328,7 @@ public final class ScrollState {
     if (followY && !byLines) {
       ty = leader.scrollY();
     } else if (followY && from.laidOut() && to.laidOut()) {
-      ty = to.lineToOffset(mapLine(from.offsetToLine(leader.scrollY()), anchors));
+      ty = mapOffset(from, to, leader.scrollY(), anchors);
     }
     target.setScroll(tx, ty);
     if (!byLines) { // offsets in pixels need no second look after layout
@@ -367,6 +369,47 @@ public final class ScrollState {
   }
 
   /**
+   * Maps the leader's offset {@code y} to the follower's. While either field has paired blocks, it
+   * maps by pixels, so that paired blocks stay beside each other: linearly between the anchors'
+   * line tops, and before the first anchor back from it by line heights; otherwise, and after the
+   * last anchor, by {@link #mapLine}.
+   */
+  static double mapOffset(Text from, Text to, double y, List<Anchor> anchors) {
+    double line = from.offsetToLine(y);
+    if (!(from.hasPairedBlocks() || to.hasPairedBlocks())
+        || anchors.isEmpty()
+        || line >= anchors.getLast().line()) {
+      return to.lineToOffset(mapLine(line, anchors));
+    }
+    Anchor first = anchors.getFirst();
+    if (line <= first.line()) { // back from the first anchor, by lines of each field's height
+      double back = from.lineToOffset(first.line()) - y;
+      return to.lineToOffset(first.otherLine()) - back * to.lineHeight() / from.lineHeight();
+    }
+    int lo = segment(line, anchors);
+    double fromTop = from.lineToOffset(anchors.get(lo).line());
+    double toTop = to.lineToOffset(anchors.get(lo).otherLine());
+    double fromSpan = from.lineToOffset(anchors.get(lo + 1).line()) - fromTop;
+    double toSpan = to.lineToOffset(anchors.get(lo + 1).otherLine()) - toTop;
+    return fromSpan > 0 ? toTop + (y - fromTop) / fromSpan * toSpan : toTop;
+  }
+
+  /** The index of the anchor that starts the segment holding {@code line}, inside the anchors. */
+  private static int segment(double line, List<Anchor> anchors) {
+    int lo = 0;
+    int hi = anchors.size() - 1;
+    while (lo + 1 < hi) {
+      int mid = (lo + hi) >>> 1;
+      if (anchors.get(mid).line() < line) {
+        lo = mid;
+      } else {
+        hi = mid;
+      }
+    }
+    return lo;
+  }
+
+  /**
    * Maps a fractional line in the leader to the corresponding fractional line in the follower:
    * piecewise linear between surrounding anchors, shifted by the first or last anchor's difference
    * outside them, and identity when there are no anchors.
@@ -383,16 +426,7 @@ public final class ScrollState {
     if (line >= last.line()) {
       return line + (last.otherLine() - last.line());
     }
-    int lo = 0;
-    int hi = anchors.size() - 1;
-    while (lo + 1 < hi) {
-      int mid = (lo + hi) >>> 1;
-      if (anchors.get(mid).line() < line) {
-        lo = mid;
-      } else {
-        hi = mid;
-      }
-    }
+    int lo = segment(line, anchors);
     Anchor a = anchors.get(lo);
     Anchor b = anchors.get(lo + 1);
     double t = (line - a.line()) / (b.line() - a.line());
