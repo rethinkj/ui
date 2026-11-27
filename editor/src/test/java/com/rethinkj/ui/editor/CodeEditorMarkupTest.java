@@ -832,12 +832,13 @@ class CodeEditorMarkupTest {
     app.scrollTo(codeEl, 160, 0);
     app.frame();
     double scrolledX = findByKey(app.tree(), "code").scrollX();
-    assertTrue(scrolledX > 100, "editor scrolled horizontally: " + scrolledX);
     Script.run("size 520 360 scale 2\nframe\nsnap scrolled", app, out);
     String scrolled = Files.readString(out.resolve("scrolled.tree.txt"));
-    assertEquals(cardX0, blockX(scrolled, "review-card"), "Block mark stays at left edge");
-    assertTrue(blockX(scrolled, "doc-0") < docX0 - 80, "rendered doc scrolls with code");
-    assertTrue(blockX(scrolled, "vision-4") < visionX0 - 80, "CodeVision scrolls with code");
+    assertTrue(
+        blockX(scrolled, "review-card") == cardX0
+            && blockX(scrolled, "doc-0") < docX0 - 80
+            && blockX(scrolled, "vision-4") < visionX0 - 80,
+        "the Block mark stays at the left edge, rendered doc and CodeVision scroll:\n" + scrolled);
     Script.run("size 520 360 scale 2\nfocus #reply-field\nframe", app, out);
     assertEquals(
         scrolledX,
