@@ -101,6 +101,7 @@ class DocsExamplesTest {
       Map.entry("icon-own", List.of("view")),
       Map.entry("navigation", List.of("view")),
       Map.entry("navigation-sessions", List.of("view")),
+      Map.entry("navigation-slots", List.of("view")),
       Map.entry("tabs", List.of("view")),
       Map.entry("tabs-line", List.of("view")),
       Map.entry("grid", List.of("selected")),
@@ -190,6 +191,7 @@ class DocsExamplesTest {
     layouts(all, "navigation", Layouts::navigation, 440, 220); // wide, for the tile's crop
     layouts(all, "navigation-typed", Layouts::typedNavigation, 260, 220);
     layouts(all, "navigation-sessions", Layouts::sessions, 304, 212);
+    layouts(all, "navigation-slots", Layouts::sessionSlots, 284, 124);
     layouts(all, "split", Layouts::split, 520, 240);
     layouts(all, "cards-window", Layouts::cardsWindow, 520, 280);
     layouts(all, "tabs", Layouts::tabs, 480, 220);

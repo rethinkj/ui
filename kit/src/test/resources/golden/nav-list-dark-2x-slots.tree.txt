@@ -1,0 +1,57 @@
+el 0,0 220x168
+  el 12,12 196x144
+    el 13,13 194x142
+      el #slots role=listbox 17,17 186x134
+        el #item-0 role=option label="Refactor layout engine for slots" 17,17 186x44 selected pos=1/3
+          el 17,19 186x40
+            el 19,31 2x16
+            el 25,19 146x40
+              el 25,21 146x36
+                el 25,21 146x16
+                  text "Refactor layout engine for slots" 25,21 127x16
+                  text "4h" 156,22 15x14
+                el 25,39 146x18
+                  el 25,41 115x14
+                    el 25,41 115x14
+                      text label="server" "\u{F0360}" 25,42 12x12
+                      text "workstation-eu-west-01" 39,41 101x14
+                  el label="PR" 144,39 27x18
+                    text "PR" 150,41 15x14
+            el 175,29 20x20
+              el role=button label="Pin refactor" 175,29 20x20
+                text label="pin" "\u{F600}" 177,31 16x16
+        el #item-1 role=option label="Fix keyboard focus after split" 17,61 186x44 pos=2/3
+          el 17,63 186x40
+            el 19,75 2x16
+            el 25,63 146x40
+              el 25,65 146x36
+                el 25,65 146x16
+                  text "Fix keyboard focus after split" 25,65 119x16
+                  text "12m" 148,66 23x14
+                el 25,83 146x18
+                  el 25,85 118x14
+                    el 25,85 118x14
+                      text label="server" "\u{F0360}" 25,86 12x12
+                      text "build-linux-runner-04" 39,85 104x14
+                  el label="CI" 147,83 24x18
+                    text "CI" 153,85 12x14
+            el 175,73 20x20
+              el role=button label="Pin focus" 175,73 20x20
+                text label="pin" "\u{F600}" 177,75 16x16
+        el #item-2 role=option label="Ship release notes" 17,105 186x44 pos=3/3
+          el 17,107 186x40
+            el 19,119 2x16
+            el 25,107 146x40
+              el 25,109 146x36
+                el 25,109 146x16
+                  text "Ship release notes" 25,109 127x16
+                  text "2d" 156,110 15x14
+                el 25,127 146x18
+                  el 25,127 102x18
+                    el label="release-notes-and-migration" 25,127 178x18
+                      text "release-notes-and-migration" 31,129 166x14
+                  el label="Draft" 131,127 40x18
+                    text "Draft" 137,129 28x14
+            el 175,117 20x20
+              el role=button label="Pin release" 175,117 20x20
+                text label="pin" "\u{F600}" 177,119 16x16

@@ -1258,51 +1258,66 @@ el 0,0 140x40
 # nav list, rest
 el 0,0 140x40
   el #c role=listbox label="Tables" 10,6 120x28
-    el #item-0 role=option label="orders" 10,6 120x28 selected pos=1/1
+    el #item-0 role=option label="logs" 10,6 120x28 selected pos=1/1
       el 10,8 120x24
         el 12,12 2x16
         text label="table" "\u{EBF4}" 18,12 16x16
-        text "orders" 38,12 56x16
+        el 38,8 56x24
+          el 38,12 56x16
+            text "logs" 38,12 26x16
+            text "2m" 68,13 18x14
         el label="12" 98,11 24x18
           text "12" 104,13 12x14
 # nav list, hover
 el 0,0 140x40
   el #c role=listbox label="Tables" 10,6 120x28
-    el #item-0 role=option label="orders" 10,6 120x28 selected pos=1/1 hovered
+    el #item-0 role=option label="logs" 10,6 120x28 selected pos=1/1 hovered
       el 10,8 120x24
         el 12,12 2x16
         text label="table" "\u{EBF4}" 18,12 16x16
-        text "orders" 38,12 56x16
+        el 38,8 56x24
+          el 38,12 56x16
+            text "logs" 38,12 26x16
+            text "2m" 68,13 18x14
         el label="12" 98,11 24x18
           text "12" 104,13 12x14
 # nav list, pressed
 el 0,0 140x40
   el #c role=listbox label="Tables" 10,6 120x28 focused
-    el #item-0 role=option label="orders" 10,6 120x28 selected pos=1/1 hovered
+    el #item-0 role=option label="logs" 10,6 120x28 selected pos=1/1 hovered
       el 10,8 120x24
         el 12,12 2x16
         text label="table" "\u{EBF4}" 18,12 16x16
-        text "orders" 38,12 56x16
+        el 38,8 56x24
+          el 38,12 56x16
+            text "logs" 38,12 26x16
+            text "2m" 68,13 18x14
         el label="12" 98,11 24x18
           text "12" 104,13 12x14
 # nav list, focused
 el 0,0 140x40
   el #c role=listbox label="Tables" 10,6 120x28 focused
-    el #item-0 role=option label="orders" 10,6 120x28 selected pos=1/1
+    el #item-0 role=option label="logs" 10,6 120x28 selected pos=1/1
       el 10,8 120x24
         el 12,12 2x16
         text label="table" "\u{EBF4}" 18,12 16x16
-        text "orders" 38,12 56x16
+        el 38,8 56x24
+          el 38,12 56x16
+            text "logs" 38,12 26x16
+            text "2m" 68,13 18x14
         el label="12" 98,11 24x18
           text "12" 104,13 12x14
 # nav list, disabled
 el 0,0 140x40
   el #c role=listbox label="Tables" 10,6 120x28 disabled
-    el #item-0 role=option label="orders" 10,6 120x28 selected pos=1/1
+    el #item-0 role=option label="logs" 10,6 120x28 selected pos=1/1
       el 10,8 120x24
         el 12,12 2x16
         text label="table" "\u{EBF4}" 18,12 16x16
-        text "orders" 38,12 68x16
+        el 38,8 68x24
+          el 38,12 68x16
+            text "logs" 38,12 26x16
+            text "2m" 68,13 18x14
         text "12" 110,13 12x14
 # status item, rest
 el 0,0 140x40

@@ -1,0 +1,40 @@
+el 0,0 284x124
+  el 12,12 260x100
+    el 13,13 258x98
+      el role=listbox label="Sessions" 17,17 250x90
+        el #item-0 role=option label="Fix login redirect" 17,17 250x44 selected pos=1/2
+          el 17,19 250x40
+            el 19,31 2x16
+            el 25,19 206x40
+              el 25,21 206x36
+                el 25,21 206x16
+                  text "Fix login redirect" 25,21 184x16
+                  text "2m" 213,22 18x15
+                el 25,39 206x18
+                  el 25,41 175x15
+                    el 25,41 175x15
+                      text label="branch" "\u{F0A6}" 25,42 12x12
+                      text "feat/auth" 39,41 51x15
+                  el label="PR" 204,39 27x18
+                    text "PR" 210,41 15x15
+            el 235,27 24x24
+              el role=button label="Pin" 235,27 24x24
+                text label="pin" "\u{F600}" 239,31 16x16
+        el #item-1 role=option label="Rate limits" 17,61 250x44 pos=2/2
+          el 17,63 250x40
+            el 19,75 2x16
+            el 25,63 206x40
+              el 25,65 206x36
+                el 25,65 206x16
+                  text "Rate limits" 25,65 188x16
+                  text "7h" 217,66 14x15
+                el 25,83 206x18
+                  el 25,85 175x15
+                    el 25,85 175x15
+                      text label="branch" "\u{F0A6}" 25,86 12x12
+                      text "main" 39,85 27x15
+                  el label="PR" 204,83 27x18
+                    text "PR" 210,85 15x15
+            el 235,71 24x24
+              el role=button label="Pin" 235,71 24x24
+                text label="pin" "\u{F600}" 239,75 16x16

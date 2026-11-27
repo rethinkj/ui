@@ -358,6 +358,99 @@ class NavListTest {
     assertEquals(List.of("side", "general"), chosen);
   }
 
+  @Test
+  void metaAndDetailEndKeepTheRightEdgeAndAPressOnThemSelectsTheRow() throws IOException {
+    selected = 0;
+    App<NavListTest> app = new App<>(this, state -> {
+      Theme theme = Theme.CURRENT.get();
+      Button.Options small = Button.options().size(Button.Size.SMALL);
+      El list = NavList.navList(
+              List.of(
+                  NavList.item("Refactor layout engine for slots")
+                      .meta(Label.label(Label.Variant.SMALL, "4h"))
+                      .detail(
+                          machineStart(theme, "workstation-eu-west-01"),
+                          Badge.badge(Badge.Kind.SUCCESS, "PR"))
+                      .actions(Button.icon(
+                          Button.Variant.GHOST,
+                          Symbol.PIN,
+                          "Pin refactor",
+                          () -> state.pinned++,
+                          small)),
+                  NavList.item("Fix keyboard focus after split")
+                      .meta(Label.label(Label.Variant.SMALL, "12m"))
+                      .detail(
+                          machineStart(theme, "build-linux-runner-04"),
+                          Badge.badge(Badge.Kind.WARNING, "CI"))
+                      .actions(Button.icon(
+                          Button.Variant.GHOST,
+                          Symbol.PIN,
+                          "Pin focus",
+                          () -> state.pinned++,
+                          small)),
+                  NavList.item("Ship release notes")
+                      .meta(Label.label(Label.Variant.SMALL, "2d"))
+                      .detail(Badge.badge("release-notes-and-migration"), Badge.badge("Draft"))
+                      .actions(Button.icon(
+                          Button.Variant.GHOST,
+                          Symbol.PIN,
+                          "Pin release",
+                          () -> state.pinned++,
+                          small))),
+              state.selected,
+              i -> state.selected = i)
+          .key("slots");
+      return col()
+          .wFull()
+          .hFull()
+          .padding(theme.space().l())
+          .fill(theme.surface().window())
+          .child(Card.flush(Card.inset(list)).grow(1));
+    });
+    app.textRendering(TextRendering.LINUX);
+
+    List<Path> files =
+        Script.run("size 220 168 scale 2\nframe\nsnap slots\n", app, out.resolve("slots-dark2"));
+    Golden.assertSnaps("nav-list-dark-2x-", files, "slots");
+
+    String dump = app.tree().dump();
+    String firstOption = StructureTest.line(dump, "#item-0 ");
+    assertTrue(firstOption.contains("label=\"Refactor layout engine for slots\""), dump);
+    int titleAt = dump.indexOf("text \"Refactor layout engine for slots\"");
+    int metaAt = dump.indexOf("text \"4h\"");
+    int startAt = dump.indexOf("text \"workstation-eu-west-01\"");
+    int endAt = dump.indexOf("text \"PR\"");
+    assertTrue(titleAt > 0 && titleAt < metaAt && metaAt < startAt && startAt < endAt, dump);
+
+    // Hovering an unselected row reveals its action without shifting meta or detail end.
+    String metaBeforeHover = StructureTest.line(dump, "text \"12m\"");
+    String endBeforeHover = StructureTest.line(dump, "text \"CI\"");
+    Script.run("move #item-1\nframe\n", app, out);
+    String hoveredDump = app.tree().dump();
+    assertEquals(metaBeforeHover, StructureTest.line(hoveredDump, "text \"12m\""));
+    assertEquals(endBeforeHover, StructureTest.line(hoveredDump, "text \"CI\""));
+
+    // Pressing a passive slot (meta text or detail end) selects the row.
+    Script.run("press " + center(dump, "text \"12m\"") + "\nframe\n", app, out);
+    assertEquals(1, selected, "pressing meta text must select its row");
+    Script.run("press " + center(dump, "text \"Draft\"") + "\nframe\n", app, out);
+    assertEquals(2, selected, "pressing detail end must select its row");
+  }
+
+  private static String center(String dump, String needle) {
+    float[] r = StructureTest.rect(StructureTest.line(dump, needle));
+    return (r[0] + r[2] / 2) + "," + (r[1] + r[3] / 2);
+  }
+
+  private static El machineStart(Theme theme, String host) {
+    return row()
+        .gap(theme.space().xs())
+        .align(Style.Align.CENTER)
+        .children(
+            Icon.icon(Symbol.SERVER, Icon.Variant.MUTED, theme.type().small().size()),
+            Label.label(Label.Variant.SMALL, host).ellipsis().minSize(0, 0));
+  }
+
   private static El trailing(Theme theme, String time, Symbol symbol, Icon.Variant variant) {
     return row()
         .gap(theme.space().xs())

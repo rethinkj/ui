@@ -23,7 +23,7 @@ Javadoc: [`NavList`](/api/com/rethinkj/ui/kit/NavList.html).
 | `navList(entries, selected, onSelect)` | List of `NavList.Entry` items and headings (`selected` index includes headings) |
 | `navList(count, index -> entry, selected, onSelect)` | Virtualized list for large navigation lists |
 | `outline(entries, current, onPress)` | Table of contents that marks the `current` heading and tells every press, also one on the current item or Enter or Space on it, so a press goes back to its heading |
-| `NavList.item([icon,] label)` | Navigation item with optional `.detail(text)`, `.count(text)`, `.trailing(element)`, `.actions(buttons...)`, `.contextMenu(state, items)`, `.indent(levels)`, `.key(name)`, and `.disabled(true)` |
+| `NavList.item([icon,] label)` | Navigation item with optional `.meta(element)`, `.detail(text)` or `.detail(start, end)`, `.count(text)`, `.trailing(element)`, `.actions(buttons...)`, `.contextMenu(state, items)`, `.indent(levels)`, `.key(name)`, and `.disabled(true)` |
 | `NavList.heading(label)` | Non-selectable section heading with optional `.count(text)` and `.open(open, onToggle)` |
 
 Inside a card, wrap the list with `Card.inset(list)`.
@@ -41,6 +41,15 @@ All rows share one height, so that the virtual form stays virtual: two lines hig
 ```
 
 <Shot src="examples/docs/navigation-sessions/view-{theme}" alt="Sessions grouped by project: the open project api with two sessions, each with a branch under its title and an age at the right, the selected one with a pin button, and the closed project docs with its count 2" />
+
+## A right side for each line
+
+`.meta(element)` puts an element at the right of the title, such as an age. `.detail(start, end)` is a second line of two elements: `start` grows and is shortened first, such as a branch, and `end` stays whole at the right under the meta, such as status chips; either may be `null`, and it replaces `.detail(text)`. The meta and the end keep their place when the item's actions show. These elements are passive: a press on them selects the item, they add no Tab stops, and they keep their colors when the item is disabled.
+
+```java snippet="nav-list-slots"
+```
+
+<Shot src="examples/docs/navigation-slots/view-{theme}" alt="Two sessions, each with its age at the right of the title and a branch and a PR chip on the second line, the selected one with a pin button beside them" />
 
 ## Values instead of indexes
 
@@ -68,7 +77,7 @@ The list is one Tab stop: **Up**, **Down**, **Home**, **End**, **Page Up**, and 
 
 ## In a tree dump
 
-`role=listbox` (`disabled` if `onSelect` is `null`). Items are `role=option` with `selected`/`disabled`, `pos`, and key `#item-<index>` (unless `.key(...)` is set), with any detail text, trailing element, and action buttons as children, and an open row context menu attached as an overlay on that row (so scripts can open it with `press <row> right`), or on the list when a key opened it. Plain headings have no role; collapsible headings are `role=button` with `expanded` or `expanded=false`:
+`role=listbox` (`disabled` if `onSelect` is `null`). Items are `role=option` with `selected`/`disabled`, `pos`, and key `#item-<index>` (unless `.key(...)` is set), with any `meta`, detail text or `detail(start, end)` slots in reading order, trailing element, and action buttons as children, and an open row context menu attached as an overlay on that row (so scripts can open it with `press <row> right`), or on the list when a key opened it. Plain headings have no role; collapsible headings are `role=button` with `expanded` or `expanded=false`:
 
 ```text file="examples/src/test/resources/golden/docs/navigation/view.tree.txt" start="role=listbox" count="5"
 ```

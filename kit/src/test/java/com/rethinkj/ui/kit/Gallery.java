@@ -239,7 +239,11 @@ final class Gallery {
       new Row(
           "nav list",
           h -> NavList.navList(
-                  List.of(NavList.item(Symbol.TABLE, "orders").count("12")), 0, choose(h))
+                  List.of(NavList.item(Symbol.TABLE, "logs")
+                      .meta(label(Label.Variant.SMALL, "2m"))
+                      .count("12")),
+                  0,
+                  choose(h))
               .w(WIDTH - 20)
               .label("Tables")),
       new Row("status item", h -> StatusBar.status(StatusBar.State.OK, "localhost", h)),

@@ -487,6 +487,34 @@ final class Layouts {
     return Frame.of(Card.flush(Card.inset(list)).w(280).grow(1));
   }
 
+  static El sessionSlots(Layouts state) {
+    Theme theme = Theme.CURRENT.get();
+    // docs:start nav-list-slots
+    El list = NavList.navList(
+            state.projects.getFirst().sessions(),
+            state.session,
+            session -> NavList.item(session.title())
+                .meta(Label.label(Label.Variant.SMALL, session.age()))
+                .detail(
+                    row()
+                        .gap(theme.space().xs())
+                        .align(Style.Align.CENTER)
+                        .children(
+                            Icon.icon(
+                                Symbol.BRANCH,
+                                Icon.Variant.MUTED,
+                                theme.type().small().size()),
+                            Label.label(Label.Variant.SMALL, session.place())
+                                .ellipsis()
+                                .minSize(0, 0)),
+                    Badge.badge(Badge.Kind.SUCCESS, "PR"))
+                .actions(Button.icon(GHOST, Symbol.PIN, "Pin", () -> state.pin(session))),
+            state::select)
+        .label("Sessions");
+    // docs:end nav-list-slots
+    return Frame.of(Card.flush(Card.inset(list)).w(260).grow(1));
+  }
+
   static El navigationContextMenu(Layouts state) {
     List<Session> sessions = state.projects.getFirst().sessions();
     // docs:start nav-list-context-menu

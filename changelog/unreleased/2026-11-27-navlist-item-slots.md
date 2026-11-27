@@ -1,0 +1,1 @@
+- Added: `NavList.Item.meta(element)` for a right side on an item's first line, such as its age, and `NavList.Item.detail(start, end)` for a second line with a start that gives way first and an end under the meta, such as status chips. Both stay in place when the item's actions show.

@@ -21,11 +21,13 @@ import java.util.function.IntFunction;
 
 /**
  * A list of items of which one is selected, such as the pages at the side of a settings window or a
- * sidebar of sessions: each item with an optional icon, its text, an optional second line ({@link
- * Item#detail}), an optional count at the right, an optional trailing element ({@link
- * Item#trailing}), and optional actions ({@link Item#actions}) that show while the item is selected
- * or under the pointer, and optional headings between groups of items. The app keeps the selected
- * index; a press on an item selects it, while pressing an action button runs only that button's
+ * sidebar of sessions: each item with an optional icon, its text, an optional element at the right of its text
+ * ({@link Item#meta}), an optional second line as text ({@link Item#detail(String)}) or start and
+ * end slots ({@link Item#detail(El, El)}), an optional count at the right, an optional trailing
+ * element ({@link Item#trailing}), and optional actions ({@link Item#actions}) that show while the
+ * item is selected or under the pointer, and optional headings between groups of items. The app
+ * keeps the selected index; a press on an item (or on its passive {@link Item#meta} or {@link
+ * Item#detail(El, El)} slots) selects it, while pressing an action button runs only that button's
  * handler without changing the selection. While the list has the focus Up and Down move the
  * selection past the headings, Home and End go to the first and the last item, and Page Up and Page
  * Down by the items in view. The list is one stop for Tab and follows the selection ({@link
@@ -43,19 +45,25 @@ import java.util.function.IntFunction;
  * <p>Given a count and a function in place of a list, it is a virtual list ({@link El#rows}) that
  * builds only the items in view, the general list of one selection among many. All rows, headings
  * included, share one height so the virtual form stays virtual: {@link Theme.Sizes#control} high
- * with {@link Theme.Spacing#xs} above and below, or two lines high when items have a {@link
- * Item#detail} (in the list form when any item has a detail; in the virtual form when the first
- * item entry has a detail). The selected item has the fill of the grid's selection, {@link
- * Theme.Grid#selected} while the list has the focus, a mark of {@link Theme.Accent#edge} at its
- * left, which stands out from the surfaces also where the inactive selection's fill does not, its
- * icon in that color and its text in {@link Theme.Type#strong}. A count is a quiet {@link Badge}; a
- * heading is {@link Theme.Type#small} at the bottom of its row, so that the room above it sets the
- * group apart, with an optional quiet count ({@link Heading#count}). With {@link Heading#open}, a
- * heading shows a chevron ({@link Tree#OPEN} or {@link Tree#CLOSED}) and becomes a button that runs
- * its toggle handler on press, Enter, or Space; the app keeps which groups are open and leaves a
- * closed group's items out of the entries (in both the list form and the virtual form) so they are
- * not in the list and the keys pass them. {@code NavList} does not hide items itself. Like any
- * scroll area, the list needs a height of its own, room to grow, or no more items than fit.
+ * with {@link Theme.Spacing#xs} above and below, or two lines high when items have a detail
+ * ({@link Item#detail(String)} or {@link Item#detail(El, El)}; in the list form when any item has a
+ * detail, in the virtual form when the first item entry has one). When an item carries {@link
+ * Item#meta} or a line-2 end slot, they share a stable right edge that does not move when the row's
+ * actions show on hover or selection; {@link Item#count} and {@link Item#trailing} keep their
+ * vertically centered place at the right. Elements supplied for {@link Item#meta} or {@link
+ * Item#detail(El, El)} are made {@link El#inert} so presses select the row and they add no Tab
+ * stops, and they are not recolored when the item is disabled. The selected item has the fill of
+ * the grid's selection, {@link Theme.Grid#selected} while the list has the focus, a mark of {@link
+ * Theme.Accent#edge} at its left, which stands out from the surfaces also where the inactive
+ * selection's fill does not, its icon in that color and its text in {@link Theme.Type#strong}. A
+ * count is a quiet {@link Badge}; a heading is {@link Theme.Type#small} at the bottom of its row,
+ * so that the room above it sets the group apart, with an optional quiet count ({@link
+ * Heading#count}). With {@link Heading#open}, a heading shows a chevron ({@link Tree#OPEN} or
+ * {@link Tree#CLOSED}) and becomes a button that runs its toggle handler on press, Enter, or Space;
+ * the app keeps which groups are open and leaves a closed group's items out of the entries (in both
+ * the list form and the virtual form) so they are not in the list and the keys pass them. {@code
+ * NavList} does not hide items itself. Like any scroll area, the list needs a height of its own,
+ * room to grow, or no more items than fit.
  *
  * <p>An item can stand in by steps, as the headings of an outline under the one above them ({@link
  * Item#indent}), can carry a context menu ({@link Item#contextMenu(Menu.State, List)}), and can be
@@ -67,11 +75,11 @@ import java.util.function.IntFunction;
  *
  * <p>In a tree dump the list is {@code role=listbox}, its items {@code role=option} with their text
  * as the label, {@code selected} or {@code disabled}, and their position among all rows, headings
- * counted, and the keys {@code item-<index>} or the item's own ({@link Item#key}), with detail
- * text, trailing element and actions as children. An item's open context menu is an overlay on that
- * row, so scripts can open it with {@code press <row> right}, or on the list when a key opened it. A plain
- * heading has no role; a collapsible heading is {@code role=button} with its text as the label and
- * {@code expanded} or {@code expanded=false}.
+ * counted, and the keys {@code item-<index>} or the item's own ({@link Item#key}), with meta,
+ * detail text or slots in reading order, trailing element and actions as children. An item's open
+ * context menu is an overlay on that row, so scripts can open it with {@code press <row> right}, or
+ * on the list when a key opened it. A plain heading has no role; a collapsible heading is {@code
+ * role=button} with its text as the label and {@code expanded} or {@code expanded=false}.
  */
 public final class NavList {
 
@@ -83,8 +91,17 @@ public final class NavList {
    *
    * @param label the text, also the item's label
    * @param icon shown before the text; null for none
+   * @param meta an element placed right of the label on line 1 (or right after the label in a
+   *     single-line row) without shrinking; passive ({@link El#inert}) and not recolored when the
+   *     item is disabled; null for none
    * @param detail a second line in muted small type under the label, shortened with an ellipsis,
    *     shown where the rows are two lines high (see above); null for none
+   * @param detailStart an element at the start of the second line that grows, is clipped and gives
+   *     way first, shown where the rows are two lines high; passive ({@link El#inert}) and not
+   *     recolored when the item is disabled; null for none
+   * @param detailEnd an element at the end of the second line that does not shrink and aligns under
+   *     {@code meta}, shown where the rows are two lines high; passive ({@link El#inert}) and not
+   *     recolored when the item is disabled; null for none
    * @param count shown at the right in a quiet {@link Badge}, such as the number of things on the
    *     page; null for none
    * @param trailing an element placed at the right after the count without shrinking; null for none
@@ -106,7 +123,10 @@ public final class NavList {
   public record Item(
       String label,
       Icon icon,
+      El meta,
       String detail,
+      El detailStart,
+      El detailEnd,
       String count,
       El trailing,
       List<El> actions,
@@ -125,22 +145,111 @@ public final class NavList {
       contextMenu = contextMenu == null ? List.of() : List.copyOf(contextMenu);
     }
 
-    /** This item with a second line in muted small type under its label. */
+    /**
+     * This item with an element placed right of its label on line 1 (or right after the label in a
+     * single-line row) without shrinking. The supplied element is passive ({@link El#inert}) and is
+     * not recolored when the item is disabled.
+     */
+    public Item meta(El element) {
+      return new Item(
+          label,
+          icon,
+          element,
+          detail,
+          detailStart,
+          detailEnd,
+          count,
+          trailing,
+          actions,
+          indent,
+          key,
+          disabled,
+          menu,
+          contextMenu);
+    }
+
+    /**
+     * This item with a second line in muted small type under its label, replacing any element
+     * detail.
+     */
     public Item detail(String text) {
       return new Item(
-          label, icon, text, count, trailing, actions, indent, key, disabled, menu, contextMenu);
+          label,
+          icon,
+          meta,
+          text,
+          null,
+          null,
+          count,
+          trailing,
+          actions,
+          indent,
+          key,
+          disabled,
+          menu,
+          contextMenu);
+    }
+
+    /**
+     * This item with a second line of {@code start} (grows, is clipped and gives way first) and
+     * {@code end} (does not shrink and aligns under {@link #meta}), replacing any text detail.
+     * Either may be null; supplied elements are passive ({@link El#inert}) and are not recolored
+     * when the item is disabled.
+     */
+    public Item detail(El start, El end) {
+      return new Item(
+          label,
+          icon,
+          meta,
+          null,
+          start,
+          end,
+          count,
+          trailing,
+          actions,
+          indent,
+          key,
+          disabled,
+          menu,
+          contextMenu);
     }
 
     /** This item with a count at its right. */
     public Item count(String text) {
       return new Item(
-          label, icon, detail, text, trailing, actions, indent, key, disabled, menu, contextMenu);
+          label,
+          icon,
+          meta,
+          detail,
+          detailStart,
+          detailEnd,
+          text,
+          trailing,
+          actions,
+          indent,
+          key,
+          disabled,
+          menu,
+          contextMenu);
     }
 
     /** This item with a trailing element placed at its right after the count. */
     public Item trailing(El element) {
       return new Item(
-          label, icon, detail, count, element, actions, indent, key, disabled, menu, contextMenu);
+          label,
+          icon,
+          meta,
+          detail,
+          detailStart,
+          detailEnd,
+          count,
+          element,
+          actions,
+          indent,
+          key,
+          disabled,
+          menu,
+          contextMenu);
     }
 
     /**
@@ -150,7 +259,10 @@ public final class NavList {
       return new Item(
           label,
           icon,
+          meta,
           detail,
+          detailStart,
+          detailEnd,
           count,
           trailing,
           buttons == null ? List.of() : List.of(buttons),
@@ -164,19 +276,58 @@ public final class NavList {
     /** This item standing in by {@code levels} steps, as a heading of an outline under another. */
     public Item indent(int levels) {
       return new Item(
-          label, icon, detail, count, trailing, actions, levels, key, disabled, menu, contextMenu);
+          label,
+          icon,
+          meta,
+          detail,
+          detailStart,
+          detailEnd,
+          count,
+          trailing,
+          actions,
+          levels,
+          key,
+          disabled,
+          menu,
+          contextMenu);
     }
 
     /** This item with its own key in place of {@code item-<index>}. */
     public Item key(String name) {
       return new Item(
-          label, icon, detail, count, trailing, actions, indent, name, disabled, menu, contextMenu);
+          label,
+          icon,
+          meta,
+          detail,
+          detailStart,
+          detailEnd,
+          count,
+          trailing,
+          actions,
+          indent,
+          name,
+          disabled,
+          menu,
+          contextMenu);
     }
 
     /** This item, disabled or not. */
     public Item disabled(boolean off) {
       return new Item(
-          label, icon, detail, count, trailing, actions, indent, key, off, menu, contextMenu);
+          label,
+          icon,
+          meta,
+          detail,
+          detailStart,
+          detailEnd,
+          count,
+          trailing,
+          actions,
+          indent,
+          key,
+          off,
+          menu,
+          contextMenu);
     }
 
     /**
@@ -190,7 +341,20 @@ public final class NavList {
      */
     public Item contextMenu(Menu.State state, List<Menu.Item> items) {
       return new Item(
-          label, icon, detail, count, trailing, actions, indent, key, disabled, state, items);
+          label,
+          icon,
+          meta,
+          detail,
+          detailStart,
+          detailEnd,
+          count,
+          trailing,
+          actions,
+          indent,
+          key,
+          disabled,
+          state,
+          items);
     }
   }
 
@@ -230,11 +394,19 @@ public final class NavList {
   private NavList() {}
 
   public static Item item(String label) {
-    return new Item(label, null, null, null, null, List.of(), 0, null, false, null, List.of());
+    return new Item(
+        label, null, null, null, null, null, null, null, List.of(), 0, null, false, null,
+        List.of());
   }
 
   public static Item item(Icon icon, String label) {
-    return new Item(label, icon, null, null, null, List.of(), 0, null, false, null, List.of());
+    return new Item(
+        label, icon, null, null, null, null, null, null, List.of(), 0, null, false, null,
+        List.of());
+  }
+
+  private static boolean hasDetail(Item item) {
+    return item.detail() != null || item.detailStart() != null || item.detailEnd() != null;
   }
 
   /** A heading over the items that follow it. */
@@ -269,7 +441,7 @@ public final class NavList {
     Theme theme = Theme.CURRENT.get();
     boolean twoLine = false;
     for (Entry entry : entries) {
-      if (entry instanceof Item item && item.detail() != null) {
+      if (entry instanceof Item item && hasDetail(item)) {
         twoLine = true;
         break;
       }
@@ -351,7 +523,7 @@ public final class NavList {
     boolean twoLine = false;
     for (int i = 0; i < count; i++) {
       if (entry.apply(i) instanceof Item item) {
-        twoLine = item.detail() != null;
+        twoLine = hasDetail(item);
         break;
       }
     }
@@ -539,14 +711,51 @@ public final class NavList {
           .color(enabled ? theme.text().primary() : theme.text().disabled())
           .ellipsis()
           .minSize(0, 0);
-      if (entry.detail() == null || !twoLine) {
+      boolean showDetail = twoLine && hasDetail(entry);
+      if (entry.meta() == null && !showDetail) {
         pill.child(title.grow(1));
+      } else if (!showDetail) {
+        // Right after the title, with the room left over after both.
+        pill.child(slots(row()
+                .gap(theme.space().s())
+                .align(Style.Align.CENTER)
+                .children(title, entry.meta().shrink(0).inert()))
+            .grow(1)
+            .minSize(0, 0));
       } else {
-        El detail = label(Label.Variant.SMALL, entry.detail())
-            .color(enabled ? theme.text().muted() : theme.text().disabled())
-            .ellipsis()
-            .minSize(0, 0);
-        pill.child(col().grow(1).minSize(0, 0).gap(theme.space().xs()).children(title, detail));
+        El line1 = entry.meta() == null
+            ? title
+            : row()
+                .gap(theme.space().s())
+                .align(Style.Align.CENTER)
+                .minSize(0, 0)
+                .children(title.grow(1), entry.meta().shrink(0).inert());
+        El line2;
+        if (entry.detail() != null) {
+          line2 = label(Label.Variant.SMALL, entry.detail())
+              .color(enabled ? theme.text().muted() : theme.text().disabled())
+              .ellipsis()
+              .minSize(0, 0);
+        } else {
+          line2 = row().gap(theme.space().s()).align(Style.Align.CENTER).minSize(0, 0);
+          if (entry.detailStart() != null) {
+            // Clipped in a box of its own, so that one that does not shrink cannot push the end
+            // out.
+            line2.child(row()
+                .grow(1)
+                .minSize(0, 0)
+                .clip()
+                .child(entry.detailStart().grow(1).minSize(0, 0).inert()));
+          } else {
+            line2.child(el().grow(1).minSize(0, 0));
+          }
+          if (entry.detailEnd() != null) {
+            line2.child(entry.detailEnd().shrink(0).inert());
+          }
+        }
+        El lines = col().gap(theme.space().xs()).children(line1, line2);
+        boolean own = entry.meta() != null || entry.detail() == null; // the app's elements
+        pill.child((own ? slots(lines) : lines).grow(1).minSize(0, 0));
       }
       if (entry.count() != null) {
         pill.child(
@@ -557,6 +766,7 @@ public final class NavList {
       if (entry.trailing() != null) {
         pill.child(entry.trailing().shrink(0));
       }
+      boolean stableRight = entry.meta() != null || (showDetail && entry.detailEnd() != null);
       El actions = null;
       if (enabled && !entry.actions().isEmpty()) {
         // Takes the presses its buttons leave, such as of a disabled one, from the row.
@@ -567,9 +777,15 @@ public final class NavList {
           actions.child(button.shrink(0));
           opened |= opened(button);
         }
-        // Out of the layout until shown, so that it keeps no room and no stops for Tab; shown
-        // while one of them has a menu open, which the pointer leaves the row for.
-        actions.style().display = on || opened ? Style.Display.FLEX : Style.Display.NONE;
+        if (stableRight) {
+          // Keep the strip in layout so meta and detailEnd do not move when actions show; opacity
+          // 0 draws nothing, takes no presses and is skipped by Tab.
+          actions.opacity(on || opened ? 1 : 0);
+        } else {
+          // Out of the layout until shown, so that it keeps no room and no stops for Tab; shown
+          // while one of them has a menu open, which the pointer leaves the row for.
+          actions.style().display = on || opened ? Style.Display.FLEX : Style.Display.NONE;
+        }
         pill.child(actions);
       }
       String rowKey = rowKey(i, entry);
@@ -613,18 +829,39 @@ public final class NavList {
         r.whenHovered(e -> {
               pill.fill(theme.surface().hover());
               if (reveal != null) {
-                reveal.style().display = Style.Display.FLEX;
+                if (stableRight) {
+                  reveal.opacity(1);
+                } else {
+                  reveal.style().display = Style.Display.FLEX;
+                }
               }
             })
             .whenPressed(e -> {
               pill.fill(theme.surface().pressed());
               if (reveal != null) {
                 // Inert while the row has the press, which may end where the strip shows up.
-                reveal.inert().style().display = Style.Display.FLEX;
+                reveal.inert();
+                if (stableRight) {
+                  reveal.opacity(1);
+                } else {
+                  reveal.style().display = Style.Display.FLEX;
+                }
               }
             });
       }
       return r;
+    }
+
+    /**
+     * The app's elements in a box as high as the row and clipped to it, so that one higher than the
+     * row neither shows nor takes presses beyond it.
+     */
+    private static El slots(El content) {
+      return col()
+          .alignSelf(Style.Align.STRETCH)
+          .justify(Style.Content.CENTER)
+          .clip()
+          .child(content);
     }
 
     /** Whether the element or one inside it has an overlay, such as an open menu. */
