@@ -744,6 +744,7 @@ public final class Chat {
         .color(disabled ? theme.text().disabled() : theme.text().primary())
         .maxLines(1)
         .ellipsis()
+        // A trailing element that grows, as a context's metadata, gets only the room left over.
         .grow(trailing != null && trailing.style().grow > 0 ? 0 : 1)
         .minSize(0, 0));
     if (trailing != null) {

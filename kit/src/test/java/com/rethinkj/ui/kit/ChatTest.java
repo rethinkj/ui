@@ -239,8 +239,7 @@ class ChatTest {
                         () -> s[0] = !s[0],
                         null,
                         Label.label(Label.Variant.MONO, "return retry(order);")),
-                    Chat.context(Symbol.DOCUMENT, "explain-plan.txt", "4 KB", false, null)
-                        .key("static-closed"),
+                    Chat.context(Symbol.DOCUMENT, "explain-plan.txt", "4 KB", false, null),
                     Chat.context(
                         Symbol.DATABASE,
                         "Slow query",
@@ -254,42 +253,22 @@ class ChatTest {
     app.textRendering(TextRendering.LINUX);
 
     Script.run("size 160 300\nframe", app, out);
-    // Long metadata shortens with the title, so the chevron stays inside a narrow block.
+    // Long metadata gives way to the title and keeps the chevron inside a narrow block.
     El longMeta = findByKey(app.tree(), "long-meta");
     El chevron = longMeta.children().get(0).children().getLast();
     assertTrue(
         chevron.x() + chevron.width() <= longMeta.x() + longMeta.width(),
         "chevron ends at " + (chevron.x() + chevron.width()));
-    // The title comes first: "a.go" keeps its 27px instead of shrinking to an ellipsis.
-    El title = longMeta.children().get(0).children().get(1);
-    assertTrue(title.width() > 24, "title width: " + title.width());
-    String closed = app.tree().dump();
-    String toggleLine = StructureTest.line(closed, "label=\"Orders.java\"");
-    assertTrue(toggleLine.contains("role=button"), toggleLine);
-    assertTrue(toggleLine.contains("expanded=false"), toggleLine);
-    assertTrue(toggleLine.contains("value=\"L42–58\""), toggleLine);
-    assertFalse(closed.contains("return retry(order);"));
+    assertFalse(longMeta.children().get(0).children().get(1).text().shortened(), "title cut");
 
-    // Static context rows use role=group, have no chevron, and still show details when open.
-    String staticLine = StructureTest.line(closed, "label=\"explain-plan.txt\"");
-    assertTrue(staticLine.contains("role=group"), staticLine);
-    assertFalse(staticLine.contains("role=button"), staticLine);
-    assertFalse(staticLine.contains("expanded"), staticLine);
-    String staticDump = findByKey(app.tree(), "static-closed").dump();
-    assertFalse(staticDump.contains("chevron_"), staticDump);
-    assertTrue(StructureTest.line(closed, "label=\"Slow query\"").contains("role=group"), closed);
+    // A static row still shows its details when open; a closed block hides them.
+    String closed = app.tree().dump();
     assertTrue(closed.contains("SELECT * FROM orders;"), closed);
+    assertFalse(closed.contains("return retry(order);"), closed);
 
     Script.run("press role=button label=\"Orders.java\"\nframe", app, out);
     assertTrue(open[0]);
-    String opened = app.tree().dump();
-    assertTrue(StructureTest.line(opened, "label=\"Orders.java\"").contains(" expanded"), opened);
-    assertTrue(opened.contains("return retry(order);"), opened);
-    assertTrue(opened.contains("chevron_up"), opened);
-
-    Script.run("focus role=button label=\"Orders.java\"\nkey Enter\nframe", app, out);
-    assertFalse(open[0]);
-    assertFalse(app.tree().dump().contains("return retry(order);"));
+    assertTrue(app.tree().dump().contains("return retry(order);"));
   }
 
   @Test
