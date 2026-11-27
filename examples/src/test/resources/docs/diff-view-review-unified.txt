@@ -1,0 +1,8 @@
+# Unified diff with a noted removed line, a review card below it, and a hovered gutter line action on a removed line.
+size 540 360 scale 2
+frame
+move #old-line-10
+frame
+move #action-old-line-10
+frame
+snap view

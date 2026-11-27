@@ -1,20 +1,25 @@
 package com.rethinkj.ui.editor;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.Colors;
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.Decorator;
+import com.rethinkj.ui.Drag;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Key;
+import com.rethinkj.ui.Len;
 import com.rethinkj.ui.ScrollState;
 import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Spans;
 import com.rethinkj.ui.Style;
+import com.rethinkj.ui.Text;
 import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Label;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Texts;
 import com.rethinkj.ui.kit.Theme;
+import com.rethinkj.ui.kit.Tooltip;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -26,6 +31,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.IntConsumer;
+import java.util.function.Supplier;
 
 /**
  * Displays the {@link Diff} between two texts side by side or unified, using {@link CodeEditor}:
@@ -153,6 +160,13 @@ public final class DiffView {
     // The widest old line of each split removed run, by its first old line, for unified blocks.
     private final Map<Integer, String> widestRemoved = new HashMap<>();
 
+    // Line action for unified removed rows, and its active drag-selection preview.
+    private LineAction lineAction;
+    int oldDragAnchor = -1;
+    Lines oldDragLines;
+
+    private record LineAction(Icon symbol, String label, Consumer<Lines> onPress) {}
+
     /**
      * Sets the marks of layer {@code layer} on {@code side}, computed for {@code text}, in place
      * of that layer's marks before ({@link CodeEditor.State#markup}). Marks of all app layers show
@@ -167,7 +181,13 @@ public final class DiffView {
      * mark count like changed lines when unchanged regions collapse, so marks and threads are
      * never hidden in a collapsed region.
      *
-     * <p>{@link #unified} shows only the {@link Side#NEW} side's marks.
+     * <p>In {@link #unified}, {@link Side#NEW} marks apply directly to the editor, and {@link
+     * Side#OLD} marks on unchanged lines map to their matching new lines. On removed lines, a
+     * {@link CodeEditor.Block} splits the removed-lines block right below its line, {@link
+     * CodeEditor.Highlight.Tone#NOTE} tints the row and draws the gutter stripe, {@link
+     * CodeEditor.Highlight.Tone#OCCURRENCE} highlights its characters, and {@link
+     * CodeEditor.Marker}s show in the gutter icon lane; diagnostics, inlay hints and change bars
+     * are not shown on removed lines.
      *
      * <p>The layer name {@code "diff"} is reserved for the diff view's own change bars and
      * scrollbar ticks.
@@ -207,17 +227,23 @@ public final class DiffView {
      * such as starting a review comment ({@link CodeEditor.State#lineAction}). Hovering a line's
      * gutter cell reveals {@code symbol} left of the line number with {@code label} as its tooltip
      * and accessible name; pressing or dragging over a side's gutter reports an inclusive 0-based
-     * {@link Lines} range carrying that {@link Side} (a drag stays on the side it started on;
-     * Escape cancels). {@link #unified} offers it on the new side only. Passing a null {@code
-     * symbol} or {@code onPress} removes it from both sides.
+     * {@link Lines} range carrying that {@link Side} (a drag stays on the side it started on, and
+     * in {@link #unified} a drag over removed lines stays within the same removed run; Escape
+     * cancels). Because the keyboard cannot reach removed lines in {@link #unified}, the context
+     * menu item acts on {@link Side#NEW} lines only. Passing a null {@code symbol} or {@code
+     * onPress} removes it from both sides.
      */
     public State lineAction(Icon symbol, String label, Consumer<Lines> onPress) {
       if (symbol == null || onPress == null) {
+        lineAction = null;
+        oldDragLines = null;
+        oldDragAnchor = -1;
         oldEditor.lineAction(null, null, null);
         newEditor.lineAction(null, null, null);
         return this;
       }
       Objects.requireNonNull(label, "label");
+      lineAction = new LineAction(symbol, label, onPress);
       oldEditor.lineAction(
           symbol, label, lines -> onPress.accept(new Lines(Side.OLD, lines.first(), lines.last())));
       newEditor.lineAction(
@@ -276,6 +302,8 @@ public final class DiffView {
       regionsDirty = true;
       expanded.clear();
       widestRemoved.clear();
+      oldDragLines = null;
+      oldDragAnchor = -1;
       currentChange = -1;
       cachedHighlighterOld = null;
       oldHighlightStates = null;
@@ -340,18 +368,21 @@ public final class DiffView {
       if (field == null) {
         return;
       }
-      double line;
-      if (scrollOld) {
-        line = hunk.oldStart();
-      } else if (sideBySide || oldCount == 0) {
-        line = hunk.newStart();
-      } else if (hunk.newStart() == 0) {
-        line = -oldCount;
-      } else {
-        line = hunk.newStart() - 1 + 1.0 / (oldCount + 1);
-      }
       // From the line's start, where the caret and the change's first words are.
-      app.scrollTo(field, 0, Math.max(0, field.text().lineToOffset(line)));
+      Text text = field.text();
+      double y;
+      if (scrollOld) {
+        y = text.lineToOffset(hunk.oldStart());
+      } else if (sideBySide || oldCount == 0) {
+        y = text.lineToOffset(hunk.newStart());
+      } else if (hunk.newStart() == 0) {
+        y = 0; // the removed lines come first
+      } else {
+        // One line height below the top of line newStart - 1, whatever blocks follow it; below
+        // line 0 the offsets step by whole line heights.
+        y = text.lineToOffset(hunk.newStart() - 1) + text.lineToOffset(0) - text.lineToOffset(-1);
+      }
+      app.scrollTo(field, 0, Math.max(0, y));
     }
 
     private static void selectEditor(App<?> app, CodeEditor.State editorState, int offset) {
@@ -387,6 +418,9 @@ public final class DiffView {
     state.app = app;
     state.oldEditor.oldNumbers(null);
     state.newEditor.oldNumbers(null);
+    state.oldEditor.minMarkerSlots(0);
+    state.newEditor.minMarkerSlots(0);
+    state.oldDragLines = null;
 
     List<CodeEditor.Mark> oldMarks = state.oldEditor.layerMarks(state.oldDisplayed, DIFF_LAYER);
     List<CodeEditor.Mark> newMarks = state.newEditor.layerMarks(state.newDisplayed, DIFF_LAYER);
@@ -710,6 +744,7 @@ public final class DiffView {
 
     // Map each new line index -> 1-based old line number string ("" for added/modified new lines).
     int[] newToOld = mapNewToOldLines(diff);
+    int[] oldToNew = mapOldToNewLines(diff);
     int maxOldLine = Math.max(1, diff.oldLineCount());
     int maxNewLine = Math.max(1, diff.newLineCount());
     state.newEditor.oldNumbers(new CodeEditor.State.OldNumbers(
@@ -719,15 +754,18 @@ public final class DiffView {
             ? String.valueOf(newToOld[line] + 1)
             : ""));
 
-    List<CodeEditor.Change> newChanges = new ArrayList<>();
+    List<CodeEditor.Mark> newDiffMarks = new ArrayList<>();
     List<Scrollbars.Mark> deletedScrollMarks = new ArrayList<>();
     Map<Integer, Integer> newLineTints = new HashMap<>();
     Map<Integer, List<Diff.Span>> newWordSpans = new HashMap<>();
     Map<Integer, List<Diff.Span>> oldWordSpans = new HashMap<>();
 
+    UnifiedOldMarks unifiedOld = classifyOldMarks(state, oldMarks, oldToNew, newDiffMarks);
+
     List<El.Block> blocks = new ArrayList<>();
     Map<El.Block, Region> collapsedMap = new HashMap<>();
     Map<El.Block, DeletedChunk> deletedMap = new IdentityHashMap<>();
+    Map<El.Block, Supplier<El>> removedBlocks = new IdentityHashMap<>();
 
     for (Region r : collapsed) {
       El.Block nb = El.Block.replace(r.newFrom(), r.newTo() - 1).lines(1);
@@ -739,22 +777,45 @@ public final class DiffView {
       switch (h.kind()) {
         case ADDED -> {
           addChangeRange(
-              newChanges, state.newStarts, h.newStart(), h.newEnd(), CodeEditor.Change.Kind.ADDED);
+              newDiffMarks,
+              state.newStarts,
+              h.newStart(),
+              h.newEnd(),
+              CodeEditor.Change.Kind.ADDED);
           for (int l = h.newStart(); l < h.newEnd(); l++) {
             newLineTints.put(l, diffColors.added());
           }
         }
         case DELETED -> {
           addDeletedBlocks(
-              blocks, deletedMap, h.oldStart(), h.oldEnd(), h.newStart(), diff.newLineCount() == 0);
+              blocks,
+              deletedMap,
+              removedBlocks,
+              unifiedOld.blocks(),
+              h.oldStart(),
+              h.oldEnd(),
+              h.newStart(),
+              diff.newLineCount() == 0);
           int at = lineStart(
               state.newStarts, Math.clamp(h.newStart(), 0, Math.max(0, diff.newLineCount() - 1)));
           deletedScrollMarks.add(new Scrollbars.Mark(at, at, theme.status().danger()));
         }
         case MODIFIED -> {
-          addDeletedBlocks(blocks, deletedMap, h.oldStart(), h.oldEnd(), h.newStart(), false);
+          addDeletedBlocks(
+              blocks,
+              deletedMap,
+              removedBlocks,
+              unifiedOld.blocks(),
+              h.oldStart(),
+              h.oldEnd(),
+              h.newStart(),
+              false);
           addChangeRange(
-              newChanges, state.newStarts, h.newStart(), h.newEnd(), CodeEditor.Change.Kind.ADDED);
+              newDiffMarks,
+              state.newStarts,
+              h.newStart(),
+              h.newEnd(),
+              CodeEditor.Change.Kind.ADDED);
           for (int l = h.newStart(); l < h.newEnd(); l++) {
             newLineTints.put(l, diffColors.added());
           }
@@ -769,7 +830,10 @@ public final class DiffView {
         }
       }
     }
-    setDiffMarkup(state.newEditor, state.newDisplayed, newChanges);
+    setDiffMarkup(state.newEditor, state.newDisplayed, newDiffMarks);
+
+    int markerSlots = unifiedMarkerSlots(state.newDisplayed, newMarks, newDiffMarks, unifiedOld);
+    state.newEditor.minMarkerSlots(markerSlots);
 
     Object[] oldStartStates =
         deletedMap.isEmpty() ? new Object[0] : state.oldStartStates(highlighter);
@@ -784,9 +848,19 @@ public final class DiffView {
             return collapsedRow(theme, texts, state, region);
           }
           DeletedChunk chunk = deletedMap.get(block);
-          return chunk != null
-              ? deletedLinesBlock(theme, state, chunk, highlighter, oldStartStates, oldWordSpans)
-              : fillerBlock(theme);
+          if (chunk != null) {
+            return deletedLinesBlock(
+                theme,
+                state,
+                chunk,
+                highlighter,
+                oldStartStates,
+                oldWordSpans,
+                unifiedOld.notes(),
+                unifiedOld.occurrences());
+          }
+          Supplier<El> removedBlock = removedBlocks.get(block);
+          return removedBlock != null ? removedBlock.get() : fillerBlock(theme);
         },
         block -> {
           Region region = collapsedMap.get(block);
@@ -801,7 +875,15 @@ public final class DiffView {
           }
           DeletedChunk chunk = deletedMap.get(block);
           return chunk != null
-              ? deletedLinesGutter(theme, chunk.from(), chunk.to(), oldColW, newColW)
+              ? deletedLinesGutter(
+                  theme,
+                  state,
+                  chunk,
+                  oldColW,
+                  newColW,
+                  markerSlots,
+                  unifiedOld.markers(),
+                  unifiedOld.notes())
               : null;
         },
         null));
@@ -833,16 +915,16 @@ public final class DiffView {
   }
 
   private static void setDiffMarkup(
-      CodeEditor.State editorState, String displayed, List<CodeEditor.Change> changes) {
-    if (changes.isEmpty()) {
+      CodeEditor.State editorState, String displayed, List<? extends CodeEditor.Mark> marks) {
+    if (marks.isEmpty()) {
       editorState.noMarkup(DIFF_LAYER);
     } else {
-      editorState.markup(DIFF_LAYER, displayed, changes);
+      editorState.markup(DIFF_LAYER, displayed, marks);
     }
   }
 
   private static void addChangeRange(
-      List<CodeEditor.Change> out,
+      List<? super CodeEditor.Change> out,
       int[] starts,
       int lineStart,
       int lineEndExclusive,
@@ -1197,6 +1279,217 @@ public final class DiffView {
   }
 
   /**
+   * Maps each 0-based line in the old text to its corresponding 0-based line in the new text, or
+   * {@code -1} for lines inside {@link Diff.Kind#DELETED} or {@link Diff.Kind#MODIFIED} hunks.
+   */
+  private static int[] mapOldToNewLines(Diff diff) {
+    int[] map = new int[diff.oldLineCount()];
+    int oldPos = 0;
+    int newPos = 0;
+    for (Diff.Hunk h : diff.hunks()) {
+      int unchanged = h.oldStart() - oldPos;
+      for (int i = 0; i < unchanged; i++) {
+        map[oldPos + i] = newPos + i;
+      }
+      for (int l = h.oldStart(); l < h.oldEnd(); l++) {
+        map[l] = -1;
+      }
+      oldPos = h.oldEnd();
+      newPos = h.newEnd();
+    }
+    for (int i = 0; oldPos + i < map.length; i++) {
+      map[oldPos + i] = newPos + i;
+    }
+    return map;
+  }
+
+  /** {@link Side#OLD} marks on removed lines in {@link #unified}, by old line. */
+  private record UnifiedOldMarks(
+      Map<Integer, List<CodeEditor.Block>> blocks,
+      Set<Integer> notes,
+      Map<Integer, List<Diff.Span>> occurrences,
+      Map<Integer, List<CodeEditor.Marker>> markers) {}
+
+  /** Receives a range of the new text. */
+  @FunctionalInterface
+  private interface RangeConsumer {
+    void accept(int from, int to);
+  }
+
+  /**
+   * Sorts the {@link Side#OLD} marks for {@link #unified}: those on unchanged lines move to the
+   * same place in the new text, into {@code translatedOut}; those on removed lines are grouped by
+   * old line for the removed-lines blocks and their gutter.
+   */
+  private static UnifiedOldMarks classifyOldMarks(
+      State state,
+      List<CodeEditor.Mark> oldMarks,
+      int[] oldToNew,
+      List<CodeEditor.Mark> translatedOut) {
+    Map<Integer, List<CodeEditor.Block>> blocks = new HashMap<>();
+    Set<Integer> notes = new HashSet<>();
+    Map<Integer, List<Diff.Span>> occurrences = new HashMap<>();
+    Map<Integer, List<CodeEditor.Marker>> markers = new HashMap<>();
+    for (CodeEditor.Mark mark : oldMarks) {
+      switch (mark) {
+        case CodeEditor.Marker m ->
+          translatePoint(
+              state,
+              oldToNew,
+              m.at(),
+              at -> translatedOut.add(
+                  new CodeEditor.Marker(at, m.symbol(), m.tone(), m.label(), m.onPress())),
+              line -> markers.computeIfAbsent(line, k -> new ArrayList<>()).add(m));
+        case CodeEditor.Block b ->
+          translatePoint(
+              state,
+              oldToNew,
+              b.at(),
+              at -> translatedOut.add(new CodeEditor.Block(at, b.element())),
+              line -> blocks.computeIfAbsent(line, k -> new ArrayList<>()).add(b));
+        case CodeEditor.Highlight h ->
+          translateRange(
+              state,
+              oldToNew,
+              h.from(),
+              h.to(),
+              (from, to) -> translatedOut.add(new CodeEditor.Highlight(from, to, h.tone())),
+              line -> {
+                if (h.tone() == CodeEditor.Highlight.Tone.NOTE) {
+                  notes.add(line);
+                } else {
+                  addOccurrenceSpan(state, line, h.from(), h.to(), occurrences);
+                }
+              });
+        // shortcut: inlay hints, diagnostics and app change bars on removed lines are not shown;
+        // draw them in the removed-lines block once an app puts them there.
+        case CodeEditor.InlayHint h ->
+          translatePoint(
+              state,
+              oldToNew,
+              h.at(),
+              at -> translatedOut.add(new CodeEditor.InlayHint(at, h.affinity(), h.text())),
+              null);
+        case CodeEditor.Diagnostic d -> // without fixes: the view is read-only
+          translateRange(
+              state,
+              oldToNew,
+              d.from(),
+              d.to(),
+              (from, to) ->
+                  translatedOut.add(new CodeEditor.Diagnostic(from, to, d.severity(), d.message())),
+              null);
+        case CodeEditor.Change c ->
+          translateRange(
+              state,
+              oldToNew,
+              c.from(),
+              c.to(),
+              (from, to) -> translatedOut.add(new CodeEditor.Change(from, to, c.kind())),
+              null);
+      }
+    }
+    return new UnifiedOldMarks(blocks, notes, occurrences, markers);
+  }
+
+  private static int translateOffset(State state, int oldLine, int newLine, int oldOffset) {
+    int col = oldOffset - state.oldStarts[oldLine];
+    return Math.clamp(state.newStarts[newLine] + col, 0, state.newDisplayed.length());
+  }
+
+  /**
+   * Passes old offset {@code at} moved to the new text to {@code onUnchanged}, or its old line to
+   * {@code onRemoved} (when not null) where that line was removed.
+   */
+  private static void translatePoint(
+      State state, int[] oldToNew, int at, IntConsumer onUnchanged, IntConsumer onRemoved) {
+    if (at < 0 || at > state.oldDisplayed.length() || oldToNew.length == 0) {
+      return; // an empty old text has no line to show a mark on
+    }
+    int oldLine = lineOf(state.oldStarts, at);
+    int newLine = oldToNew[oldLine];
+    if (newLine >= 0) {
+      onUnchanged.accept(translateOffset(state, oldLine, newLine, at));
+    } else if (onRemoved != null) {
+      onRemoved.accept(oldLine);
+    }
+  }
+
+  /**
+   * Passes the parts of old range {@code [from, to)} on unchanged lines, moved to the new text, to
+   * {@code onUnchanged}, and each removed old line it touches to {@code onRemoved} (when not null).
+   */
+  private static void translateRange(
+      State state,
+      int[] oldToNew,
+      int from,
+      int to,
+      RangeConsumer onUnchanged,
+      IntConsumer onRemoved) {
+    from = Math.max(0, from);
+    to = Math.min(state.oldDisplayed.length(), to);
+    if (to <= from) {
+      translatePoint(state, oldToNew, from, at -> onUnchanged.accept(at, at), onRemoved);
+      return;
+    }
+    int runFrom = -1;
+    int runTo = -1;
+    int last = lineOf(state.oldStarts, to - 1);
+    for (int line = lineOf(state.oldStarts, from); line <= last; line++) {
+      int newLine = oldToNew[line];
+      if (newLine < 0) {
+        if (onRemoved != null) {
+          onRemoved.accept(line);
+        }
+        continue;
+      }
+      int lineFrom = translateOffset(state, line, newLine, Math.max(from, state.oldStarts[line]));
+      if (lineFrom != runTo) { // lines that follow each other in the new text make one range
+        if (runFrom >= 0) {
+          onUnchanged.accept(runFrom, runTo);
+        }
+        runFrom = lineFrom;
+      }
+      runTo = translateOffset(state, line, newLine, Math.min(to, state.oldStarts[line + 1]));
+    }
+    if (runFrom >= 0) {
+      onUnchanged.accept(runFrom, runTo);
+    }
+  }
+
+  private static void addOccurrenceSpan(
+      State state, int oldLine, int rawFrom, int rawTo, Map<Integer, List<Diff.Span>> out) {
+    int start = state.oldStarts[oldLine];
+    int lineLen = state.oldLines[oldLine].length();
+    int from = Math.max(0, rawFrom - start);
+    int to = Math.min(lineLen, rawTo - start);
+    if (to > from) {
+      out.computeIfAbsent(oldLine, k -> new ArrayList<>()).add(new Diff.Span(from, to));
+    }
+  }
+
+  /** The most app markers on any new or removed line, so removed rows line up with the others. */
+  private static int unifiedMarkerSlots(
+      String newDisplayed,
+      List<CodeEditor.Mark> newMarks,
+      List<CodeEditor.Mark> newDiffMarks,
+      UnifiedOldMarks unifiedOld) {
+    List<CodeEditor.Marker> markers = new ArrayList<>();
+    for (List<CodeEditor.Mark> marks : List.of(newMarks, newDiffMarks)) {
+      for (CodeEditor.Mark mark : marks) {
+        if (mark instanceof CodeEditor.Marker marker) {
+          markers.add(marker);
+        }
+      }
+    }
+    int max = CodeEditor.maxMarkersPerLine(newDisplayed, markers);
+    for (List<CodeEditor.Marker> onLine : unifiedOld.markers().values()) {
+      max = Math.max(max, onLine.size());
+    }
+    return max;
+  }
+
+  /**
    * Builds strictly increasing {@link ScrollState.Anchor} pairs aligning every unchanged run and
    * modified hunk start between the old and new panes.
    */
@@ -1313,26 +1606,61 @@ public final class DiffView {
 
   /**
    * Splits a removed run {@code [oldStart, oldEnd)} into consecutive blocks of at most {@link
-   * #MAX_DELETED_BLOCK_LINES} lines so layout builds only the chunks in view. When the new side is
-   * empty, the first chunk replaces its single empty line and later chunks stack after it.
+   * #MAX_DELETED_BLOCK_LINES} lines and right after every old line carrying a {@link
+   * CodeEditor.Block}, placing those blocks in order between chunks at the same insert line. When
+   * the new side is empty, the first chunk replaces its single empty line and later chunks and
+   * blocks stack after it.
    */
   private static void addDeletedBlocks(
       List<El.Block> blocks,
       Map<El.Block, DeletedChunk> deletedMap,
+      Map<El.Block, Supplier<El>> removedBlocks,
+      Map<Integer, List<CodeEditor.Block>> blocksByOldLine,
       int oldStart,
       int oldEnd,
       int newStart,
       boolean emptyNew) {
-    for (int from = oldStart; from < oldEnd; from += MAX_DELETED_BLOCK_LINES) {
-      int to = Math.min(from + MAX_DELETED_BLOCK_LINES, oldEnd);
+    int from = oldStart;
+    boolean firstChunk = true;
+    while (from < oldEnd) {
+      int limit = Math.min(from + MAX_DELETED_BLOCK_LINES, oldEnd);
+      int to = limit;
+      List<CodeEditor.Block> atEnd = null;
+      if (!blocksByOldLine.isEmpty()) {
+        for (int line = from; line < limit; line++) {
+          List<CodeEditor.Block> onLine = blocksByOldLine.get(line);
+          if (onLine != null && !onLine.isEmpty()) {
+            to = line + 1;
+            atEnd = onLine;
+            break;
+          }
+        }
+      }
       int count = to - from;
       El.Block block = emptyNew
-          ? (from == oldStart
+          ? (firstChunk
               ? El.Block.replace(0, 0).lines(count)
               : El.Block.insert(1).lines(count))
           : El.Block.insert(newStart).lines(count);
       blocks.add(block);
       deletedMap.put(block, new DeletedChunk(from, to, oldStart, oldEnd));
+      firstChunk = false;
+      if (atEnd != null) {
+        int insertLine = emptyNew ? 1 : newStart;
+        for (int i = 0; i < atEnd.size(); i++) {
+          CodeEditor.Block markBlock = atEnd.get(i);
+          String prefix = "removed-block-" + (to - 1) + "-";
+          int ordinal = i;
+          El.Block extra = El.Block.insert(insertLine).pinned(true);
+          blocks.add(extra);
+          removedBlocks.put(extra, () -> {
+            El element = markBlock.element().get();
+            // By old line too: all removed lines insert at one line, where the app's keys collide.
+            return element.key(prefix + (element.key() != null ? element.key() : ordinal));
+          });
+        }
+      }
+      from = to;
     }
   }
 
@@ -1346,7 +1674,9 @@ public final class DiffView {
       DeletedChunk chunk,
       Highlighter highlighter,
       Object[] oldStartStates,
-      Map<Integer, List<Diff.Span>> oldWordSpans) {
+      Map<Integer, List<Diff.Span>> oldWordSpans,
+      Set<Integer> removedNotes,
+      Map<Integer, List<Diff.Span>> removedOccurrences) {
     Theme.TextStyle mono = theme.type().mono();
     Theme.Diff diffColors = theme.diff();
     El container =
@@ -1354,8 +1684,17 @@ public final class DiffView {
     for (int lineIdx = chunk.from(); lineIdx < chunk.to(); lineIdx++) {
       String raw = lineIdx < state.oldLines.length ? state.oldLines[lineIdx] : "";
       List<Diff.Span> spans = oldWordSpans.get(lineIdx);
+      List<Diff.Span> occSpans = removedOccurrences.get(lineIdx);
       Object startState = lineIdx < oldStartStates.length ? oldStartStates[lineIdx] : null;
-      El row = El.row().wFull().grow(1).align(Style.Align.CENTER);
+      // From basis 0, so blank rows are as tall as the others and as their gutter rows.
+      El row = El.row().wFull().basis(0).grow(1).align(Style.Align.CENTER);
+      boolean noted = removedNotes.contains(lineIdx)
+          || (state.oldDragLines != null
+              && lineIdx >= state.oldDragLines.first()
+              && lineIdx <= state.oldDragLines.last());
+      if (noted) {
+        row.fill(theme.code().note());
+      }
       if (!raw.isEmpty()) {
         Expanded expanded = expandTabs(raw);
         El textEl = El.text(expanded.text())
@@ -1363,12 +1702,28 @@ public final class DiffView {
             .fontSize(mono.size())
             .color(theme.text().primary())
             .wrapText(false);
-        if (highlighter != null || (spans != null && !spans.isEmpty())) {
+        if (highlighter != null
+            || (spans != null && !spans.isEmpty())
+            || (occSpans != null && !occSpans.isEmpty())) {
           Object key = new DeletedHighlightKey(
-              highlighter, startState, spans == null ? List.of() : spans, diffColors.removedWord());
+              highlighter,
+              startState,
+              spans == null ? List.of() : spans,
+              diffColors.removedWord(),
+              occSpans == null ? List.of() : occSpans,
+              theme.code().occurrence());
           textEl.highlight(key, (lineText, st, out) -> {
             if (highlighter != null) {
               highlighter.line(expanded.text(), startState, out);
+            }
+            if (occSpans != null) {
+              for (Diff.Span s : occSpans) {
+                int from = expanded.map(s.from());
+                int to = expanded.map(s.to());
+                if (to > from) {
+                  out.background(from, to, theme.code().occurrence());
+                }
+              }
             }
             if (spans != null) {
               for (Diff.Span s : spans) {
@@ -1386,7 +1741,7 @@ public final class DiffView {
       }
       container.child(row);
     }
-    if (chunk.runTo() - chunk.runFrom() > MAX_DELETED_BLOCK_LINES) {
+    if (chunk.from() > chunk.runFrom() || chunk.to() < chunk.runTo()) {
       // Every chunk of a split run as wide as its widest line, so the tint stays whole sideways.
       container.child(El.el().w(widestWidth(theme, state, chunk)).h(0).shrink(0));
     }
@@ -1419,19 +1774,36 @@ public final class DiffView {
   }
 
   private record DeletedHighlightKey(
-      Highlighter highlighter, Object startState, List<Diff.Span> spans, int wordColor) {}
+      Highlighter highlighter,
+      Object startState,
+      List<Diff.Span> spans,
+      int wordColor,
+      List<Diff.Span> occurrences,
+      int occurrenceColor) {}
+
+  private record RemovedRow(int line, float top) {}
 
   /**
-   * Gutter rows for deleted lines {@code [fromLine, toLine)} in unified diff: old numbers, blank
-   * new number, red bar.
+   * Gutter rows for deleted lines of {@code chunk} in unified diff, matching {@link CodeEditor}'s
+   * gutter lanes: diagnostic slot, app markers, line action, old number, blank new number, red bar,
+   * control slot, and optional note stripe.
    */
   private static El deletedLinesGutter(
-      Theme theme, int fromLine, int toLine, float oldColW, float newColW) {
+      Theme theme,
+      State state,
+      DeletedChunk chunk,
+      float oldColW,
+      float newColW,
+      int markerSlots,
+      Map<Integer, List<CodeEditor.Marker>> removedMarkers,
+      Set<Integer> removedNotes) {
     Theme.TextStyle mono = theme.type().mono();
     float bar = theme.size().indicator();
     float s = theme.space().s();
-    El column = El.col().key("deleted-gutter-" + fromLine).wFull().hFull();
-    for (int lineIdx = fromLine; lineIdx < toLine; lineIdx++) {
+    boolean hasAction = state.lineAction != null;
+    int slots = markerSlots + (hasAction ? 1 : 0);
+    El column = El.col().key("deleted-gutter-" + chunk.from()).wFull().hFull();
+    for (int lineIdx = chunk.from(); lineIdx < chunk.to(); lineIdx++) {
       El row = El.row()
           .key("old-line-" + lineIdx)
           .align(Style.Align.CENTER)
@@ -1439,8 +1811,29 @@ public final class DiffView {
           .padding(0, s, 0, s + bar)
           .wFull()
           .grow(1)
-          .child(El.el().w(mono.size()).shrink(0))
-          .child(El.text(String.valueOf(lineIdx + 1))
+          .child(El.el().w(mono.size()).shrink(0));
+      El action = hasAction ? removedLineAction(theme, state, chunk, lineIdx) : null;
+      if (slots > 0) {
+        int placed = 0;
+        List<CodeEditor.Marker> lineMarkers = removedMarkers.get(lineIdx);
+        if (lineMarkers != null) {
+          for (CodeEditor.Marker m : lineMarkers) {
+            placed++;
+            row.child(CodeEditor.appMarker(theme, m, placed).w(mono.size()).shrink(0));
+            if (placed == markerSlots) {
+              break;
+            }
+          }
+        }
+        if (action != null) {
+          row.child(action);
+          placed++;
+        }
+        for (int i = placed; i < slots; i++) {
+          row.child(El.el().w(mono.size()).shrink(0));
+        }
+      }
+      row.child(El.text(String.valueOf(lineIdx + 1))
               .font(mono.font().get())
               .fontSize(mono.size())
               .color(theme.text().muted())
@@ -1455,9 +1848,135 @@ public final class DiffView {
               .fill(theme.status().danger())
               .alignSelf(Style.Align.STRETCH))
           .child(El.el().w(mono.size()).shrink(0));
+      if (action != null) {
+        row.whenHovered(e -> action.opacity(1));
+      }
+      if (removedNotes.contains(lineIdx)) {
+        El stripe = El.el()
+            .key("note")
+            .w(bar)
+            .fill(Colors.alpha(theme.code().note(), 1))
+            .inert();
+        Style at = stripe.style();
+        at.position = Style.Position.ABSOLUTE;
+        at.right = Len.ZERO;
+        at.top = Len.ZERO;
+        at.bottom = Len.ZERO;
+        row.child(stripe);
+      }
       column.child(row);
     }
     return column;
+  }
+
+  /**
+   * The gutter line-action button of a removed row in unified diff: hidden until its row is
+   * hovered (or while its drag runs), reporting {@link Side#OLD} lines within the same removed run.
+   */
+  private static El removedLineAction(Theme theme, State state, DeletedChunk chunk, int lineIdx) {
+    State.LineAction action = state.lineAction;
+    float size = theme.type().mono().size();
+    El button = El.row()
+        .key("action-old-line-" + lineIdx)
+        .role("button")
+        .label(action.label())
+        .size(size, size)
+        .align(Style.Align.CENTER)
+        .justify(Style.Content.CENTER)
+        .shrink(0)
+        .radius(theme.radius().small())
+        .cursor(Cursor.POINTER)
+        .opacity(state.oldDragLines != null && state.oldDragAnchor == lineIdx ? 1 : 0)
+        .keepFocus()
+        .whenHovered(e -> e.fill(theme.surface().hover()))
+        .child(Icon.icon(action.symbol(), Icon.Variant.MUTED, size));
+    button.onPress(() -> {
+      State.LineAction current = state.lineAction;
+      if (current != null) {
+        current.onPress().accept(new Lines(Side.OLD, lineIdx, lineIdx));
+      }
+    });
+    button.onDrag(drag -> {
+      State.LineAction current = state.lineAction;
+      if (current == null || drag.phase() == Drag.Phase.CANCEL) {
+        state.oldDragLines = null;
+        return;
+      }
+      Lines lines = removedDragLines(state, chunk.runFrom(), chunk.runTo(), lineIdx, drag);
+      if (drag.phase() == Drag.Phase.END) {
+        Lines done = lines != null ? lines : state.oldDragLines;
+        state.oldDragLines = null;
+        current.onPress().accept(done != null ? done : new Lines(Side.OLD, lineIdx, lineIdx));
+        return;
+      }
+      state.oldDragAnchor = lineIdx;
+      if (lines != null) {
+        state.oldDragLines = lines;
+      }
+    });
+    return Tooltip.tooltip(button, action.label());
+  }
+
+  /**
+   * The OLD lines from {@code anchor} to the removed row under a drag step within the same removed
+   * run {@code [runFrom, runTo)}, found among the laid-out gutter cells, or null when absent.
+   */
+  private static Lines removedDragLines(
+      State state, int runFrom, int runTo, int anchor, Drag drag) {
+    El editor = state.newEditor.editor();
+    if (editor == null || Double.isNaN(drag.y())) {
+      return null;
+    }
+    El gutter = null;
+    for (El child : editor.children()) {
+      if ("gutter".equals(child.key())) {
+        gutter = child;
+      }
+    }
+    if (gutter == null) {
+      return null;
+    }
+    List<RemovedRow> rows = new ArrayList<>();
+    double y = Double.NaN;
+    for (El blockCell : gutter.children()) {
+      if (blockCell.key() == null || !blockCell.key().startsWith("deleted-gutter-")) {
+        continue;
+      }
+      for (El row : blockCell.children()) {
+        if (row.key() == null || !row.key().startsWith("old-line-")) {
+          continue;
+        }
+        int line = Integer.parseInt(row.key().substring("old-line-".length()));
+        if (line < runFrom || line >= runTo) {
+          continue;
+        }
+        float rowTop = blockCell.y() + row.y();
+        rows.add(new RemovedRow(line, rowTop));
+        if (line == anchor) {
+          for (El child : row.children()) {
+            if (("action-old-line-" + anchor).equals(child.key())) {
+              y = rowTop + child.y() + drag.y();
+            }
+          }
+        }
+      }
+    }
+    if (Double.isNaN(y) || rows.isEmpty()) {
+      return null;
+    }
+    rows.sort(Comparator.comparingInt(RemovedRow::line));
+    int first = anchor;
+    int last = anchor;
+    for (int i = 0; i < rows.size(); i++) {
+      RemovedRow row = rows.get(i);
+      boolean under = (i == 0 || y >= row.top())
+          && (i + 1 == rows.size() || y < rows.get(i + 1).top());
+      if (under || row.line() == anchor) {
+        first = Math.min(first, row.line());
+        last = Math.max(last, row.line());
+      }
+    }
+    return new Lines(Side.OLD, first, last);
   }
 
   private record Expanded(String text, int[] offsets) {

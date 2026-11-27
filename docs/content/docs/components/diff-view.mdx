@@ -32,11 +32,15 @@ One editor with the new text. Removed lines show above the lines that replace th
 
 ## Review comments
 
-`DiffView.State.markup(side, layer, text, marks)` puts the marks of a [CodeEditor](/docs/components/code-editor) layer on the old or the new side, and `noMarkup(side, layer)` clears them; the layer name `"diff"` is the view's own. A `CodeEditor.Block` on one side gets empty space of the same height on the other, so the lines below stay beside each other while a thread grows. Lines with marks never collapse. `lineAction(symbol, label, onPress)` offers an action in the gutter of both sides and reports the side and the lines. Unified shows the new side only: its marks and its action.
+`DiffView.State.markup(side, layer, text, marks)` puts the marks of a [CodeEditor](/docs/components/code-editor) layer on the old or the new side, and `noMarkup(side, layer)` clears them; the layer name `"diff"` is the view's own. Side by side, a `CodeEditor.Block` on one side gets empty space of the same height on the other, so the lines below stay beside each other while a thread grows. Lines with marks never collapse. `lineAction(symbol, label, onPress)` offers an action in the gutter of both sides and reports the side and the lines.
 
 <Shot src="examples/docs/diff-view-review/view-{theme}" alt="A side-by-side SQL diff with a hovered plus button in the left gutter, a violet noted range on the right, a framed review card below it, and an empty spacer on the left keeping the following lines aligned" />
 
 ```java snippet="diff-view-review"
 ```
+
+In the unified view, `Side.NEW` marks apply directly to the editor, and `Side.OLD` marks on unchanged lines map onto their matching new lines. On removed lines, a `CodeEditor.Block` splits the removed lines right below its line, `Highlight.Tone.NOTE` tints the row and draws the gutter stripe, markers show in the gutter icon lane, and hovering a removed row reveals the gutter line action (dragging over removed rows stays within the same removed run). Because the keyboard cannot reach removed lines, the line action's context menu item acts on `Side.NEW` lines only.
+
+<Shot src="examples/docs/diff-view-review-unified/view-{theme}" alt="A unified SQL diff with a hovered plus button on a removed line, a violet noted removed line with its gutter stripe, and a framed review card placed right below that removed line" />
 
 Keep one `DiffView.State` per view in the app's state. It holds which change is current, which unchanged lines are expanded, and the app's markup layers and line action, and it can be passed to either layout.

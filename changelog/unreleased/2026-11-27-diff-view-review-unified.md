@@ -1,0 +1,1 @@
+- `DiffView.unified` shows the marks and the line action of both sides: `Side.OLD` marks on unchanged lines show on their new lines, and on removed lines a `CodeEditor.Block` appears right below its line, `NOTE` highlights tint the row and markers show in its gutter. The line action works on removed lines too and reports `Side.OLD`; its context menu item stays on new lines.

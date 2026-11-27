@@ -570,6 +570,7 @@ public final class CodeEditor {
     // Package-private hooks used by DiffView to assemble diff blocks and unified gutter numbers.
     private ExtraBlocks extraBlocks;
     private OldNumbers oldNumbers;
+    private int minMarkerSlots;
     // In a diff view: no band behind the caret's line, which its tints and fillers would mix with,
     // and no folds, which would hide lines on one side only.
     boolean diff;
@@ -596,6 +597,10 @@ public final class CodeEditor {
 
     void oldNumbers(OldNumbers oldNumbers) {
       this.oldNumbers = oldNumbers;
+    }
+
+    void minMarkerSlots(int slots) {
+      this.minMarkerSlots = Math.max(0, slots);
     }
 
     El editor() {
@@ -1637,7 +1642,7 @@ public final class CodeEditor {
     List<Highlight> usageHighlights = marks.usageHighlights();
     List<Change> changes = marks.changes();
     String builtText = state.builtText;
-    int markerSlots = maxMarkersPerLine(builtText, markers);
+    int markerSlots = Math.max(state.minMarkerSlots, maxMarkersPerLine(builtText, markers));
     List<InlayHint> inlayHints = marks.hints();
     if (!inlayHints.isEmpty()) {
       List<El.Hint> fieldHints = new ArrayList<>(inlayHints.size());
@@ -2128,7 +2133,7 @@ public final class CodeEditor {
   }
 
   /** The most app markers on any single line of {@code text}, or 0 when there are none. */
-  private static int maxMarkersPerLine(String text, List<Marker> markers) {
+  static int maxMarkersPerLine(String text, List<Marker> markers) {
     if (markers.isEmpty()) {
       return 0;
     }
@@ -2553,7 +2558,7 @@ public final class CodeEditor {
   }
 
   /** One app marker slot in the gutter's icon lane. */
-  private static El appMarker(Theme theme, Marker marker, int slot) {
+  static El appMarker(Theme theme, Marker marker, int slot) {
     float size = theme.type().mono().size();
     El place = El.row()
         .key("marker-" + slot)

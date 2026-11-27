@@ -12,6 +12,7 @@ import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.ScrollState;
 import com.rethinkj.ui.Spans;
+import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.text.TextRendering;
@@ -623,6 +624,146 @@ class DiffViewTest {
         List.of(
             new DiffView.Lines(DiffView.Side.OLD, 1, 1),
             new DiffView.Lines(DiffView.Side.NEW, 1, 2)),
+        pressed);
+  }
+
+  @Test
+  void unifiedShowsOldMarksSplitsRemovedBlocksAndReportsLineAction() {
+    String oldText = """
+        keep 0
+        removed a
+        removed b
+        removed c
+        keep 4""";
+    String newText = """
+        keep 0
+        added x
+        keep 4""";
+
+    DiffView.State state = new DiffView.State();
+    List<DiffView.Lines> pressed = new ArrayList<>();
+    state.lineAction(Symbol.ADD, "Add comment", pressed::add);
+
+    int remA = oldText.indexOf("removed a");
+    int remB = oldText.indexOf("removed b");
+    int remBEnd = remB + "removed b".length();
+    int keep4 = oldText.indexOf("keep 4");
+    int keep4End = keep4 + "keep 4".length();
+    state.markup(
+        DiffView.Side.OLD,
+        "review",
+        oldText,
+        List.of(
+            new CodeEditor.Block(remA, () -> el().key("removed-thread").h(36)),
+            new CodeEditor.Highlight(remA, remBEnd, CodeEditor.Highlight.Tone.NOTE),
+            new CodeEditor.Marker(remB, Symbol.PLAY, Icon.Variant.ACCENT, "Comment", null),
+            // The same key on another removed line: all removed lines insert at one line.
+            new CodeEditor.Block(oldText.indexOf("removed c"), () -> el().key("removed-thread")),
+            new CodeEditor.Block(keep4, () -> el().key("unchanged-thread").h(24)),
+            new CodeEditor.Highlight(keep4, keep4End, CodeEditor.Highlight.Tone.NOTE),
+            new CodeEditor.Marker(keep4, Symbol.PLAY, Icon.Variant.ACCENT, "Keep note", null)));
+
+    Model model = new Model();
+    model.diff = state;
+    App<Model> app = new App<>(
+            model,
+            s -> col()
+                .wFull()
+                .hFull()
+                .child(DiffView.unified(s.app, oldText, newText, s.diff, null)
+                    .wFull()
+                    .grow(1)))
+        .provide(Theme.CURRENT, s -> Theme.DARK);
+    model.app = app;
+    app.textRendering(TextRendering.LINUX);
+    app.resize(540, 320, 1);
+    app.frame();
+
+    El tree = app.tree();
+    El chunk1 = findByKey(tree, "deleted-1");
+    El removedThread = findByKey(tree, "removed-block-1-removed-thread");
+    El chunk2 = findByKey(tree, "deleted-2");
+    assertEquals(
+        chunk1.y() + chunk1.height(),
+        removedThread.y(),
+        0.5f,
+        "removed thread sits right below removed a");
+    assertEquals(
+        removedThread.y() + removedThread.height(),
+        chunk2.y(),
+        0.5f,
+        "remaining removed lines follow the thread");
+
+    // NOTE stripes and markers on removed rows; unchanged OLD marks mapped onto NEW line 2.
+    El oldRow1 = findByKey(tree, "old-line-1");
+    El oldRow2 = findByKey(tree, "old-line-2");
+    El oldRow3 = findByKey(tree, "old-line-3");
+    assertTrue(findByKeyOrNull(oldRow1, "note") != null, "removed a carries note stripe");
+    assertTrue(findByKeyOrNull(oldRow2, "note") != null, "removed b carries note stripe");
+    assertEquals(null, findByKeyOrNull(oldRow3, "note"), "removed c has no note stripe");
+    assertTrue(findByKeyOrNull(oldRow2, "marker-1") != null, "removed b carries marker");
+
+    El newLine2 = findByKey(tree, "line-2");
+    assertTrue(findByKeyOrNull(newLine2, "note") != null, "unchanged OLD note maps to NEW line 2");
+    assertTrue(
+        findByKeyOrNull(newLine2, "marker-1") != null, "unchanged OLD marker maps to NEW line 2");
+    El unchangedThread = findByKey(tree, "unchanged-thread");
+    assertTrue(unchangedThread.y() > newLine2.y(), "unchanged OLD block sits below NEW line 2");
+
+    // Gutter columns stay aligned between new and removed rows with marker + action slots.
+    El newLine0 = findByKey(tree, "line-0");
+    assertEquals(
+        newLine0.children().get(newLine0.children().size() - 4).x(),
+        oldRow1.children().get(oldRow1.children().size() - 5).x(),
+        0.5f,
+        "old line numbers align across new and removed rows");
+
+    // Press the action on removed line 1 -> Side.OLD (1..1).
+    float[] action1 = absCenter(tree, findByKey(tree, "action-old-line-1"));
+    app.pointerMove(action1[0], action1[1]);
+    app.frame();
+    app.pointerDown(action1[0], action1[1]);
+    app.pointerUp(action1[0], action1[1]);
+    app.frame();
+
+    // Drag across removed lines 2..3 -> Side.OLD (2..3).
+    tree = app.tree();
+    float[] dragStart = absCenter(tree, findByKey(tree, "action-old-line-2"));
+    float[] dragEnd = absCenter(tree, findByKey(tree, "old-line-3"));
+    app.pointerMove(dragStart[0], dragStart[1]);
+    app.frame();
+    app.pointerDown(dragStart[0], dragStart[1]);
+    app.pointerMove(dragStart[0], dragEnd[1]);
+    app.frame();
+    app.pointerUp(dragStart[0], dragEnd[1]);
+    app.frame();
+
+    // Dragging past the removed run into NEW line 1 stays clamped to the removed run (2..3).
+    tree = app.tree();
+    float[] newLine1Center = absCenter(tree, findByKey(tree, "line-1"));
+    app.pointerMove(dragStart[0], dragStart[1]);
+    app.frame();
+    app.pointerDown(dragStart[0], dragStart[1]);
+    app.pointerMove(dragStart[0], newLine1Center[1]);
+    app.frame();
+    app.pointerUp(dragStart[0], newLine1Center[1]);
+    app.frame();
+
+    // Press the action on added NEW line 1 -> Side.NEW (1..1).
+    tree = app.tree();
+    float[] newAction1 = absCenter(tree, findByKey(tree, "action-line-1"));
+    app.pointerMove(newAction1[0], newAction1[1]);
+    app.frame();
+    app.pointerDown(newAction1[0], newAction1[1]);
+    app.pointerUp(newAction1[0], newAction1[1]);
+    app.frame();
+
+    assertEquals(
+        List.of(
+            new DiffView.Lines(DiffView.Side.OLD, 1, 1),
+            new DiffView.Lines(DiffView.Side.OLD, 2, 3),
+            new DiffView.Lines(DiffView.Side.OLD, 2, 3),
+            new DiffView.Lines(DiffView.Side.NEW, 1, 1)),
         pressed);
   }
 

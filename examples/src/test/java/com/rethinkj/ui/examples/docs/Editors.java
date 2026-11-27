@@ -564,6 +564,7 @@ final class Editors {
     showHints();
     showReview();
     showDiffReview();
+    showDiffReviewUnified();
     int orders = sql.indexOf("orders");
     refused(sql, orders, orders + "orders".length(), "relation \"orders\" does not exist");
     int unindexed = report.indexOf("m.revenue > 0");
@@ -987,6 +988,23 @@ final class Editors {
   }
   // docs:end diff-view-review
 
+  final DiffView.State reviewedUnifiedDiff = new DiffView.State();
+
+  /** Adds a gutter comment action, a noted removed line and a review card on the old side. */
+  void showDiffReviewUnified() {
+    int lineStart = oldQuery.indexOf("  AND o.legacy = false");
+    int lineEnd = lineStart + "  AND o.legacy = false".length();
+    reviewedUnifiedDiff
+        .lineAction(Symbol.ADD, "Add comment", this::commentOnDiff)
+        .markup(
+            DiffView.Side.OLD,
+            "review",
+            oldQuery,
+            List.of(
+                new CodeEditor.Highlight(lineStart, lineEnd, CodeEditor.Highlight.Tone.NOTE),
+                new CodeEditor.Block(lineStart, this::diffReviewCard)));
+  }
+
   static El diffSideBySide(Editors state) {
     // docs:start diff-view-side-by-side
     El diff = DiffView.sideBySide(
@@ -1002,6 +1020,14 @@ final class Editors {
             state.app, state.oldQuery, state.newQuery, state.reviewedDiff, Sql.of())
         .wFull()
         .h(316);
+    return Frame.of(diff);
+  }
+
+  static El diffReviewUnified(Editors state) {
+    El diff = DiffView.unified(
+            state.app, state.oldQuery, state.newQuery, state.reviewedUnifiedDiff, Sql.of())
+        .wFull()
+        .h(336);
     return Frame.of(diff);
   }
 
