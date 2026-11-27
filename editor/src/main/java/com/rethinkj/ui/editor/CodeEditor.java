@@ -32,9 +32,10 @@ import com.rethinkj.ui.kit.Tooltip;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +44,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
+import java.util.function.Supplier;
 
 /**
  * An editor of code, such as the SQL of a query: a {@link TextField#codeArea} with line numbers and
@@ -165,9 +167,10 @@ public final class CodeEditor {
   /**
    * Something shown on the code of a {@link State#markup markup layer}: a {@link Diagnostic}, a
    * gutter {@link Marker}, a {@link Highlight} behind a range of characters, a version control
-   * {@link Change} bar, or an inline {@link InlayHint} inside a line.
+   * {@link Change} bar, an inline {@link InlayHint} inside a line, or a {@link Block} shown between
+   * lines.
    */
-  public sealed interface Mark permits Diagnostic, Marker, Highlight, Change, InlayHint {}
+  public sealed interface Mark permits Diagnostic, Marker, Highlight, Change, InlayHint, Block {}
 
   /**
    * A quick fix for a {@link Diagnostic}: replaces characters {@code from} to {@code to} by {@code
@@ -286,6 +289,31 @@ public final class CodeEditor {
       }
       Objects.requireNonNull(affinity, "affinity");
       Objects.requireNonNull(text, "text");
+    }
+  }
+
+  /**
+   * An element shown between lines in a {@link State#markup markup layer}, below the line of
+   * position {@code at} of the string, such as a review thread or inline card. It moves and is
+   * dropped like a {@link Marker}: it follows its line through edits elsewhere, is dropped when
+   * its line is deleted, and comes back after an undo to the layer's revision.
+   *
+   * <p>{@code element} is called each time the block is built, so it can read live state (such as
+   * a reply draft) without another {@link State#markup} call. Give the returned element a key
+   * ({@link El#key}) so focusable controls inside it keep their focus and state across rebuilds.
+   * At the same insert line a mark block appears before any {@link Vision} row of the next line;
+   * a block on a line inside a rendered doc comment appears after that comment; an enclosing fold
+   * hides it.
+   *
+   * @param at UTF-16 offset in the markup layer's text, 0 or more
+   * @param element builds the element each time the block is shown
+   */
+  public record Block(int at, Supplier<El> element) implements Mark {
+    public Block {
+      if (at < 0) {
+        throw new IllegalArgumentException("block offset must be 0 or more, was " + at);
+      }
+      Objects.requireNonNull(element, "element");
     }
   }
 
@@ -733,20 +761,22 @@ public final class CodeEditor {
      * marks before, computed for {@code text}. All layers show together: {@link Diagnostic}s draw squiggles,
      * show in the gutter's first icon slot, mark the scrollbar and take part in F8/Shift+F8,
      * {@link Marker}s show side by side in the gutter's icon lane (layers in order, then {@link
-     * #markers}), {@link Highlight}s draw a background in {@code code().occurrence()}, and {@link
-     * Change}s draw a bar in the gutter's change lane and ticks along the vertical scrollbar, and {@link InlayHint}s show inline inside their lines.
+     * #markers}), {@link Highlight}s draw a background in {@code code().occurrence()}, {@link
+     * Change}s draw a bar in the gutter's change lane and ticks along the vertical scrollbar,
+     * {@link InlayHint}s show inline inside their lines, and {@link Block}s show elements below
+     * their lines.
      *
      * <p>{@code text} is the revision the marks were computed for and may be older than the
      * editor's current value. The marks move with each change of the value, each edit of a bulk
      * change such as Replace All or a format on its own, and the originals show again when the
      * value is {@code text} again, as after an undo: a range {@code [from, to)} does not grow at
      * its ends (text inserted at {@code from} lands before it, at {@code to} after it), a point
-     * ({@code from == to}, a {@link Marker}'s {@code at}, and an {@link El.Hint.Affinity#AFTER}
-     * {@link InlayHint}) moves with the text after it (text inserted at it lands before it), a
-     * {@link El.Hint.Affinity#BEFORE} {@link InlayHint} moves with the text before it (text
-     * inserted at it lands after it), and a range whose characters are deleted or replaced or that
-     * gets text inserted strictly inside, a point inside replaced text, or a {@link Marker} at the
-     * start of deleted whole lines, is dropped.
+     * ({@code from == to}, a {@link Marker}'s or {@link Block}'s {@code at}, and an {@link
+     * El.Hint.Affinity#AFTER} {@link InlayHint}) moves with the text after it (text inserted at it
+     * lands before it), a {@link El.Hint.Affinity#BEFORE} {@link InlayHint} moves with the text
+     * before it (text inserted at it lands after it), and a range whose characters are deleted or
+     * replaced or that gets text inserted strictly inside, a point inside replaced text, or a
+     * {@link Marker} or {@link Block} at the start of deleted whole lines, is dropped.
      */
     public State markup(String layer, String text, List<? extends Mark> marks) {
       Objects.requireNonNull(layer, "layer");
@@ -1229,7 +1259,8 @@ public final class CodeEditor {
         List<Highlight> highlights,
         List<Highlight> usageHighlights,
         List<Change> changes,
-        List<InlayHint> hints) {}
+        List<InlayHint> hints,
+        List<Block> blocks) {}
 
     /** A string built at {@code revision}, by its hash and length. */
     private record Built(long hash, int length, long revision) {}
@@ -1329,6 +1360,10 @@ public final class CodeEditor {
               : edits.mapPoint(h.at());
           yield at < 0 ? null : new InlayHint(at, h.affinity(), h.text());
         }
+        case Block b -> {
+          int at = edits.mapLineStart(b.at());
+          yield at < 0 ? null : new Block(at, b.element());
+        }
       };
     }
 
@@ -1344,7 +1379,8 @@ public final class CodeEditor {
         problemOf = null;
       }
       if (layers.isEmpty() && problem == null) {
-        return new Marks(List.of(), List.of(), markers, List.of(), List.of(), List.of(), List.of());
+        return new Marks(
+            List.of(), List.of(), markers, List.of(), List.of(), List.of(), List.of(), List.of());
       }
       List<Diagnostic> diagnostics = new ArrayList<>();
       List<Diagnostic> current = new ArrayList<>();
@@ -1353,6 +1389,7 @@ public final class CodeEditor {
       List<Highlight> usageHighlights = new ArrayList<>();
       List<Change> changes = new ArrayList<>();
       List<InlayHint> hints = new ArrayList<>();
+      List<Block> blocks = new ArrayList<>();
       for (Map.Entry<String, Layer> entry : layers.entrySet()) {
         boolean isUsages = USAGES_LAYER.equals(entry.getKey());
         Layer layer = entry.getValue();
@@ -1376,6 +1413,7 @@ public final class CodeEditor {
             }
             case Change c -> changes.add(c);
             case InlayHint h -> hints.add(h);
+            case Block b -> blocks.add(b);
           }
         }
       }
@@ -1385,7 +1423,7 @@ public final class CodeEditor {
         diagnostics.add(new Diagnostic(problem.from(), problem.to(), Severity.ERROR, message));
       }
       return new Marks(
-          diagnostics, current, allMarkers, highlights, usageHighlights, changes, hints);
+          diagnostics, current, allMarkers, highlights, usageHighlights, changes, hints, blocks);
     }
   }
 
@@ -1509,7 +1547,7 @@ public final class CodeEditor {
         && (state.usagesFound.isEmpty() || !value.equals(state.usagesValue))) {
       state.closeUsagesMenu();
     }
-    wireBlocks(theme, state, value, editor);
+    wireBlocks(theme, state, value, editor, marks.blocks());
     if (state.blockOutline && state.blockFrom < state.blockTo) {
       editor.outline(state.blockFrom, state.blockTo, theme.accent().edge());
     }
@@ -1648,23 +1686,17 @@ public final class CodeEditor {
       }
       Command command = command(k);
       boolean editableNow = editor.onEdit() != null && !editor.isReadOnly();
-      boolean formats = state.formatter != null
-          && editableNow
-          && app.focused() == editor; // not from the find bar, an overlay of the editor
-      boolean fixesHere = editableNow
-          && app.focused() == editor
-          && !fixesAt(state.currentDiagnostics, state.caret).isEmpty();
+      // Not from the find bar or a field in a block between lines: their keys are their own.
       if (command == null
-          || (command == Command.FORMAT && !formats)
-          || (command == Command.QUICK_FIXES && !fixesHere)
-          || (command == Command.QUICK_DOCUMENTATION
-              && (state.documentation == null || app.focused() != editor))
-          || (command == Command.GO_TO_DECLARATION
-              && (state.declaration == null || app.focused() != editor))
+          || app.focused() != editor
+          || (command == Command.FORMAT && (state.formatter == null || !editableNow))
+          || (command == Command.QUICK_FIXES
+              && (!editableNow || fixesAt(state.currentDiagnostics, state.caret).isEmpty()))
+          || (command == Command.QUICK_DOCUMENTATION && state.documentation == null)
+          || (command == Command.GO_TO_DECLARATION && state.declaration == null)
           || ((command == Command.FIND_USAGES || command == Command.HIGHLIGHT_USAGES)
-              && (state.usages == null || app.focused() != editor))
-          || ((command == Command.FOLD || command == Command.UNFOLD)
-              && (state.diff || app.focused() != editor))) {
+              && state.usages == null)
+          || ((command == Command.FOLD || command == Command.UNFOLD) && state.diff)) {
         return false; // keys stay the app's where not applicable
       }
       run(app, state, command);
@@ -1727,7 +1759,8 @@ public final class CodeEditor {
   }
 
   /** The editor's blocks between lines, all kinds in one list, and the element of each. */
-  private static void wireBlocks(Theme theme, State state, String value, El editor) {
+  private static void wireBlocks(
+      Theme theme, State state, String value, El editor, List<Block> markBlocks) {
     if (!value.equals(state.visionOf) || state.codeVision != state.visionFor) {
       state.visionRows = CodeVision.rows(editor.text().string(), state.codeVision);
       state.visionOf = value;
@@ -1737,22 +1770,68 @@ public final class CodeEditor {
     List<DocRange> rendered = state.renderedDocs();
     State.ExtraBlocks extra = state.extraBlocks;
     List<El.Block> extraList = extra == null ? List.of() : extra.blocks();
-    if (vision.isEmpty() && rendered.isEmpty() && extraList.isEmpty()) {
+    if (markBlocks.isEmpty() && vision.isEmpty() && rendered.isEmpty() && extraList.isEmpty()) {
       return;
     }
-    List<El.Block> blocks = new ArrayList<>(vision.size() + rendered.size() + extraList.size());
-    for (int line : vision.keySet()) {
-      blocks.add(El.Block.insert(line));
-    }
-    Set<El.Block> extraSet = extraList.isEmpty() ? Set.of() : new HashSet<>(extraList);
-    blocks.addAll(extraList);
-    Map<El.Block, DocRange> docs = new HashMap<>();
+    List<DocRange> activeDocs = rendered.isEmpty() ? List.of() : new ArrayList<>(rendered.size());
     for (DocRange doc : rendered) {
       if (!overlapsReplace(extraList, doc.firstLine(), doc.lastLine())) {
-        El.Block block = El.Block.replace(doc.firstLine(), doc.lastLine());
-        blocks.add(block);
-        docs.put(block, doc);
+        activeDocs.add(doc);
       }
+    }
+    List<El.Block> blocks =
+        new ArrayList<>(markBlocks.size() + vision.size() + activeDocs.size() + extraList.size());
+    // Mark blocks come before CodeVision rows so that at the same insert line a block below line L
+    // appears before the CodeVision row of line L + 1. Equal descriptors are distinguished by
+    // instance using identity maps.
+    Map<El.Block, Block> markMap =
+        markBlocks.isEmpty() ? Map.of() : new IdentityHashMap<>(markBlocks.size());
+    if (!markBlocks.isEmpty()) {
+      String text = state.builtText;
+      int len = text.length();
+      int lines = lineOf(text, len) + 1; // a restored fold may reach past the end
+      List<El.Fold> folds = state.folds();
+      for (Block markBlock : markBlocks) {
+        if (markBlock.at() > len) {
+          continue;
+        }
+        int line = lineOf(text, markBlock.at());
+        if (isFoldHidden(folds, line)) {
+          continue;
+        }
+        DocRange doc = renderedDocAt(activeDocs, line);
+        int insertLine = doc != null ? doc.lastLine() + 1 : line + 1;
+        while (insertLine < lines && isFoldHidden(folds, insertLine)) { // below a pill, not in it
+          insertLine++;
+        }
+        El.Block block = El.Block.insert(insertLine);
+        blocks.add(block);
+        markMap.put(block, markBlock);
+      }
+    }
+    Map<El.Block, CodeVision.Row> visionMap =
+        vision.isEmpty() ? Map.of() : new IdentityHashMap<>(vision.size());
+    for (Map.Entry<Integer, CodeVision.Row> entry : vision.entrySet()) {
+      El.Block block = El.Block.insert(entry.getKey());
+      blocks.add(block);
+      visionMap.put(block, entry.getValue());
+    }
+    Set<El.Block> extraSet = extraList.isEmpty()
+        ? Set.of()
+        : Collections.newSetFromMap(new IdentityHashMap<>(extraList.size()));
+    if (!extraList.isEmpty()) {
+      extraSet.addAll(extraList);
+      blocks.addAll(extraList);
+    }
+    Map<El.Block, DocRange> docs =
+        activeDocs.isEmpty() ? Map.of() : new IdentityHashMap<>(activeDocs.size());
+    for (DocRange doc : activeDocs) {
+      El.Block block = El.Block.replace(doc.firstLine(), doc.lastLine());
+      blocks.add(block);
+      docs.put(block, doc);
+    }
+    if (blocks.isEmpty()) {
+      return;
     }
     float space = docs.isEmpty() ? 0 : spaceWidth(theme);
     editor.blocks(
@@ -1761,9 +1840,15 @@ public final class CodeEditor {
           if (extraSet.contains(block)) {
             return extra.builder().apply(block);
           }
-          return block.placement() == El.Block.Placement.INSERT
-              ? CodeVision.row(theme, editor, block.first(), vision.get(block.first()))
-              : renderedDoc(theme, state, docs.get(block), space);
+          Block markBlock = markMap.get(block);
+          if (markBlock != null) {
+            return markBlock.element().get();
+          }
+          CodeVision.Row row = visionMap.get(block);
+          if (row != null) {
+            return CodeVision.row(theme, editor, block.first(), row);
+          }
+          return renderedDoc(theme, state, docs.get(block), space);
         },
         block -> {
           if (extraSet.contains(block)) {
@@ -1778,8 +1863,29 @@ public final class CodeEditor {
           }
         });
     if (extra != null && extra.gutter() != null) {
-      editor.blockGutter(extra.gutter());
+      editor.blockGutter(block -> extraSet.contains(block) ? extra.gutter().apply(block) : null);
     }
+  }
+
+  private static boolean isFoldHidden(List<El.Fold> folds, int line) {
+    for (El.Fold fold : folds) {
+      if (line > fold.first() && line <= fold.last()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static DocRange renderedDocAt(List<DocRange> docs, int line) {
+    for (DocRange doc : docs) {
+      if (line >= doc.firstLine() && line <= doc.lastLine()) {
+        return doc;
+      }
+      if (doc.firstLine() > line) {
+        return null;
+      }
+    }
+    return null;
   }
 
   private static boolean overlapsReplace(List<El.Block> blocks, int first, int last) {
@@ -2315,7 +2421,10 @@ public final class CodeEditor {
       state.shown = -1;
       return true;
     }
-    if (!k.name().equals("F8") || (k.modifiers() & ~Key.SHIFT) != 0 || diagnostics.isEmpty()) {
+    if (!k.name().equals("F8")
+        || (k.modifiers() & ~Key.SHIFT) != 0
+        || diagnostics.isEmpty()
+        || app.focused() != editor) {
       return false;
     }
     int at = next(diagnostics, state.caret, k.modifiers() == Key.SHIFT);

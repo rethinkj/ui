@@ -11,11 +11,13 @@ import com.rethinkj.ui.Image;
 import com.rethinkj.ui.RowHeights;
 import com.rethinkj.ui.ScrollState;
 import com.rethinkj.ui.Scrollbars;
+import com.rethinkj.ui.Style;
 import com.rethinkj.ui.TextDocument;
 import com.rethinkj.ui.editor.CodeEditor;
 import com.rethinkj.ui.editor.DiffView;
 import com.rethinkj.ui.java.Java;
 import com.rethinkj.ui.json.Json;
+import com.rethinkj.ui.kit.Avatar;
 import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Card;
 import com.rethinkj.ui.kit.Chat;
@@ -459,6 +461,49 @@ final class Editors {
             new CodeEditor.InlayHint(countEnd, El.Hint.Affinity.BEFORE, ": int")));
   }
   // docs:end code-editor-inlay-hints
+  String reviewSql = """
+      SELECT id, total
+      FROM orders
+      WHERE status = 'paid'
+      ORDER BY placed_at DESC;""";
+  final CodeEditor.State reviewEditor = new CodeEditor.State();
+  String reviewReply = "";
+
+  // docs:start code-editor-blocks
+  void reviewReply(String value) {
+    reviewReply = value;
+  }
+
+  /** Attaches a review card below the WHERE line; its supplier reads live state on each build. */
+  void showReview() {
+    int lineStart = reviewSql.indexOf("WHERE");
+    reviewEditor.markup(
+        "review", reviewSql, List.of(new CodeEditor.Block(lineStart, this::reviewCard)));
+  }
+
+  El reviewCard() {
+    Theme theme = Theme.CURRENT.get();
+    El header = El.row()
+        .align(Style.Align.CENTER)
+        .gap(theme.space().s())
+        .child(Avatar.avatar("Ada Lovelace", null, 20))
+        .child(Label.label(Label.Variant.STRONG, "Ada Lovelace"))
+        .child(Label.label(Label.Variant.SMALL, "2m ago"));
+    El card = El.col()
+        .fill(theme.surface().raised())
+        .border(theme.size().stroke(), theme.border().subtle())
+        .radius(theme.radius().large())
+        .padding(theme.space().m())
+        .gap(theme.space().s())
+        .w(420)
+        .child(header)
+        .child(Label.label("Should this also exclude refunded orders?").wrap())
+        .child(TextField.textField(reviewReply, "Write a reply", this::reviewReply)
+            .key("reply")
+            .wFull());
+    return El.col().key("review-1").padding(theme.space().s(), 0).child(card);
+  }
+  // docs:end code-editor-blocks
   final Completion.State completion = new Completion.State();
   String notes = "Ship by Friday.\nCall the north warehouse on Monday.";
   final Find.State find = new Find.State();
@@ -492,6 +537,7 @@ final class Editors {
     showInlineDiagnostics();
     showGutter();
     showHints();
+    showReview();
     int orders = sql.indexOf("orders");
     refused(sql, orders, orders + "orders".length(), "relation \"orders\" does not exist");
     int unindexed = report.indexOf("m.revenue > 0");
@@ -597,6 +643,10 @@ final class Editors {
 
   void hintedJava(String value) {
     hintedJava = value;
+  }
+
+  void reviewSql(String value) {
+    reviewSql = value;
   }
 
   // docs:start code-editor-json-format
@@ -876,6 +926,16 @@ final class Editors {
         .key("scanner")
         .label("Scanner")
         .lines(6)
+        .wFull();
+    return Frame.of(editor);
+  }
+
+  static El blocks(Editors state) {
+    El editor = CodeEditor.codeEditor(
+            state.app, state.reviewSql, state.reviewEditor, Sql.of(), state::reviewSql)
+        .key("review")
+        .label("Query")
+        .lines(10)
         .wFull();
     return Frame.of(editor);
   }

@@ -10,9 +10,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.Spans;
 import com.rethinkj.ui.TextEdit;
 import com.rethinkj.ui.kit.Icon;
+import com.rethinkj.ui.kit.Label;
+import com.rethinkj.ui.kit.Markdown;
 import com.rethinkj.ui.kit.Symbol;
+import com.rethinkj.ui.kit.TextField;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -640,6 +644,204 @@ class CodeEditorMarkupTest {
     String undone = Files.readString(out.resolve("undone.tree.txt"));
     assertTrue(cell(undone, 0).contains("Top marker"), undone);
     assertTrue(cell(undone, 1).contains("Bottom marker"), undone);
+  }
+
+  @Test
+  void blockMarksMoveDropUndoMergeAndKeepFieldFocus() throws IOException {
+    TextLibraries.assumeLoaded();
+    String text = """
+        /// Line one of doc
+        /// Line two of doc
+        void run() {
+          first();
+          second();
+        }""";
+    Language docLang = new Language() {
+      @Override
+      public Object line(String line, Object state, Spans out) {
+        return null;
+      }
+
+      @Override
+      public Object comments(String line, Object state, Out out) {
+        if (line.startsWith("///")) {
+          out.comment(0, line.length(), true, Boolean.TRUE.equals(state));
+          return Boolean.TRUE;
+        }
+        return null;
+      }
+
+      @Override
+      public DocComment docComment(String raw) {
+        return new DocComment(
+            Markdown.parse(raw.replace("///", "").trim()),
+            List.of(),
+            null,
+            List.of(),
+            List.of(),
+            null);
+      }
+    };
+
+    Doc doc = new Doc(text);
+    String[] reply = {""};
+    int docLine0 = 0;
+    int header = text.indexOf("void run()");
+    int firstLine = text.indexOf("  first();");
+    int secondLine = text.indexOf("  second();");
+    doc.editor.readerMode(true);
+    doc.editor.codeVision(List.of(new CodeEditor.Vision(4, null, "1 usage", null)));
+    doc.editor.markup(
+        "review",
+        text,
+        List.of(
+            new CodeEditor.Block(
+                docLine0, () -> El.row().key("doc-note").child(Label.label("Doc review"))),
+            new CodeEditor.Block(
+                header, () -> El.row().key("header-note").child(Label.label("Header"))),
+            new CodeEditor.Block(
+                firstLine,
+                () -> El.row()
+                    .key("review-card")
+                    .child(TextField.textField(reply[0], "Reply", value -> reply[0] = value)
+                        .key("reply-field")
+                        .w(160))),
+            new CodeEditor.Block(
+                firstLine, () -> El.row().key("second-note").child(Label.label("Follow-up"))),
+            new CodeEditor.Block(
+                secondLine, () -> El.row().key("tail-note").child(Label.label("Tail note")))));
+
+    App<Doc> app = new App<>(
+        doc,
+        state -> col()
+            .wFull()
+            .hFull()
+            .padding(12)
+            .child(codeEditor(
+                    state.app, state.text, state.editor, docLang, value -> state.text = value)
+                .key("code")
+                .lines(14)
+                .wFull()));
+    doc.app = app;
+    app.textRendering(TextRendering.LINUX);
+
+    // 1. Doc comment block placed after rendered doc (lines 0..1), two blocks on line 3 stay
+    // distinct and appear before line 4's CodeVision row.
+    Script.run("size 520 360 scale 2\nframe\nsnap initial", app, out);
+    String initial = Files.readString(out.resolve("initial.tree.txt"));
+    assertTrue(initial.contains("#doc-0 "), initial);
+    assertTrue(initial.contains("#doc-note "), initial);
+    assertTrue(initial.contains("#review-card "), initial);
+    assertTrue(initial.contains("#second-note "), initial);
+    assertTrue(initial.contains("#vision-4 "), initial);
+    assertTrue(initial.contains("#tail-note "), initial);
+    int docY = blockY(initial, "doc-0");
+    int docNoteY = blockY(initial, "doc-note");
+    int cardY = blockY(initial, "review-card");
+    int secondNoteY = blockY(initial, "second-note");
+    int visionY = blockY(initial, "vision-4");
+    assertTrue(docNoteY > docY, "block on line inside rendered doc goes after doc:\n" + initial);
+    assertTrue(cardY < secondNoteY, "two blocks on same line keep order:\n" + initial);
+    assertTrue(
+        secondNoteY < visionY, "mark blocks come before CodeVision of next line:\n" + initial);
+
+    // 2. Kit TextField inside a keyed block keeps focus and text across rebuilds.
+    Script.run("""
+        size 520 360 scale 2
+        focus #reply-field
+        frame
+        type "looks good"
+        frame
+        key K control shift
+        frame
+        """, app, out);
+    assertEquals(text, doc.text, "the editor's keys stay out of a field in a block");
+    assertEquals("looks good", reply[0], "typed text updated live state");
+    assertEquals("reply-field", app.focused().key(), "focus stayed in reply field across rebuilds");
+    app.invalidate();
+    Script.run("size 520 360 scale 2\nframe\nsnap typed", app, out);
+    assertEquals("reply-field", app.focused().key(), "focus survived extra rebuild");
+    String typed = Files.readString(out.resolve("typed.tree.txt"));
+    assertTrue(typed.contains("\"looks good\""), typed);
+
+    // 3. Folding the method body (lines 2..4) hides blocks on lines 3 and 4 (last hidden line),
+    // and shows the one on line 2 below its pill.
+    doc.editor.folds(List.of(new El.Fold(2, 4)));
+    app.invalidate();
+    Script.run("size 520 360 scale 2\nframe\nsnap folded", app, out);
+    String folded = Files.readString(out.resolve("folded.tree.txt"));
+    assertTrue(folded.contains("#doc-note "), folded);
+    assertTrue(folded.contains("#header-note "), folded);
+    assertFalse(folded.contains("#review-card "), folded);
+    assertFalse(folded.contains("#second-note "), folded);
+    assertFalse(
+        folded.contains("#tail-note "), "fold hides block on its last hidden line:\n" + folded);
+    doc.editor.folds(List.of());
+    app.invalidate();
+
+    // 4. Insert a line above line 3: blocks stay below their shifted line.
+    doc.editor.select(text.indexOf("void run()"), text.indexOf("void run()"));
+    Script.run("""
+        size 520 360 scale 2
+        frame
+        focus #code
+        key Enter
+        frame
+        snap shifted
+        """, app, out);
+    String shifted = Files.readString(out.resolve("shifted.tree.txt"));
+    assertTrue(shifted.contains("#review-card "), shifted);
+    int shiftedCardY = blockY(shifted, "review-card");
+    int shiftedLine4Y = lineY(shifted, 4);
+    int shiftedLine5Y = lineY(shifted, 5);
+    assertTrue(
+        shiftedCardY > shiftedLine4Y && shiftedCardY < shiftedLine5Y,
+        "block stayed between shifted line 4 and line 5:\n" + shifted);
+
+    // 5. Delete the block's line with Ctrl+Shift+K: blocks on it are dropped; Ctrl+Z brings back.
+    int shiftedFirst = doc.text.indexOf("  first();");
+    doc.editor.select(shiftedFirst, shiftedFirst);
+    Script.run("""
+        size 520 360 scale 2
+        frame
+        focus #code
+        key K control shift
+        frame
+        snap deleted
+        """, app, out);
+    String deleted = Files.readString(out.resolve("deleted.tree.txt"));
+    assertFalse(deleted.contains("#review-card "), deleted);
+    assertFalse(deleted.contains("#second-note "), deleted);
+    assertTrue(deleted.contains("#tail-note "), deleted);
+
+    Script.run("""
+        size 520 360 scale 2
+        key Z control
+        frame
+        key Z control
+        frame
+        snap undone
+        """, app, out);
+    String undone = Files.readString(out.resolve("undone.tree.txt"));
+    assertTrue(undone.contains("#review-card "), undone);
+    assertTrue(undone.contains("#second-note "), undone);
+    assertTrue(undone.contains("\"looks good\""), undone);
+  }
+
+  /** The y coordinate of the block element with key {@code key} in {@code tree}. */
+  private static int blockY(String tree, String key) {
+    String line = tree.lines()
+        .filter(l -> l.contains(" #" + key + " "))
+        .findFirst()
+        .orElseThrow(() -> new AssertionError("Missing #" + key + " in:\n" + tree));
+    String[] parts = line.trim().split(" ");
+    String coords = parts[parts.length - 2];
+    return Integer.parseInt(coords.substring(coords.indexOf(',') + 1));
+  }
+
+  /** The y coordinate of the gutter cell of line {@code index} in {@code tree}. */
+  private static int lineY(String tree, int index) {
+    return blockY(tree, "line-" + index);
   }
 
   /** The tree dump of the gutter cell of line {@code index}. */

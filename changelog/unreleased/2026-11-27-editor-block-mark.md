@@ -1,0 +1,1 @@
+- `CodeEditor.Block(at, element)` is a new mark for `markup` layers that shows an app's element, such as a review thread, below the line of `at`; it moves with edits and is dropped with its line like a `Marker`. The editor's own shortcuts (Control+Shift+K, F8 and others) now act only while the editor itself has focus, not from a field inside a block or the find bar.

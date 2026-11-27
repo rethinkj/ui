@@ -5,7 +5,7 @@ description: Collapsible bracket folds, inline code vision rows, and parameter o
 
 [CodeEditor](/docs/components/code-editor) supports collapsing multi-line bracket blocks, inserting muted code vision rows above declarations, and rendering inline parameter or type hints inside lines without modifying the document text.
 
-Javadoc: [`CodeEditor.State`](/api/com/rethinkj/ui/editor/CodeEditor.State.html), [`CodeEditor.Vision`](/api/com/rethinkj/ui/editor/CodeEditor.Vision.html), [`CodeEditor.InlayHint`](/api/com/rethinkj/ui/editor/CodeEditor.InlayHint.html), [`El.Fold`](/api/com/rethinkj/ui/El.Fold.html), [`El.Hint`](/api/com/rethinkj/ui/El.Hint.html).
+Javadoc: [`CodeEditor.State`](/api/com/rethinkj/ui/editor/CodeEditor.State.html), [`CodeEditor.Vision`](/api/com/rethinkj/ui/editor/CodeEditor.Vision.html), [`CodeEditor.InlayHint`](/api/com/rethinkj/ui/editor/CodeEditor.InlayHint.html), [`CodeEditor.Block`](/api/com/rethinkj/ui/editor/CodeEditor.Block.html), [`El.Fold`](/api/com/rethinkj/ui/El.Fold.html), [`El.Hint`](/api/com/rethinkj/ui/El.Hint.html).
 
 ## Folding
 
@@ -38,6 +38,17 @@ Pass `CodeEditor.InlayHint(at, affinity, text)` marks through `markup(layer, tex
 
 Because hints live in a markup layer, they move across edits: `AFTER` hints stay with the text after `at` (text inserted at `at` lands before them), `BEFORE` hints stay with the text before `at` (text inserted at `at` lands after them), hints inside replaced text are dropped, and undoing back to `text` restores the originals.
 
+## Blocks between lines
+
+Pass `CodeEditor.Block(at, element)` marks through `markup(layer, text, list)` on `CodeEditor.State` to place arbitrary elements — such as an inline review card — below the line of `at`. The `Supplier<El>` is called each time the block is built, so it reads live state (such as a reply draft) without another `markup` call on each keystroke. Give the returned element a `.key(...)` so focusable controls inside it keep their focus and state across rebuilds.
+
+<Shot src="examples/docs/code-editor-blocks/view-{theme}" alt="A SQL query in the code editor with a framed review card below the WHERE line showing an avatar, author name, muted timestamp, comment text, and a reply text field" />
+
+```java snippet="code-editor-blocks"
+```
+
+Because block marks live in a markup layer, they move and drop like `Marker`s: they follow their line through edits elsewhere, are dropped when their line is deleted, and return on undo back to `text`. At the same insert line a mark block appears before any code vision row of the next line; a block on a line inside a rendered doc comment appears after that comment; an enclosing fold hides it.
+
 ## In a tree dump
 
-Fold toggles in the gutter are `#fold-line-<index>`, visible folded pills are `#fold-<first>`, visible code vision rows are `#vision-<line>`, and visible inlay hints are `#hint-<at>`.
+Fold toggles in the gutter are `#fold-line-<index>`, visible folded pills are `#fold-<first>`, visible code vision rows are `#vision-<line>`, visible inlay hints are `#hint-<at>`, and visible unkeyed mark blocks are `#block-<insertLine>` (or their explicit key).
