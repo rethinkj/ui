@@ -358,6 +358,69 @@ class NavListTest {
     assertEquals(List.of("side", "general"), chosen);
   }
 
+  @Test
+  void aKeyOpenedRowMenuDoesNotReopenAfterTheAppChangesSelectionWhileTheRowIsOutOfView()
+      throws IOException {
+    Menu.State rowMenu = new Menu.State();
+    selected = 0;
+    App<NavListTest> app = new App<>(
+        this,
+        state -> col()
+            .wFull()
+            .hFull()
+            .child(NavList.navList(
+                    100,
+                    i -> i == 0
+                        ? NavList.item("Row A")
+                            .contextMenu(rowMenu, List.of(Menu.item("Inspect A", () -> {})))
+                        : NavList.item("Row " + i),
+                    state.selected,
+                    i -> state.selected = i)
+                .key("list")
+                .grow(1)));
+    app.textRendering(TextRendering.LINUX);
+
+    // Select A, scroll A out of view, then open A's menu with Shift+F10 on the focused list.
+    Script.run("""
+        size 240 200
+        frame
+        wheel #list 0 1000
+        frame
+        advance 1
+        frame
+        focus #list
+        frame
+        key F10 shift
+        frame
+        advance 1
+        frame
+        """, app, out);
+    String dump = app.tree().dump();
+    assertFalse(dump.contains("label=\"Row A\""), "Row A must be scrolled out of view: " + dump);
+    assertTrue(rowMenu.isOpen(), "Shift+F10 must open Row A's menu");
+    assertTrue(dump.contains("on #list role=listbox"), dump);
+    assertTrue(dump.contains("role=menuitem label=\"Inspect A\""), dump);
+
+    // Rebuilding while Row A stays selected keeps the key-opened menu open.
+    app.invalidate();
+    app.frame();
+    assertTrue(rowMenu.isOpen(), "menu stays open while selection stays on Row A");
+
+    // The app selects Row B (no menu) for one build, then Row A again: the menu that comes back
+    // closes in the next frame instead of staying open.
+    selected = 50;
+    app.invalidate();
+    app.frame();
+    selected = 0;
+    app.invalidate();
+    app.frame();
+    app.frame();
+    assertFalse(rowMenu.isOpen(), "menu must close once selection left Row A for a build");
+    app.advance(1);
+    app.frame();
+    assertFalse(app.tree().dump().contains("role=menu"), app.tree().dump());
+  }
+
   private static El trailing(Theme theme, String time, Symbol symbol, Icon.Variant variant) {
     return row()
         .gap(theme.space().xs())
