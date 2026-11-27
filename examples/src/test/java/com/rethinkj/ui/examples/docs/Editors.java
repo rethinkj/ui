@@ -13,6 +13,7 @@ import com.rethinkj.ui.ScrollState;
 import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.TextDocument;
+import com.rethinkj.ui.TextEdit;
 import com.rethinkj.ui.editor.CodeEditor;
 import com.rethinkj.ui.editor.DiffView;
 import com.rethinkj.ui.java.Java;
@@ -332,16 +333,16 @@ final class Editors {
   CodeEditor.Location openedLocation;
   // docs:start code-editor-navigation
   final CodeEditor.State navigatedEditor = new CodeEditor.State()
-      .declaration(this::declarationAt)
-      .usages(this::usagesAt)
+      .declaration(offset -> declarationIn(cteQuery, offset))
+      .usages(offset -> usagesIn(cteQuery, offset))
       .onOpen(this::openLocation);
 
-  CodeEditor.Location declarationAt(int offset) {
-    int start = CodeWords.start(cteQuery, offset);
-    int end = CodeWords.end(cteQuery, offset);
-    return switch (cteQuery.substring(start, end)) {
+  CodeEditor.Location declarationIn(String sql, int offset) {
+    int start = CodeWords.start(sql, offset);
+    int end = CodeWords.end(sql, offset);
+    return switch (sql.substring(start, end)) {
       case "paid_orders" -> {
-        int declared = cteQuery.indexOf("paid_orders");
+        int declared = sql.indexOf("paid_orders");
         yield new CodeEditor.Location(declared, declared + "paid_orders".length());
       }
       case "orders" -> new CodeEditor.Location("schema.sql", 14, 20, null);
@@ -349,17 +350,15 @@ final class Editors {
     };
   }
 
-  List<CodeEditor.Location> usagesAt(int offset) {
-    int start = CodeWords.start(cteQuery, offset);
-    int end = CodeWords.end(cteQuery, offset);
-    if (!cteQuery.substring(start, end).equals("paid_orders")) {
+  List<CodeEditor.Location> usagesIn(String sql, int offset) {
+    int start = CodeWords.start(sql, offset);
+    int end = CodeWords.end(sql, offset);
+    if (!sql.substring(start, end).equals("paid_orders")) {
       return List.of();
     }
     List<CodeEditor.Location> found = new ArrayList<>();
     String symbol = "paid_orders";
-    for (int at = cteQuery.indexOf(symbol);
-        at >= 0;
-        at = cteQuery.indexOf(symbol, at + symbol.length())) {
+    for (int at = sql.indexOf(symbol); at >= 0; at = sql.indexOf(symbol, at + symbol.length())) {
       found.add(new CodeEditor.Location(at, at + symbol.length()));
     }
     found.add(new CodeEditor.Location("report.sql", 8, 19, null));
@@ -370,6 +369,17 @@ final class Editors {
     openedLocation = location;
   }
   // docs:end code-editor-navigation
+  // docs:start code-editor-navigation-background
+  final CodeEditor.State remoteEditor = new CodeEditor.State().onOpen(this::openLocation);
+
+  // Called on each build, before CodeEditor.codeEditor.
+  void lookUpInBackground() {
+    String sql = cteQuery; // the text the offsets are in; the work reads it on another thread
+    remoteEditor
+        .declarationInBackground("declaration", offset -> declarationIn(sql, offset))
+        .usagesInBackground("usages", offset -> usagesIn(sql, offset));
+  }
+  // docs:end code-editor-navigation-background
   // docs:start line-blocks
   String source = "/** Summarizes paid orders. */\nint total() {\n  return 0;\n}";
   List<El.Block> lineBlocks = new ArrayList<>(List.of(El.Block.replace(0, 0), El.Block.insert(1)));
@@ -530,6 +540,26 @@ final class Editors {
   }
   // docs:end code-editor-blocks
   final Completion.State completion = new Completion.State();
+  String completionSql = "SELECT id, total\nFROM ";
+  final CodeEditor.State completionEditor = new CodeEditor.State();
+  // docs:start completion-documentation
+  final Completion.State documentedCompletion =
+      new Completion.State().documentation("completion-doc", Editors::tableDocumentation);
+
+  static MarkdownDocument tableDocumentation(Completion.Entry entry) {
+    return switch (entry.text()) {
+      case "orders" -> Markdown.parse("""
+          **Table `orders`**
+
+          Customer orders placed in the store. Columns: `id`, `customer_id`, `total`, `status`.""");
+      case "order_items" -> Markdown.parse("""
+          **Table `order_items`**
+
+          Line items of an order. Columns: `order_id`, `sku`, `quantity`, `price`.""");
+      default -> null;
+    };
+  }
+  // docs:end completion-documentation
   String notes = "Ship by Friday.\nCall the north warehouse on Monday.";
   final Find.State find = new Find.State();
   final MarkdownDocument readme = Markdown.parse("""
@@ -743,6 +773,59 @@ final class Editors {
     // docs:end code-editor-embedded
     return Frame.of(card.wFull());
   }
+
+  void completionSql(String value) {
+    completionSql = value;
+  }
+
+  static El completionDocumentation(Editors state) {
+    El editor = CodeEditor.codeEditor(
+            state.app, state.completionSql, state.completionEditor, Sql.of(), state::completionSql)
+        .key("query")
+        .label("Query")
+        .lines(6)
+        .wFull();
+    El withCompletions = Completion.complete(
+        state.app,
+        editor,
+        state.completionEditor.caret(),
+        state.documentedCompletion,
+        word -> TABLES.stream()
+            .filter(name -> name.startsWith(word.toLowerCase(Locale.ROOT)))
+            .map(name -> new Completion.Entry(name, Symbol.TABLE, "table"))
+            .toList());
+    return Frame.of(withCompletions);
+  }
+
+  // docs:start code-editor-completion
+  final Completion.State javaCompletion = new Completion.State().openAfter(".");
+
+  List<Completion.Entry> suggestJava(Completion.Context context) {
+    if (context.trigger() == Completion.Trigger.OPEN_AFTER && ".".equals(context.character())) {
+      return List.of(new Completion.Entry(
+          "size", Symbol.CODE, "method", "size()", "() : int", -1, -1, List.of()));
+    }
+    return List.of(new Completion.Entry(
+        "Instant",
+        Symbol.CODE,
+        "class",
+        "Instant",
+        "java.time",
+        context.wordFrom(),
+        context.wordTo(),
+        List.of(new TextEdit(0, 0, "import java.time.Instant;\n"))));
+  }
+
+  static El javaCodeCompletion(Editors state) {
+    El editor = CodeEditor.codeEditor(
+            state.app, state.javaSource, state.javaEditor, Java.of(), state::javaSource)
+        .key("java")
+        .lines(8)
+        .wFull();
+    return Completion.completeWithContext(
+        state.app, editor, state.javaEditor.caret(), state.javaCompletion, state::suggestJava);
+  }
+  // docs:end code-editor-completion
 
   static El placeholderAndReadOnly(Editors state) {
     // docs:start code-editor-placeholder

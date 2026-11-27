@@ -1,0 +1,15 @@
+# Completion list with documentation of the highlighted entry beside it.
+size 680 190
+frame
+press #query
+key End control
+type "o"
+type "r"
+frame
+advance 0.6             # past the theme's tooltip delay
+frame
+await                   # wait for background documentation
+frame
+advance 0.25            # past the theme's fade
+frame
+snap shown

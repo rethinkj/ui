@@ -4,6 +4,7 @@ import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.editor.CodeEditor.codeEditor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
@@ -12,7 +13,9 @@ import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.RowHeights;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.TextEdit;
 import com.rethinkj.ui.kit.Completion;
+import com.rethinkj.ui.kit.Markdown;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.text.TextRendering;
@@ -24,6 +27,7 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -101,6 +105,19 @@ class CompletionTest {
     q.app = app;
     app.textRendering(TextRendering.LINUX);
     return app;
+  }
+
+  /** The x, y, width and height of the element with {@code key} in a tree dump. */
+  private static int[] box(String tree, String key) {
+    var m = java.util.regex.Pattern.compile("el #" + key + " .*? (\\d+),(\\d+) (\\d+)x(\\d+)")
+        .matcher(tree);
+    assertTrue(m.find(), tree);
+    return new int[] {
+      Integer.parseInt(m.group(1)),
+      Integer.parseInt(m.group(2)),
+      Integer.parseInt(m.group(3)),
+      Integer.parseInt(m.group(4))
+    };
   }
 
   private String run(App<Query> app, String script) throws IOException {
@@ -385,6 +402,75 @@ class CompletionTest {
   }
 
   @Test
+  void documentationFromTheBackgroundShowsBesideTheListAndCancelsWhenHighlightMoves()
+      throws IOException, InterruptedException {
+    TextLibraries.assumeLoaded();
+    CountDownLatch customersStarted = new CountDownLatch(1);
+    CountDownLatch customersHold = new CountDownLatch(1);
+    CountDownLatch customersCancelled = new CountDownLatch(1);
+    App<Query> app = app();
+    app.state().completion.documentation("doc", entry -> switch (entry.text()) {
+      case "customers" -> {
+        customersStarted.countDown();
+        try {
+          customersHold.await();
+        } catch (InterruptedException _) {
+          customersCancelled.countDown();
+          Thread.currentThread().interrupt();
+          yield Markdown.parse("Stale customers documentation.");
+        }
+        yield Markdown.parse("Customer accounts.");
+      }
+      case "customer_id" -> Markdown.parse("Primary key of `customers`.");
+      default -> null;
+    });
+
+    // Open with "c" -> customers, customer_id, count; before tooltipDelay nothing shows.
+    Script.run(
+        "size 640 220\nframe\npress #query\ntype \"SELECT c\"\nkey Space control\nframe\nsnap s",
+        app,
+        out);
+    String tree = java.nio.file.Files.readString(out.resolve("s.tree.txt"));
+    assertTrue(tree.contains("el #completions role=listbox"), tree);
+    assertFalse(tree.contains("#documentation"), "not shown before tooltipDelay: " + tree);
+
+    // Past tooltipDelay: background lookup for "customers" starts; moving highlight cancels it.
+    Script.run("advance 0.6\nframe", app, out);
+    assertTrue(
+        customersStarted.await(5, TimeUnit.SECONDS), "background work started for customers");
+    Script.run("key ArrowDown\nframe\nsnap s", app, out);
+    assertTrue(customersCancelled.await(5, TimeUnit.SECONDS), "moving highlight cancelled work");
+    customersHold.countDown();
+    tree = java.nio.file.Files.readString(out.resolve("s.tree.txt"));
+    assertFalse(tree.contains("Stale customers documentation."), tree);
+    assertFalse(tree.contains("#documentation"), tree);
+
+    // After tooltipDelay on "customer_id", its documentation arrives beside the list.
+    Script.run("advance 0.6\nframe\nawait\nframe\nadvance 0.25\nframe\nsnap s", app, out);
+    tree = java.nio.file.Files.readString(out.resolve("s.tree.txt"));
+    assertTrue(tree.contains("el #documentation role=dialog label=\"Documentation\""), tree);
+    assertTrue(tree.contains("Primary key of customers."), tree);
+    assertTrue(
+        tree.contains("text #query role=textbox") && tree.contains("focused"),
+        "focus stays in the field");
+    // Where neither side of the list has room, the panel goes below it, not over its entries.
+    Script.run("size 480 320\nframe\nsnap s", app, out);
+    tree = java.nio.file.Files.readString(out.resolve("s.tree.txt"));
+    int[] list = box(tree, "completions");
+    int[] panel = box(tree, "documentation");
+    assertTrue(panel[1] >= list[1] + list[3], tree);
+
+    // Moving to an entry whose provider returns null hides the panel and shows nothing.
+    Script.run(
+        "key ArrowDown\nframe\nadvance 0.6\nframe\nawait\nframe\nadvance 0.25\nframe\nsnap s",
+        app,
+        out);
+    tree = java.nio.file.Files.readString(out.resolve("s.tree.txt"));
+    assertTrue(tree.contains("el #completions role=listbox"), tree);
+    assertFalse(tree.contains("#documentation"), "null shows nothing: " + tree);
+  }
+
+  @Test
   void entriesTheAppLoadsIntoItsOwnStateShowLoadingUntilTheyArrive() throws IOException {
     TextLibraries.assumeLoaded();
     CountDownLatch release = new CountDownLatch(1);
@@ -531,6 +617,66 @@ class CompletionTest {
       app.frame();
       assertEquals("SELECT select", rows.sql, "plain " + plain + ": not status for st");
     }
+  }
+
+  @Test
+  void contextReportsTriggerAndEntryAppliesRangeAndAdditionalEditAsOneUndo() throws IOException {
+    TextLibraries.assumeLoaded();
+    List<Completion.Context> contexts = new ArrayList<>();
+    Theme theme = Theme.DARK;
+    Query query = new Query();
+    App<Query> app = new App<>(query, s -> {
+      El editor = codeEditor(s.sql, s.editor, s.highlighter, v -> s.sql = v)
+          .key("query")
+          .lines(4)
+          .wFull();
+      return col()
+          .wFull()
+          .hFull()
+          .padding(12)
+          .fill(theme.surface().window())
+          .child(Completion.completeWithContext(
+              s.app, editor, s.editor.caret(), s.completion, context -> {
+                contexts.add(context);
+                int from = Math.max(0, context.wordFrom() - 2); // replace "p." + word
+                return List.of(new Completion.Entry(
+                    "Path",
+                    Symbol.CODE,
+                    "class",
+                    "Path.of",
+                    "(String first) : Path",
+                    from,
+                    context.wordTo(),
+                    List.of(new TextEdit(0, 0, "import java.nio.file.Path;\n"))));
+              }));
+    });
+    query.app = app;
+    app.textRendering(TextRendering.LINUX);
+
+    run(app, "frame\npress #query\ntype \"var x = p.pa\"");
+    assertTrue(
+        contexts.stream().anyMatch(c -> c.trigger() == Completion.Trigger.TYPED),
+        "typing opens with TYPED: " + contexts);
+    contexts.clear();
+
+    String tree = run(app, "key Space control");
+    assertFalse(contexts.isEmpty());
+    Completion.Context invoked = contexts.getLast();
+    assertEquals(Completion.Trigger.INVOKED, invoked.trigger());
+    assertNull(invoked.character());
+    assertEquals("var x = p.pa", invoked.text());
+    assertEquals(12, invoked.caret());
+    assertEquals(10, invoked.wordFrom());
+    assertEquals(12, invoked.wordTo());
+    assertEquals("pa", invoked.word());
+    assertTrue(tree.contains("label=\"Path\""), tree);
+
+    run(app, "key Enter");
+    assertEquals("import java.nio.file.Path;\nvar x = Path.of", app.state().sql);
+    assertEquals(app.state().sql.length(), app.state().editor.caret());
+
+    run(app, "key Z control");
+    assertEquals("var x = p.pa", app.state().sql, "one undo removes both edits");
   }
 
   /** The options of the open list, each its label. */

@@ -7,6 +7,8 @@ description: Autocomplete popup anchored to the cursor of a text field or CodeEd
 
 For picking from a fixed list in a form, use [ComboBox](/docs/components/combo-box).
 
+For language-server completions that need the full text, trigger, detail labels, replace ranges, or additional edits, see [Code completion](/docs/components/code-editor/navigation-and-docs#code-completion).
+
 Javadoc: [`Completion`](/api/com/rethinkj/ui/kit/Completion.html), [`Completion.State`](/api/com/rethinkj/ui/kit/Completion.State.html).
 
 <Shot src="examples/docs/code-editor/completions-{theme}" alt="A SQL editor with the completion popup open below the caret, suggesting the tables orders and order_items" />
@@ -24,6 +26,15 @@ Javadoc: [`Completion`](/api/com/rethinkj/ui/kit/Completion.html), [`Completion.
 Example headless script:
 
 ```text snippet="completion-script"
+```
+
+## Documentation panel
+
+Call `state.completion.documentation(name, provider)` to show Markdown documentation for the highlighted entry beside the list. The provider runs on a background thread (`App.background`) after the theme's tooltip delay; moving the highlight or closing the list cancels pending work and hides the panel. Returning `null` shows nothing, and passing a `null` provider disables the panel.
+
+<Shot src="examples/docs/completion-documentation/shown-{theme}" alt="A SQL editor with the completion popup open and the documentation panel for the highlighted orders table beside it" />
+
+```java snippet="completion-documentation"
 ```
 
 ## Trigger behavior
@@ -48,4 +59,9 @@ Example headless script:
 Overlay at the caret with `role=listbox` `label="Completions"`. Items are `role=option` with key `#option-<index>` (`selected` on the highlighted item), followed by `#loading` while loading:
 
 ```text file="examples/src/test/resources/golden/docs/code-editor/completions.tree.txt" start="overlay" count="3"
+```
+
+The documentation panel is an overlay beside `#completions`, with key `#documentation`, `role=dialog` and `label="Documentation"`:
+
+```text file="examples/src/test/resources/golden/docs/completion-documentation/shown.tree.txt" start="overlay right" count="2"
 ```
