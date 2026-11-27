@@ -16,7 +16,6 @@ import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Spans;
 import com.rethinkj.ui.Style;
-import com.rethinkj.ui.Text;
 import com.rethinkj.ui.TextDocument;
 import com.rethinkj.ui.TextEdit;
 import com.rethinkj.ui.WindowState;
@@ -418,9 +417,9 @@ public final class CodeEditor {
     private String text = ""; // the string of the editor's last build
     private List<Marker> markers = List.of();
     private LineAction lineAction;
-    // Active gutter line-action drag range, 0-based inclusive; -1 while no drag is active.
+    // A gutter line-action drag: the line it began on and the lines it covers, null while none.
     private int dragAnchor = -1;
-    private int dragLine = -1;
+    private Lines dragLines;
     private final Map<String, Layer> layers = new LinkedHashMap<>();
     private List<Vision> codeVision = List.of();
     private int blockFrom;
@@ -763,17 +762,12 @@ public final class CodeEditor {
     public State lineAction(Icon symbol, String label, Consumer<Lines> onPress) {
       if (symbol == null || onPress == null) {
         lineAction = null;
-        clearLineActionDrag();
+        dragLines = null;
         return this;
       }
       Objects.requireNonNull(label, "label");
       lineAction = new LineAction(symbol, label, onPress);
       return this;
-    }
-
-    private void clearLineActionDrag() {
-      dragAnchor = -1;
-      dragLine = -1;
     }
 
     /**
@@ -1575,9 +1569,9 @@ public final class CodeEditor {
           if (!state.diff && state.caret >= start && state.caret <= end) {
             out.lineBackground(code.line());
           }
-          if (state.dragAnchor >= 0
-              && line >= Math.min(state.dragAnchor, state.dragLine)
-              && line <= Math.max(state.dragAnchor, state.dragLine)) {
+          if (state.dragLines != null
+              && line >= state.dragLines.first()
+              && line <= state.dragLines.last()) {
             out.lineBackground(code.occurrence());
           }
           guides(text, code.guide(), out);
@@ -2009,8 +2003,12 @@ public final class CodeEditor {
     cell.child(marker(theme, diagnostics, hasFixes, fixError, state.quickFixes::open, line)
         .w(mono.size())
         .shrink(0));
-    El action = state.lineAction == null ? null : lineActionControl(theme, state, editor, line);
-    int slots = markerSlots + (action == null ? 0 : 1);
+    // A row of a multi-line placeholder past the empty text's one line gets no button.
+    boolean placeholderRow = line.index() > 0 && line.start() == 0;
+    El action = state.lineAction == null || placeholderRow
+        ? null
+        : lineActionControl(theme, state, editor, line);
+    int slots = markerSlots + (state.lineAction == null ? 0 : 1);
     if (slots > 0) {
       // A rendered doc comment's one cell shows the markers of its first line only, found in the
       // committed text that the comment and the markers count in.
@@ -2369,7 +2367,7 @@ public final class CodeEditor {
         .shrink(0)
         .radius(theme.radius().small())
         .cursor(Cursor.POINTER)
-        .opacity(state.dragAnchor == lineIndex ? 1 : 0)
+        .opacity(state.dragLines != null && state.dragAnchor == lineIndex ? 1 : 0)
         .keepFocus()
         .whenHovered(e -> e.fill(theme.surface().hover()))
         .child(Icon.icon(action.symbol(), Icon.Variant.MUTED, size));
@@ -2390,22 +2388,21 @@ public final class CodeEditor {
     button.onDrag(drag -> {
       State.LineAction current = state.lineAction;
       if (current == null || drag.phase() == Drag.Phase.CANCEL) {
-        state.clearLineActionDrag();
+        state.dragLines = null;
         return;
       }
-      El field = state.editor != null && state.editor.isPlaced() ? state.editor : editor;
-      int count = lineCount(field.text().string());
-      int anchor = Math.clamp(lineIndex, 0, Math.max(0, count - 1));
-      int targetLine = dragLine(field, button, anchor, state.dragLine, drag);
+      Lines lines =
+          dragLines(state.editor != null ? state.editor : editor, button, lineIndex, drag);
       if (drag.phase() == Drag.Phase.END) {
-        state.clearLineActionDrag();
-        current
-            .onPress()
-            .accept(new Lines(Math.min(anchor, targetLine), Math.max(anchor, targetLine)));
+        Lines done = lines != null ? lines : state.dragLines;
+        state.dragLines = null;
+        current.onPress().accept(done != null ? done : new Lines(lineIndex, lineIndex));
         return;
       }
-      state.dragAnchor = anchor;
-      state.dragLine = targetLine;
+      state.dragAnchor = lineIndex;
+      if (lines != null) {
+        state.dragLines = lines;
+      }
     });
     return Tooltip.tooltip(button, action.label());
   }
@@ -2422,36 +2419,55 @@ public final class CodeEditor {
     return new Lines(lineOf(text, s), lineOf(text, last));
   }
 
-  /** The 0-based line under a gutter line-action drag step in {@code editor}. */
-  private static int dragLine(El editor, El button, int anchorLine, int lastLine, Drag drag) {
-    int count = lineCount(editor.text().string());
-    if (count <= 1) {
-      return 0;
-    }
-    if (Double.isNaN(drag.y())) {
-      return Math.clamp(lastLine >= 0 ? lastLine : anchorLine, 0, count - 1);
-    }
-    // The button's cell is at its line's top, which scrolls with the text: no scroll offset needed.
-    double docY = editor.text().lineToOffset(anchorLine) + button.y() + drag.y();
-    return lineAt(editor.text(), count, docY);
-  }
-
-  /** The 0-based line at document offset {@code y} (logical pixels), clamped to {@code 0..count-1}. */
-  private static int lineAt(Text text, int lineCount, double y) {
-    if (lineCount <= 1 || y <= text.lineToOffset(0)) {
-      return 0;
-    }
-    int lo = 0;
-    int hi = lineCount - 1;
-    while (lo < hi) {
-      int mid = (lo + hi + 1) >>> 1;
-      if (text.lineToOffset(mid) <= y) {
-        lo = mid;
-      } else {
-        hi = mid - 1;
+  /**
+   * The lines from the cell of line {@code anchor} to the gutter cell under a drag step that began
+   * on {@code button} in it, found among the laid-out cells, or null when they are not there. A
+   * cell covers the lines up to the next cell's, so that a folded range or a rendered doc comment
+   * counts whole.
+   */
+  private static Lines dragLines(El field, El button, int anchor, Drag drag) {
+    El gutter = null;
+    for (El child : field.children()) {
+      if ("gutter".equals(child.key())) {
+        gutter = child;
       }
     }
-    return lo;
+    if (gutter == null || Double.isNaN(drag.y())) {
+      return null;
+    }
+    List<El> cells = new ArrayList<>(); // without the cells of blocks between lines
+    for (El child : gutter.children()) {
+      if (child.key() != null && child.key().startsWith("line-")) {
+        cells.add(child);
+      }
+    }
+    double y = Double.NaN;
+    for (El cell : cells) {
+      if (("line-" + anchor).equals(cell.key())) {
+        y = cell.y() + button.y() + drag.y();
+      }
+    }
+    if (Double.isNaN(y)) {
+      return null;
+    }
+    int first = anchor;
+    int last = anchor;
+    for (int i = 0; i < cells.size(); i++) {
+      El cell = cells.get(i);
+      int index = cellLine(cell);
+      int end = i + 1 < cells.size() ? cellLine(cells.get(i + 1)) - 1 : index;
+      boolean under = (i == 0 || y >= cell.y())
+          && (i + 1 == cells.size() || y < cells.get(i + 1).y());
+      if (under || index == anchor) {
+        first = Math.min(first, index);
+        last = Math.max(last, end);
+      }
+    }
+    return new Lines(first, last);
+  }
+
+  private static int cellLine(El cell) {
+    return Integer.parseInt(cell.key().substring("line-".length()));
   }
 
   /**
