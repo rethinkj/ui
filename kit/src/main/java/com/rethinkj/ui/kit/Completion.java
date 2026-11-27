@@ -188,7 +188,8 @@ public final class Completion {
      * Theme.Motion#tooltipDelay}; moving the highlight or closing the list cancels pending work
      * and hides the panel. Returning null shows nothing. Pass a null {@code provider} to disable.
      * {@code provider} gets only the entry: what else it reads it takes in its closure, and nothing
-     * of the app's state that the app's thread changes.
+     * of the app's state that the app's thread changes. Set it once, as {@link #openAfter}: a
+     * new provider answers from the next entry highlighted.
      *
      * @param name what the work is called, which {@link App#await} names
      */
@@ -357,7 +358,8 @@ public final class Completion {
     if (state.doc != null) {
       list.overlay(Markdown.documentation(state.doc)
           .keepFocus()
-          .side(Side.RIGHT, Style.Align.START, theme.space().xs()));
+          .side(Side.RIGHT, Style.Align.START, theme.space().xs())
+          .avoidAnchor()); // below or above the list where neither side has room
     }
     return field.overlay(Popup.frame(theme, list));
   }

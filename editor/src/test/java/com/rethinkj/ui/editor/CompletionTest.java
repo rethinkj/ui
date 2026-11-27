@@ -105,6 +105,19 @@ class CompletionTest {
     return app;
   }
 
+  /** The x, y, width and height of the element with {@code key} in a tree dump. */
+  private static int[] box(String tree, String key) {
+    var m = java.util.regex.Pattern.compile("el #" + key + " .*? (\\d+),(\\d+) (\\d+)x(\\d+)")
+        .matcher(tree);
+    assertTrue(m.find(), tree);
+    return new int[] {
+      Integer.parseInt(m.group(1)),
+      Integer.parseInt(m.group(2)),
+      Integer.parseInt(m.group(3)),
+      Integer.parseInt(m.group(4))
+    };
+  }
+
   private String run(App<Query> app, String script) throws IOException {
     Script.run("size 420 220\n" + script + "\nframe\nadvance 0.25\nframe\nsnap s", app, out);
     return java.nio.file.Files.readString(out.resolve("s.tree.txt"));
@@ -438,6 +451,12 @@ class CompletionTest {
     assertTrue(
         tree.contains("text #query role=textbox") && tree.contains("focused"),
         "focus stays in the field");
+    // Where neither side of the list has room, the panel goes below it, not over its entries.
+    Script.run("size 480 320\nframe\nsnap s", app, out);
+    tree = java.nio.file.Files.readString(out.resolve("s.tree.txt"));
+    int[] list = box(tree, "completions");
+    int[] panel = box(tree, "documentation");
+    assertTrue(panel[1] >= list[1] + list[3], tree);
 
     // Moving to an entry whose provider returns null hides the panel and shows nothing.
     Script.run(

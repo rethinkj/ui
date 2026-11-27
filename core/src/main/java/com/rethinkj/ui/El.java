@@ -4536,6 +4536,16 @@ public final class El {
   }
 
   /**
+   * Keeps this overlay off its anchor: where {@link #side} would place it over the anchor, as
+   * when neither side has room for it, it goes across, below or above the anchor for one beside
+   * it, or beside it for one below or above, if that has room. A tooltip does that by itself.
+   */
+  public El avoidAnchor() {
+    layer().avoidsAnchor = true;
+    return this;
+  }
+
+  /**
    * Places this overlay at a point of the window in logical pixels, such as where the pointer was
    * pressed for a context menu, instead of beside its anchor's rectangle: as {@link #side} says,
    * with the point as a rectangle of no size.
