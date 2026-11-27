@@ -13,6 +13,7 @@ import com.rethinkj.ui.ScrollState;
 import com.rethinkj.ui.Scrollbars;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.TextDocument;
+import com.rethinkj.ui.TextEdit;
 import com.rethinkj.ui.editor.CodeEditor;
 import com.rethinkj.ui.editor.DiffView;
 import com.rethinkj.ui.java.Java;
@@ -785,6 +786,36 @@ final class Editors {
             .toList());
     return Frame.of(withCompletions);
   }
+
+  // docs:start code-editor-completion
+  final Completion.State javaCompletion = new Completion.State().openAfter(".");
+
+  List<Completion.Entry> suggestJava(Completion.Context context) {
+    if (context.trigger() == Completion.Trigger.OPEN_AFTER && ".".equals(context.character())) {
+      return List.of(new Completion.Entry(
+          "size", Symbol.CODE, "method", "size()", "() : int", -1, -1, List.of()));
+    }
+    return List.of(new Completion.Entry(
+        "Instant",
+        Symbol.CODE,
+        "class",
+        "Instant",
+        "java.time",
+        context.wordFrom(),
+        context.wordTo(),
+        List.of(new TextEdit(0, 0, "import java.time.Instant;\n"))));
+  }
+
+  static El javaCodeCompletion(Editors state) {
+    El editor = CodeEditor.codeEditor(
+            state.app, state.javaSource, state.javaEditor, Java.of(), state::javaSource)
+        .key("java")
+        .lines(8)
+        .wFull();
+    return Completion.completeWithContext(
+        state.app, editor, state.javaEditor.caret(), state.javaCompletion, state::suggestJava);
+  }
+  // docs:end code-editor-completion
 
   static El placeholderAndReadOnly(Editors state) {
     // docs:start code-editor-placeholder
