@@ -420,6 +420,7 @@ public final class CodeEditor {
     // A gutter line-action drag: the line it began on and the lines it covers, null while none.
     private int dragAnchor = -1;
     private Lines dragLines;
+    private El built; // the field of the last build, also without an app, for the gutter's drag
     private final Map<String, Layer> layers = new LinkedHashMap<>();
     private List<Vision> codeVision = List.of();
     private int blockFrom;
@@ -1666,6 +1667,7 @@ public final class CodeEditor {
     attachPointerNavigation(app, state, editor, value, extra);
     // The rail starts at the frame: the field's padding lies after the gutter.
     editor.style().paddingLeft = Len.ZERO;
+    state.built = editor;
     boolean hasFind = app != null && state.findBar;
     State.LineAction lineAction = state.lineAction;
     if (hasFind || lineAction != null) {
@@ -2004,10 +2006,9 @@ public final class CodeEditor {
         .w(mono.size())
         .shrink(0));
     // A row of a multi-line placeholder past the empty text's one line gets no button.
-    boolean placeholderRow = line.index() > 0 && line.start() == 0;
-    El action = state.lineAction == null || placeholderRow
-        ? null
-        : lineActionControl(theme, state, editor, line);
+    boolean placeholderRow = line.index() > 0 && editor.text().placeholderShown();
+    El action =
+        state.lineAction == null || placeholderRow ? null : lineActionControl(theme, state, line);
     int slots = markerSlots + (state.lineAction == null ? 0 : 1);
     if (slots > 0) {
       // A rendered doc comment's one cell shows the markers of its first line only, found in the
@@ -2353,7 +2354,7 @@ public final class CodeEditor {
    * runs), left of the line number, reporting its line, a multi-line selection containing it, or a
    * dragged range of lines.
    */
-  private static El lineActionControl(Theme theme, State state, El editor, El.Gutter.Line line) {
+  private static El lineActionControl(Theme theme, State state, El.Gutter.Line line) {
     State.LineAction action = state.lineAction;
     float size = theme.type().mono().size();
     int lineIndex = line.index();
@@ -2376,8 +2377,7 @@ public final class CodeEditor {
       if (current == null) {
         return;
       }
-      El field = state.editor != null ? state.editor : editor;
-      Lines selected = selectedLines(field.text().string(), state.caret, state.anchor);
+      Lines selected = selectedLines(state.built.text().string(), state.caret, state.anchor);
       Lines target = selected.first() < selected.last()
               && lineIndex >= selected.first()
               && lineIndex <= selected.last()
@@ -2391,8 +2391,7 @@ public final class CodeEditor {
         state.dragLines = null;
         return;
       }
-      Lines lines =
-          dragLines(state.editor != null ? state.editor : editor, button, lineIndex, drag);
+      Lines lines = dragLines(state, button, lineIndex, drag);
       if (drag.phase() == Drag.Phase.END) {
         Lines done = lines != null ? lines : state.dragLines;
         state.dragLines = null;
@@ -2422,12 +2421,14 @@ public final class CodeEditor {
   /**
    * The lines from the cell of line {@code anchor} to the gutter cell under a drag step that began
    * on {@code button} in it, found among the laid-out cells, or null when they are not there. A
-   * cell covers the lines up to the next cell's, so that a folded range or a rendered doc comment
-   * counts whole.
+   * folded range or a rendered doc comment counts whole.
    */
-  private static Lines dragLines(El field, El button, int anchor, Drag drag) {
+  private static Lines dragLines(State state, El button, int anchor, Drag drag) {
+    if (state.built.text().placeholderShown()) {
+      return new Lines(0, 0);
+    }
     El gutter = null;
-    for (El child : field.children()) {
+    for (El child : state.built.children()) {
       if ("gutter".equals(child.key())) {
         gutter = child;
       }
@@ -2455,7 +2456,11 @@ public final class CodeEditor {
     for (int i = 0; i < cells.size(); i++) {
       El cell = cells.get(i);
       int index = cellLine(cell);
-      int end = i + 1 < cells.size() ? cellLine(cells.get(i + 1)) - 1 : index;
+      El.Fold fold = state.foldAt(index);
+      DocRange doc = state.docAtLine(index);
+      int end = fold != null
+          ? fold.last()
+          : doc != null && state.isDocRendered(doc) ? doc.lastLine() : index;
       boolean under = (i == 0 || y >= cell.y())
           && (i + 1 == cells.size() || y < cells.get(i + 1).y());
       if (under || index == anchor) {
