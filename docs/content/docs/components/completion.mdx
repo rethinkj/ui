@@ -54,7 +54,12 @@ Call `state.completion.documentation(name, provider)` to show Markdown documenta
 
 ## In a tree dump
 
-Overlay at the caret with `role=listbox` `label="Completions"`. Items are `role=option` with key `#option-<index>` (`selected` on the highlighted item), followed by `#loading` while loading. When documentation is shown, a second overlay beside `#completions` appears with key `#documentation`, `role=dialog`, and `label="Documentation"`:
+Overlay at the caret with `role=listbox` `label="Completions"`. Items are `role=option` with key `#option-<index>` (`selected` on the highlighted item), followed by `#loading` while loading:
 
 ```text file="examples/src/test/resources/golden/docs/code-editor/completions.tree.txt" start="overlay" count="3"
+```
+
+The documentation panel is an overlay beside `#completions`, with key `#documentation`, `role=dialog` and `label="Documentation"`:
+
+```text file="examples/src/test/resources/golden/docs/completion-documentation/shown.tree.txt" start="overlay right" count="2"
 ```
