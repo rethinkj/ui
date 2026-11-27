@@ -26,6 +26,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -124,6 +125,26 @@ public final class Font implements AutoCloseable {
   private boolean closed;
   private long rasterSize; // the size last set on the FreeType face, in 1/64 pixels
   private int selectedStrike = -1; // the strike last selected on a bitmapColor face
+
+  /**
+   * One style of an installed font family, as reported by {@link #installedFamilies}.
+   *
+   * @param weight the font's weight class from 1 to 1000 (such as 400 for Regular or 700 for Bold),
+   *     from the OS/2 table or FreeType's bold flag when absent
+   * @param italic whether the face is italic or oblique
+   * @param name the style name reported by FreeType, such as {@code "Regular"} or {@code "SemiBold
+   *     Italic"}
+   */
+  public record Style(int weight, boolean italic, String name) {}
+
+  /**
+   * A font family installed on the system, as reported by {@link #installedFamilies}.
+   *
+   * @param name the family name reported by FreeType
+   * @param styles the distinct styles offered by the family, sorted by weight and then italic
+   * @param monospaced whether every face of the family is fixed-width
+   */
+  public record Family(String name, List<Style> styles, boolean monospaced) {}
 
   /**
    * A rasterized glyph, rows from the top, and where the bitmap lies relative to the glyph's
@@ -319,13 +340,63 @@ public final class Font implements AutoCloseable {
   }
 
   /**
-   * Starts reading the system's fonts for {@link #withSystemFonts} on a virtual thread of its
-   * own, unless that started already, and returns: the first character that needs one of them then
-   * finds the index ready, or waits only for the rest of the scan. Calling it is never needed; an
-   * {@code App} does when it is told to use the system's fonts, as a window's loop tells it.
+   * Starts reading the system's fonts for {@link #withSystemFonts}, {@link #installedFamilies} and
+   * {@link #installed} on a virtual thread of its own, unless that started already, and returns:
+   * the first lookup then finds the index ready, or waits only for the rest of the scan. Calling it
+   * is never needed; an {@code App} does when it is told to use the system's fonts, as a window's
+   * loop tells it.
    */
   public static void prepareSystemFonts() {
     SystemFonts.prepare();
+  }
+
+  /**
+   * The font families installed on the system, sorted by name, each with its distinct styles sorted
+   * by weight and then italic.
+   *
+   * <p>The first call scans the system's font folders on the calling thread and blocks until the
+   * scan finishes, unless {@link #prepareSystemFonts} or an earlier lookup already completed it.
+   * The scan runs once per process.
+   *
+   * @throws UnsatisfiedLinkError if FreeType cannot be loaded
+   */
+  public static List<Family> installedFamilies() {
+    return SystemFonts.families();
+  }
+
+  /**
+   * Loads a face of an installed system font family, matching {@code family} ignoring case. Among
+   * the family's faces, this prefers the requested {@code italic} flag first, then the weight
+   * nearest to {@code weight}, then a plain style name (such as Regular, Bold or Italic).
+   *
+   * <p>The returned font is shared for the process and stays open: calling {@link #close} on it
+   * throws {@link UnsupportedOperationException}. Returns empty when no such family is installed or
+   * its font file can no longer be opened.
+   *
+   * <p>The first call scans the system's font folders on the calling thread and blocks until the
+   * scan finishes, unless {@link #prepareSystemFonts} or an earlier lookup already completed it.
+   *
+   * @param family the family name, such as {@code "Consolas"} or {@code "DejaVu Sans"}
+   * @param weight the desired weight from 100 to 900 (such as 400 for regular or 700 for bold)
+   * @param italic whether an italic or oblique face is preferred
+   * @throws UnsatisfiedLinkError if FreeType or HarfBuzz cannot be loaded
+   */
+  public static Optional<Font> installed(String family, int weight, boolean italic) {
+    Objects.requireNonNull(family, "family");
+    return SystemFonts.installed(family, weight, italic, null);
+  }
+
+  /**
+   * Loads the face of an installed family that has {@code style}, one of the styles {@link
+   * #installedFamilies} lists for it, as a picker offers them: by its weight and italic as {@link
+   * #installed(String, int, boolean)} does, and among faces alike in both, such as {@code Bold}
+   * and {@code Condensed Bold}, the one of the style's name.
+   *
+   * @throws UnsatisfiedLinkError if FreeType or HarfBuzz cannot be loaded
+   */
+  public static Optional<Font> installed(String family, Style style) {
+    Objects.requireNonNull(family, "family");
+    return SystemFonts.installed(family, style.weight(), style.italic(), style.name());
   }
 
   /**
@@ -1262,13 +1333,18 @@ public final class Font implements AutoCloseable {
           if (mode < 0) {
             continue;
           }
+          int styleFlags = (int) (FreeType.getLong(face, FreeType.FACE_STYLE_FLAGS)
+              & (FreeType.STYLE_FLAG_BOLD | FreeType.STYLE_FLAG_ITALIC));
+          MemorySegment os2 = FreeType.getSfntTable(face, FreeType.SFNT_OS2);
+          os2 = os2.equals(MemorySegment.NULL) ? os2 : os2.reinterpret(FreeType.OS2.byteSize());
           faces.add(new SystemFonts.Face(
               path,
               i,
               string(face.get(ADDRESS, FreeType.FACE_FAMILY_NAME)),
               string(face.get(ADDRESS, FreeType.FACE_STYLE_NAME)),
-              (int) (FreeType.getLong(face, FreeType.FACE_STYLE_FLAGS)
-                  & (FreeType.STYLE_FLAG_BOLD | FreeType.STYLE_FLAG_ITALIC)),
+              styleFlags,
+              weight(os2, styleFlags),
+              (flags & FreeType.FACE_FLAG_FIXED_WIDTH) != 0 || monospacedPanose(os2),
               ranges,
               mode == FreeType.PIXEL_MODE_BGRA));
         } finally {
@@ -1276,6 +1352,33 @@ public final class Font implements AutoCloseable {
         }
       }
     }
+  }
+
+  /**
+   * Weight class from the OS/2 table (1..1000), or 700/400 from {@code styleFlags} where the face
+   * has no OS/2 table ({@code os2} is NULL) or no weight in it.
+   */
+  private static int weight(MemorySegment os2, int styleFlags) {
+    if (!os2.equals(MemorySegment.NULL)) {
+      int weight = Short.toUnsignedInt(os2.get(JAVA_SHORT, FreeType.OS2_WEIGHT_CLASS));
+      if (weight != 0) {
+        return Math.clamp(weight, 1, 1000);
+      }
+    }
+    return (styleFlags & FreeType.STYLE_FLAG_BOLD) != 0 ? 700 : 400;
+  }
+
+  /**
+   * Whether the OS/2 table's PANOSE says monospaced proportion (9) for Latin text (family kind 2)
+   * or an unset kind (0), for fixed-pitch fonts whose {@code post} table does not say so, such as
+   * FreeMono, whose upright face leaves the kind unset.
+   */
+  private static boolean monospacedPanose(MemorySegment os2) {
+    if (os2.equals(MemorySegment.NULL)) {
+      return false;
+    }
+    byte kind = os2.get(JAVA_BYTE, FreeType.OS2_PANOSE);
+    return (kind == 0 || kind == 2) && os2.get(JAVA_BYTE, FreeType.OS2_PANOSE + 3) == 9;
   }
 
   /** The characters of a face's charmap, as first and last of each run of consecutive ones. */

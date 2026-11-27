@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -12,10 +13,12 @@ import com.rethinkj.ui.App;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Headless;
 import com.rethinkj.ui.render.Scene;
+import com.rethinkj.ui.text.ffi.FreeType;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -151,5 +154,82 @@ class SystemFontsTest {
       }
     }
     assertEquals(2, colorGlyphs, "both emoji emit COLOR_GLYPH instances");
+  }
+
+  @Test
+  void installedFamiliesCanBeListedAndLoadedByNameWeightAndStyle() {
+    List<Font.Family> families = Font.installedFamilies();
+    assumeFalse(families.isEmpty(), "Skipped: no fonts in " + SystemFonts.folders());
+    for (Font.Family family : families) {
+      assertFalse(family.styles().isEmpty(), family.name() + " has styles");
+    }
+    Font.Family first = families.getFirst();
+    Font.Style style = first.styles().getFirst();
+    Font loaded = Font.installed(first.name(), style.weight(), style.italic()).orElseThrow();
+    assertTrue(
+        loaded.toString().startsWith(first.name()), "expected " + first.name() + ", got " + loaded);
+    assertSame(
+        loaded,
+        Font.installed(first.name().toUpperCase(Locale.ROOT), style.weight(), style.italic())
+            .orElseThrow());
+    assertThrows(UnsupportedOperationException.class, loaded::close);
+    assertTrue(Font.installed("No Such Family 891", 400, false).isEmpty());
+  }
+
+  @Test
+  void installedFaceSelectionPrefersItalicThenNearestWeightThenPlainStyle() {
+    int[] empty = new int[0];
+    SystemFonts.Face light =
+        new SystemFonts.Face(Path.of("a.ttf"), 0, "Demo", "Light", 0, 300, true, empty, false);
+    SystemFonts.Face boldCondensed = new SystemFonts.Face(
+        Path.of("b.ttf"),
+        0,
+        "Demo",
+        "Bold Condensed",
+        (int) FreeType.STYLE_FLAG_BOLD,
+        700,
+        true,
+        empty,
+        false);
+    SystemFonts.Face bold = new SystemFonts.Face(
+        Path.of("c.ttf"),
+        0,
+        "Demo",
+        "Bold",
+        (int) FreeType.STYLE_FLAG_BOLD,
+        700,
+        true,
+        empty,
+        false);
+    SystemFonts.Face italic = new SystemFonts.Face(
+        Path.of("d.ttf"),
+        0,
+        "Demo",
+        "Italic",
+        (int) FreeType.STYLE_FLAG_ITALIC,
+        400,
+        false,
+        empty,
+        false);
+    List<SystemFonts.Face> faces = List.of(light, boldCondensed, bold, italic);
+
+    assertEquals(bold, SystemFonts.candidates(faces, "demo", 600, false, null).getFirst());
+    assertEquals(italic, SystemFonts.candidates(faces, "DEMO", 700, true, null).getFirst());
+    assertEquals(
+        boldCondensed,
+        SystemFonts.candidates(faces, "demo", 700, false, "Bold Condensed").getFirst(),
+        "a listed style loads the face of its name");
+    assertTrue(SystemFonts.candidates(faces, "Other", 400, false, null).isEmpty());
+
+    List<Font.Family> grouped = SystemFonts.families(List.of(bold, light, italic, bold));
+    assertEquals(1, grouped.size());
+    Font.Family demo = grouped.getFirst();
+    assertFalse(demo.monospaced(), "monospaced only when all faces are");
+    assertEquals(
+        List.of(
+            new Font.Style(300, false, "Light"),
+            new Font.Style(400, true, "Italic"),
+            new Font.Style(700, false, "Bold")),
+        demo.styles());
   }
 }

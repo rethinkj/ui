@@ -40,6 +40,7 @@ After layout, `el.text()` returns a [`Text`](/api/com/rethinkj/ui/Text.html) obj
 | `Font.mono()`, `monoBold()` | JetBrains Mono 2.304 (`rethinkj-ui-fonts`) |
 | `Font.icons()` | Fluent UI System Icons (`rethinkj-ui-icons`) |
 | `Font.of(bytes)`, `Font.resource(owner, name)` | Load your own TrueType or OpenType font (call `close()` to free) |
+| `Font.installedFamilies()`, `Font.installed(family, weight, italic)` | List and load the fonts installed on the system (Windows, Linux); `installed(family, style)` for a style the list gives, `Family.monospaced()` for code editors |
 
 ## Fallback fonts
 

@@ -1,5 +1,6 @@
 package com.rethinkj.ui.text;
 
+import com.rethinkj.ui.text.ffi.FreeType;
 import java.io.IOException;
 import java.lang.Character.UnicodeScript;
 import java.lang.foreign.Arena;
@@ -21,7 +22,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -59,8 +62,14 @@ final class SystemFonts {
       String family,
       String style,
       int styleFlags,
+      int weight,
+      boolean monospaced,
       int[] ranges,
       boolean color) {
+
+    boolean italic() {
+      return (styleFlags & FreeType.STYLE_FLAG_ITALIC) != 0;
+    }
 
     boolean has(int c) {
       int lo = 0;
@@ -92,6 +101,7 @@ final class SystemFonts {
       "bold oblique");
 
   private static List<Face> faces; // null until the first lookup
+  private static List<Font.Family> families; // derived from faces on the first call
   private static final AtomicBoolean prepared = new AtomicBoolean();
   private static long scanNanos;
   private static int files;
@@ -153,6 +163,76 @@ final class SystemFonts {
     }
     opened.put(face, font);
     return font;
+  }
+
+  /** The installed font families, sorted by name, scanning on the first call. */
+  static synchronized List<Font.Family> families() {
+    if (families == null) {
+      families = families(faces());
+    }
+    return families;
+  }
+
+  /**
+   * Groups {@code all} by family name, ignoring case as {@link #installed} does, sorting families
+   * by name and distinct styles by weight.
+   */
+  static List<Font.Family> families(List<Face> all) {
+    Map<String, List<Face>> byFamily = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+    for (Face face : all) {
+      byFamily.computeIfAbsent(face.family(), _ -> new ArrayList<>()).add(face);
+    }
+    Comparator<Font.Style> styleOrder = Comparator.comparingInt(Font.Style::weight)
+        .thenComparing(Font.Style::italic)
+        .thenComparing(Font.Style::name);
+    List<Font.Family> result = new ArrayList<>(byFamily.size());
+    for (Map.Entry<String, List<Face>> entry : byFamily.entrySet()) {
+      boolean monospaced = true;
+      Set<Font.Style> styles = new TreeSet<>(styleOrder);
+      for (Face face : entry.getValue()) {
+        monospaced &= face.monospaced();
+        styles.add(new Font.Style(face.weight(), face.italic(), face.style()));
+      }
+      result.add(new Font.Family(entry.getKey(), List.copyOf(styles), monospaced));
+    }
+    return List.copyOf(result);
+  }
+
+  /**
+   * Opens the best matching face of {@code family} for {@code weight}, {@code italic} and, unless
+   * null, the style name.
+   */
+  static synchronized Optional<Font> installed(
+      String family, int weight, boolean italic, String style) {
+    for (Face face : candidates(faces(), family, weight, italic, style)) {
+      Font font = open(face);
+      if (font != null) {
+        return Optional.of(font);
+      }
+    }
+    return Optional.empty();
+  }
+
+  /**
+   * Faces of {@code family} (ignoring case), in preference order for {@code weight}, {@code italic}
+   * and the style name, which may be null.
+   */
+  static List<Face> candidates(
+      List<Face> all, String family, int weight, boolean italic, String style) {
+    String target = family.toLowerCase(Locale.ROOT);
+    List<Face> matched = new ArrayList<>();
+    for (Face face : all) {
+      if (face.family().toLowerCase(Locale.ROOT).equals(target)) {
+        matched.add(face);
+      }
+    }
+    matched.sort(Comparator.<Face>comparingInt(f -> f.italic() == italic ? 0 : 1)
+        .thenComparingLong(f -> Math.abs((long) f.weight() - weight))
+        .thenComparingInt(f -> f.style().equals(style) ? 0 : 1)
+        .thenComparingInt(f -> PLAIN.contains(f.style().toLowerCase(Locale.ROOT)) ? 0 : 1)
+        .thenComparing(Face::path)
+        .thenComparingInt(Face::index));
+    return matched;
   }
 
   private static boolean meaningful(int c) {

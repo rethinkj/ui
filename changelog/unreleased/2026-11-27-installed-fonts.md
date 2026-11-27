@@ -1,0 +1,1 @@
+- `Font.installedFamilies()` lists the font families installed on Windows and Linux, with each family's weights and styles and whether it is monospaced, and `Font.installed(family, weight, italic)` loads the nearest face of one by name, empty when it is not installed; `Font.installed(family, style)` loads a style the list gives.

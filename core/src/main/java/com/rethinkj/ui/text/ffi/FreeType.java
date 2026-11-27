@@ -51,6 +51,8 @@ public final class FreeType {
   public static final long FACE_FLAG_SCALABLE = 1L << 0;
   /** {@code FT_FACE_FLAG_FIXED_SIZES}: the face has embedded bitmap strikes. */
   public static final long FACE_FLAG_FIXED_SIZES = 1L << 1;
+  /** {@code FT_FACE_FLAG_FIXED_WIDTH}: every glyph of the face has the same width. */
+  public static final long FACE_FLAG_FIXED_WIDTH = 1L << 2;
   /** {@code FT_FACE_FLAG_COLOR}: the face has color glyphs (COLR, CBDT, sbix or SVG tables). */
   public static final long FACE_FLAG_COLOR = 1L << 14;
 
@@ -75,6 +77,9 @@ public final class FreeType {
   public static final int PIXEL_MODE_GRAY = 2;
   /** {@code FT_PIXEL_MODE_BGRA}: premultiplied 8-bit BGRA, 4 bytes per pixel. */
   public static final int PIXEL_MODE_BGRA = 7;
+
+  /** {@code FT_SFNT_OS2}: the OS/2 table tag for {@link #getSfntTable}. */
+  public static final int SFNT_OS2 = 2;
 
   // ---- structs -----------------------------------------------------------------------------
 
@@ -156,6 +161,14 @@ public final class FreeType {
       JAVA_INT.withName("bitmap_top"),
       OUTLINE.withName("outline"));
 
+  /** {@code TT_OS2} up to {@code panose}; the shorts between are skipped as padding. */
+  public static final StructLayout OS2 = struct(
+      JAVA_SHORT.withName("version"),
+      JAVA_SHORT.withName("xAvgCharWidth"),
+      JAVA_SHORT.withName("usWeightClass"),
+      MemoryLayout.paddingLayout(26),
+      MemoryLayout.sequenceLayout(10, JAVA_BYTE).withName("panose"));
+
   public static final long FACE_NUM_FACES = offset(FACE, "num_faces");
   public static final long FACE_FACE_FLAGS = offset(FACE, "face_flags");
   public static final long FACE_STYLE_FLAGS = offset(FACE, "style_flags");
@@ -177,6 +190,8 @@ public final class FreeType {
   public static final long BITMAP_PITCH = offset(BITMAP, "pitch");
   public static final long BITMAP_BUFFER = offset(BITMAP, "buffer");
   public static final long BITMAP_PIXEL_MODE = offset(BITMAP, "pixel_mode");
+  public static final long OS2_WEIGHT_CLASS = offset(OS2, "usWeightClass");
+  public static final long OS2_PANOSE = offset(OS2, "panose");
 
   // ---- functions ---------------------------------------------------------------------------
 
@@ -232,6 +247,10 @@ public final class FreeType {
   public static final FunctionDescriptor GET_NEXT_CHAR =
       FunctionDescriptor.of(C_LONG, ADDRESS, C_LONG, ADDRESS);
 
+  /** {@code void *FT_Get_Sfnt_Table(FT_Face, FT_Sfnt_Tag)}: NULL when the face lacks the table. */
+  public static final FunctionDescriptor GET_SFNT_TABLE =
+      FunctionDescriptor.of(ADDRESS, ADDRESS, JAVA_INT);
+
   /** The method handles; initializing this class loads the library. */
   private static final class Fn {
     private static final SymbolLookup LIBRARY = Natives.lookup("freetype");
@@ -250,6 +269,7 @@ public final class FreeType {
     static final MethodHandle GET_CHAR_INDEX = bind("FT_Get_Char_Index", FreeType.GET_CHAR_INDEX);
     static final MethodHandle GET_FIRST_CHAR = bind("FT_Get_First_Char", FreeType.GET_FIRST_CHAR);
     static final MethodHandle GET_NEXT_CHAR = bind("FT_Get_Next_Char", FreeType.GET_NEXT_CHAR);
+    static final MethodHandle GET_SFNT_TABLE = bind("FT_Get_Sfnt_Table", FreeType.GET_SFNT_TABLE);
 
     /** A downcall whose C longs are Java longs, also where a C long has 32 bits. */
     private static MethodHandle bind(String name, FunctionDescriptor descriptor) {
@@ -373,6 +393,15 @@ public final class FreeType {
   public static long getNextChar(MemorySegment face, long charCode, MemorySegment glyphOut) {
     try {
       return (long) Fn.GET_NEXT_CHAR.invokeExact(face, charCode, glyphOut);
+    } catch (Throwable t) {
+      throw rethrow(t);
+    }
+  }
+
+  /** The face's SFNT table for {@code tag}, or {@link MemorySegment#NULL} when absent. */
+  public static MemorySegment getSfntTable(MemorySegment face, int tag) {
+    try {
+      return (MemorySegment) Fn.GET_SFNT_TABLE.invokeExact(face, tag);
     } catch (Throwable t) {
       throw rethrow(t);
     }
