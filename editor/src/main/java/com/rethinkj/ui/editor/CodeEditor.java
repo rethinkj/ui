@@ -2474,7 +2474,7 @@ public final class CodeEditor {
         state.dragLines = null;
         return;
       }
-      Lines lines = dragLines(state, button, lineIndex, drag);
+      Lines lines = dragLines(state, lineIndex, drag);
       if (drag.phase() == Drag.Phase.END) {
         Lines done = lines != null ? lines : state.dragLines;
         state.dragLines = null;
@@ -2503,10 +2503,10 @@ public final class CodeEditor {
 
   /**
    * The lines from the cell of line {@code anchor} to the gutter cell under a drag step that began
-   * on {@code button} in it, found among the laid-out cells, or null when they are not there. A
+   * on its action button, found among the laid-out cells, or null when they are not there. A
    * folded range or a rendered doc comment counts whole.
    */
-  private static Lines dragLines(State state, El button, int anchor, Drag drag) {
+  private static Lines dragLines(State state, int anchor, Drag drag) {
     if (state.built.text().placeholderShown()) {
       return new Lines(0, 0);
     }
@@ -2528,7 +2528,11 @@ public final class CodeEditor {
     double y = Double.NaN;
     for (El cell : cells) {
       if (("line-" + anchor).equals(cell.key())) {
-        y = cell.y() + button.y() + drag.y();
+        for (El child : cell.children()) { // the live button: the cell may have grown since
+          if (("action-line-" + anchor).equals(child.key())) {
+            y = cell.y() + child.y() + drag.y();
+          }
+        }
       }
     }
     if (Double.isNaN(y)) {
