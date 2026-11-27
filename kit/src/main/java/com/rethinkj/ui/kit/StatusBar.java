@@ -11,8 +11,8 @@ import java.util.Locale;
 
 /**
  * The bar along the bottom of a window that says how things stand: the connection, the caret's
- * place, the encoding. It is a band in the cards' color with a hairline along its top, as a card's
- * footer is, and its parts are quiet, in muted text: {@link #text} for a text, {@link #item} for
+ * place, the encoding. It is a band in the cards' color with a hairline along its top, and its
+ * parts are quiet, in muted text: {@link #text} for a text, {@link #item} for
  * one with an icon that may be pressed or tinted, and {@link #status} for one with a mark of its
  * state before it, as a connection's. {@link #group} keeps parts that belong together; a short
  * upright hairline stands between the parts and groups of each end. {@link #menu} makes a part
