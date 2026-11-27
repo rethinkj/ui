@@ -231,8 +231,8 @@ public final class ScrollState {
    * by its own line tops. Horizontally both keep the same offset. {@link El.Block#paired Paired}
    * blocks with equal pair keys take the larger of their heights in both fields in the same frame,
    * growing and shrinking together; a block that is not yet measured takes its partner's height
-   * once measured, or uses the same single-line estimate on both sides. A partner not in the
-   * current tree is left alone.
+   * once measured, or counts as one line of its field until then, the same on both sides of equal
+   * line height. A partner not in the current tree is left alone.
    *
    * @param other the partner scroll state, or {@code null} to uncouple
    * @param anchors line pairs aligning this area's lines with {@code other}'s; empty (or {@code

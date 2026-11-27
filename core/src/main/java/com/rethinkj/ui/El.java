@@ -306,7 +306,7 @@ public final class El {
    * coupled with {@link ScrollState#scrollWith}, blocks with equal non-null {@link #pair() pair}
    * keys ({@link #paired(Object)}) take the larger of their heights in the same frame, growing and
    * shrinking together; a block that is not yet measured takes its partner's height once measured,
-   * or uses the same single-line estimate on both sides.
+   * or counts as one line of its field until then, the same on both sides of equal line height.
    *
    * @param placement whether the block inserts space before a line or replaces a whole-line range
    * @param first the line index, from 0 (up to the line count for {@link Placement#INSERT})
@@ -368,8 +368,9 @@ public final class El {
      * A copy of this block paired under {@code key} (or unpaired when {@code key} is {@code null}):
      * in two multi-line fields coupled with {@link ScrollState#scrollWith}, blocks with equal
      * non-null pair keys take the larger of their heights in the same frame, growing and shrinking
-     * together. Until either side is measured, both use the same estimate; once one side is
-     * measured, an unmeasured partner takes that height.
+     * together. Until either side is measured, each counts as one line of its field, the same on
+     * both sides of equal line height; once one side is measured, an unmeasured partner takes that
+     * height.
      */
     public Block paired(Object key) {
       return new Block(placement, first, last, lines, key);
