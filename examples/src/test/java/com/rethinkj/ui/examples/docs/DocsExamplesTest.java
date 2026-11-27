@@ -138,6 +138,7 @@ class DocsExamplesTest {
       Map.entry("markdown-alerts", List.of("view")),
       Map.entry("markdown-blocks", List.of("view")),
       Map.entry("chat", List.of("view")),
+      Map.entry("chat-context", List.of("view")),
       Map.entry("chat-transcript", List.of("view")),
       Map.entry("chat-composer", List.of("view")),
       Map.entry("image", List.of("view")),
@@ -302,6 +303,7 @@ class DocsExamplesTest {
     editors(all, "markdown-alerts", Editors::markdownAlerts, 520, 362);
     editors(all, "markdown-blocks", Editors::markdownBlocks, 520, 238);
     editors(all, "chat", Editors::chat, 580, 416);
+    editors(all, "chat-context", Editors::chatContext, 580, 530);
     editors(all, "chat-transcript", Editors::chatTranscript, 680, 340);
     editors(all, "chat-composer", Editors::chatComposer, 580, 132);
     editors(all, "image", Editors::image, 240, 180);
