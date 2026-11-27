@@ -4,6 +4,7 @@ import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.editor.CodeEditor.codeEditor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
@@ -12,6 +13,7 @@ import com.rethinkj.ui.Highlighter;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.RowHeights;
 import com.rethinkj.ui.Script;
+import com.rethinkj.ui.TextEdit;
 import com.rethinkj.ui.kit.Completion;
 import com.rethinkj.ui.kit.Markdown;
 import com.rethinkj.ui.kit.Symbol;
@@ -615,6 +617,66 @@ class CompletionTest {
       app.frame();
       assertEquals("SELECT select", rows.sql, "plain " + plain + ": not status for st");
     }
+  }
+
+  @Test
+  void contextReportsTriggerAndEntryAppliesRangeAndAdditionalEditAsOneUndo() throws IOException {
+    TextLibraries.assumeLoaded();
+    List<Completion.Context> contexts = new ArrayList<>();
+    Theme theme = Theme.DARK;
+    Query query = new Query();
+    App<Query> app = new App<>(query, s -> {
+      El editor = codeEditor(s.sql, s.editor, s.highlighter, v -> s.sql = v)
+          .key("query")
+          .lines(4)
+          .wFull();
+      return col()
+          .wFull()
+          .hFull()
+          .padding(12)
+          .fill(theme.surface().window())
+          .child(Completion.completeWithContext(
+              s.app, editor, s.editor.caret(), s.completion, context -> {
+                contexts.add(context);
+                int from = Math.max(0, context.wordFrom() - 2); // replace "p." + word
+                return List.of(new Completion.Entry(
+                    "Path",
+                    Symbol.CODE,
+                    "class",
+                    "Path.of",
+                    "(String first) : Path",
+                    from,
+                    context.wordTo(),
+                    List.of(new TextEdit(0, 0, "import java.nio.file.Path;\n"))));
+              }));
+    });
+    query.app = app;
+    app.textRendering(TextRendering.LINUX);
+
+    run(app, "frame\npress #query\ntype \"var x = p.pa\"");
+    assertTrue(
+        contexts.stream().anyMatch(c -> c.trigger() == Completion.Trigger.TYPED),
+        "typing opens with TYPED: " + contexts);
+    contexts.clear();
+
+    String tree = run(app, "key Space control");
+    assertFalse(contexts.isEmpty());
+    Completion.Context invoked = contexts.getLast();
+    assertEquals(Completion.Trigger.INVOKED, invoked.trigger());
+    assertNull(invoked.character());
+    assertEquals("var x = p.pa", invoked.text());
+    assertEquals(12, invoked.caret());
+    assertEquals(10, invoked.wordFrom());
+    assertEquals(12, invoked.wordTo());
+    assertEquals("pa", invoked.word());
+    assertTrue(tree.contains("label=\"Path\""), tree);
+
+    run(app, "key Enter");
+    assertEquals("import java.nio.file.Path;\nvar x = Path.of", app.state().sql);
+    assertEquals(app.state().sql.length(), app.state().editor.caret());
+
+    run(app, "key Z control");
+    assertEquals("var x = p.pa", app.state().sql, "one undo removes both edits");
   }
 
   /** The options of the open list, each its label. */
