@@ -1,0 +1,40 @@
+el 0,0 320x212
+  el 12,12 296x188
+    el 13,13 294x186
+      el #groups role=listbox 17,17 286x178
+        el 17,17 286x44
+          el #item-0 role=button label="api" 19,27 282x32 expanded
+            el role=img label="api" 26,33 20x20
+              text "A" 33,38 6x10
+            text "api" 50,35 193x16
+            text "2" 247,36 7x14
+            text label="chevron_down" "\u{F2A1}" 282,37 12x12
+          el role=button label="New session in api" 258,33 20x20
+            text label="add" "\u{F108}" 260,35 16x16
+        el #item-1 role=option label="Fix login redirect" 17,61 286x44 selected pos=2/4
+          el 17,63 286x40
+            el 19,75 2x16
+            el 25,67 234x32
+              text "Fix login redirect" 25,67 234x16
+              text "feat/auth" 25,85 234x14
+            el 263,76 32x14
+              text "2m" 263,76 18x14
+              text label="checkmark_circle" "\u{E307}" 283,77 12x12
+        el #item-2 role=option label="Rate limits" 17,105 286x44 pos=3/4
+          el 17,107 286x40
+            el 19,119 2x16
+            el 25,111 238x32
+              text "Rate limits" 25,111 238x16
+              text "main" 25,129 238x14
+            el 267,120 28x14
+              text "7h" 267,120 14x14
+              text label="clock" "\u{F2DB}" 283,121 12x12
+        el 17,149 286x44
+          el #item-3 role=button label="docs" 19,159 282x32 expanded=false
+            el role=img label="docs" 26,165 20x20
+              text "D" 33,170 6x10
+            text "docs" 50,167 193x16
+            text "3" 247,168 7x14
+            text label="chevron_right" "\u{F2AE}" 282,169 12x12
+          el role=button label="New session in docs" 258,165 20x20
+            text label="add" "\u{F108}" 260,167 16x16

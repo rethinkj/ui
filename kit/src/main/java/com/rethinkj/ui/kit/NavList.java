@@ -9,6 +9,7 @@ import static com.rethinkj.ui.kit.Label.label;
 import com.rethinkj.ui.Cursor;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
+import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.render.Scene;
 import java.util.ArrayList;
@@ -50,12 +51,18 @@ import java.util.function.IntFunction;
  * left, which stands out from the surfaces also where the inactive selection's fill does not, its
  * icon in that color and its text in {@link Theme.Type#strong}. A count is a quiet {@link Badge}; a
  * heading is {@link Theme.Type#small} at the bottom of its row, so that the room above it sets the
- * group apart, with an optional quiet count ({@link Heading#count}). With {@link Heading#open}, a
- * heading shows a chevron ({@link Tree#OPEN} or {@link Tree#CLOSED}) and becomes a button that runs
- * its toggle handler on press, Enter, or Space; the app keeps which groups are open and leaves a
- * closed group's items out of the entries (in both the list form and the virtual form) so they are
- * not in the list and the keys pass them. {@code NavList} does not hide items itself. Like any
- * scroll area, the list needs a height of its own, room to grow, or no more items than fit.
+ * group apart, with an optional leading element ({@link Heading#leading}), quiet count ({@link
+ * Heading#count}) and always-visible action buttons at its right end ({@link Heading#actions}).
+ * {@link #group(String)} draws a heading as a group header on a quiet filled surface ({@link
+ * Theme.Surfaces#band} inside {@link Theme.Borders#subtle}) with {@link Label.Variant#STRONG} text
+ * and the chevron at the far right when collapsible. With {@link Heading#open}, a heading shows a
+ * chevron ({@link Tree#OPEN} or {@link Tree#CLOSED}) and becomes a button that runs its toggle
+ * handler on press, Enter, or Space; its actions sit as siblings of that button so pressing one
+ * never toggles the group and Tab moves from the toggle to its actions. The app keeps which groups
+ * are open and leaves a closed group's items out of the entries (in both the list form and the
+ * virtual form) so they are not in the list and the keys pass them. {@code NavList} does not hide
+ * items itself. Like any scroll area, the list needs a height of its own, room to grow, or no more
+ * items than fit.
  *
  * <p>An item can stand in by steps, as the headings of an outline under the one above them ({@link
  * Item#indent}), can carry a context menu ({@link Item#contextMenu(Menu.State, List)}), and can be
@@ -71,7 +78,7 @@ import java.util.function.IntFunction;
  * text, trailing element and actions as children. An item's open context menu is an overlay on that
  * row, so scripts can open it with {@code press <row> right}, or on the list when a key opened it. A plain
  * heading has no role; a collapsible heading is {@code role=button} with its text as the label and
- * {@code expanded} or {@code expanded=false}.
+ * {@code expanded} or {@code expanded=false}, with any heading actions as siblings after it.
  */
 public final class NavList {
 
@@ -197,33 +204,76 @@ public final class NavList {
   /**
    * A heading over the items after it, which cannot be selected. With {@link #open}, it opens and
    * closes the group below it: the app keeps which groups are open and leaves a closed group's
-   * items out of the entries, so they are not in the list and the keys pass them.
+   * items out of the entries, so they are not in the list and the keys pass them. {@link
+   * NavList#group(String)} draws it as a group header on a quiet filled surface with {@link
+   * Label.Variant#STRONG} text and the collapse chevron at the far right.
    *
    * @param label the text, also the button's label when collapsible
    * @param count quiet count shown at the right; null for none
    * @param open whether the group below it is open; ignored when {@code onToggle} is null
    * @param onToggle runs when the user opens or closes the group; null for a plain heading
+   * @param leading passive ({@link El#inert}) element shown before the text, such as an avatar;
+   *     null for none
+   * @param actions elements always shown at the right end of the heading, placed as siblings of the
+   *     toggle button and left disabled and inert when the list is disabled; icon-sized, such as
+   *     {@link Button#icon}, as a collapsible heading places them by their set width and height
+   *     ({@link El#w}, {@link El#h}), else those of one {@link Theme.Sizes#control}; empty for none
+   * @param group whether to draw as a group header on a quiet filled surface
    */
-  public record Heading(String label, String count, boolean open, Runnable onToggle)
+  public record Heading(
+      String label,
+      String count,
+      boolean open,
+      Runnable onToggle,
+      El leading,
+      List<El> actions,
+      boolean group)
       implements Entry {
 
-    /** A plain heading without a count or collapse toggle. */
+    public Heading {
+      actions = actions == null ? List.of() : List.copyOf(actions);
+    }
+
+    /** A plain heading without a count, collapse toggle, leading element or actions. */
     public Heading(String label) {
-      this(label, null, false, null);
+      this(label, null, false, null, null, List.of(), false);
     }
 
     /** This heading with a quiet count at its right. */
     public Heading count(String text) {
-      return new Heading(label, text, open, onToggle);
+      return new Heading(label, text, open, onToggle, leading, actions, group);
     }
 
     /**
-     * Makes this heading collapsible with a chevron before its text; a press, or Enter or Space
-     * while focused, runs {@code onToggle}. The app keeps which groups are open and leaves a closed
-     * group's items out of the entries.
+     * Makes this heading collapsible; a press, or Enter or Space while focused, runs {@code
+     * onToggle}. The app keeps which groups are open and leaves a closed group's items out of the
+     * entries.
      */
     public Heading open(boolean open, Runnable onToggle) {
-      return new Heading(label, count, open, onToggle);
+      return new Heading(label, count, open, onToggle, leading, actions, group);
+    }
+
+    /**
+     * This heading with a passive ({@link El#inert}) element before its text, such as an avatar.
+     */
+    public Heading leading(El element) {
+      return new Heading(label, count, open, onToggle, element, actions, group);
+    }
+
+    /**
+     * This heading with icon-sized action elements, such as {@link Button#icon}, always visible at
+     * its right end, placed as siblings of the toggle button so pressing one never toggles the
+     * group.
+     */
+    public Heading actions(El... buttons) {
+      return new Heading(
+          label,
+          count,
+          open,
+          onToggle,
+          leading,
+          buttons == null ? List.of() : List.of(buttons),
+          group);
     }
   }
 
@@ -240,6 +290,14 @@ public final class NavList {
   /** A heading over the items that follow it. */
   public static Heading heading(String label) {
     return new Heading(label);
+  }
+
+  /**
+   * A heading drawn as a group header on a quiet filled surface over the items that follow it, with
+   * {@link Label.Variant#STRONG} text and its collapse chevron at the far right.
+   */
+  public static Heading group(String label) {
+    return new Heading(label, null, false, null, null, List.of(), true);
   }
 
   /**
@@ -447,68 +505,7 @@ public final class NavList {
     El build(int i) {
       Entry at = entries.apply(i);
       if (at instanceof Heading heading) {
-        if (heading.onToggle() != null) {
-          El button = row()
-              .key("item-" + i)
-              .role("button")
-              .label(heading.label())
-              .expanded(heading.open())
-              .grow(1)
-              .h(theme.size().control())
-              .gap(theme.space().s())
-              .align(Style.Align.CENTER)
-              .padding(
-                  0,
-                  theme.space().m() - Scene.RING,
-                  0,
-                  2 * theme.space().xs() + theme.space().s() - Scene.RING)
-              .radius(theme.radius().medium())
-              .motion(theme.motion().feedback());
-          if (onSelect == null) {
-            button.disabled(true);
-          } else {
-            button
-                .focusable()
-                .keepFocus()
-                .focusRing(theme.accent().edge())
-                .cursor(Cursor.POINTER)
-                .onPress(heading.onToggle())
-                .whenHovered(e -> e.fill(theme.surface().hover()))
-                .whenPressed(e -> e.fill(theme.surface().pressed()));
-          }
-          button
-              .child(icon(
-                  heading.open() ? Tree.OPEN : Tree.CLOSED,
-                  Icon.Variant.MUTED,
-                  theme.type().small().size()))
-              .child(
-                  label(Label.Variant.SMALL, heading.label()).grow(1).ellipsis().minSize(0, 0));
-          if (heading.count() != null) {
-            button.child(label(Label.Variant.SMALL, heading.count()).shrink(0));
-          }
-          // At the bottom of its row, so that the room above sets it apart from the items before,
-          // with room for the focus ring inside the list's scroll clip.
-          return row()
-              .align(Style.Align.END)
-              .padding(theme.space().xs(), Scene.RING)
-              .child(button);
-        }
-        // At the bottom of its row, so that the room above sets it apart from the items before.
-        El r = row()
-            .key("item-" + i)
-            .align(Style.Align.END)
-            .padding(
-                0,
-                theme.space().m(),
-                theme.space().xs(),
-                2 * theme.space().xs() + theme.space().s());
-        if (heading.count() == null) {
-          return r.child(label(Label.Variant.SMALL, heading.label()));
-        }
-        return r.gap(theme.space().s())
-            .child(
-                label(Label.Variant.SMALL, heading.label()).grow(1).ellipsis().minSize(0, 0))
-            .child(label(Label.Variant.SMALL, heading.count()).shrink(0));
+        return heading(i, heading);
       }
       Item entry = (Item) at;
       boolean enabled = onSelect != null && !entry.disabled();
@@ -625,6 +622,160 @@ public final class NavList {
             });
       }
       return r;
+    }
+
+    private El heading(int i, Heading heading) {
+      boolean enabled = onSelect != null;
+      boolean collapsible = heading.onToggle() != null;
+      boolean hasActions = !heading.actions().isEmpty();
+      if (!heading.group() && !collapsible && heading.leading() == null && !hasActions) {
+        // At the bottom of its row, so that the room above sets it apart from the items before.
+        El r = row()
+            .key("item-" + i)
+            .align(Style.Align.END)
+            .padding(
+                0,
+                theme.space().m(),
+                theme.space().xs(),
+                2 * theme.space().xs() + theme.space().s());
+        if (heading.count() == null) {
+          return r.child(label(Label.Variant.SMALL, heading.label()));
+        }
+        return r.gap(theme.space().s())
+            .child(
+                label(Label.Variant.SMALL, heading.label()).grow(1).ellipsis().minSize(0, 0))
+            .child(label(Label.Variant.SMALL, heading.count()).shrink(0));
+      }
+
+      float chevronSize = theme.type().small().size();
+      float barHeight = heading.group() && twoLine
+          ? theme.size().controlLarge()
+          : theme.size().control();
+      float padLeft = heading.group()
+          ? theme.space().m() - Scene.RING
+          : 2 * theme.space().xs() + theme.space().s() - Scene.RING;
+      float padRight = theme.space().m() - Scene.RING;
+      float stroke = heading.group() ? theme.size().stroke() : 0;
+
+      El bar = row()
+          .key("item-" + i)
+          .grow(1)
+          .minSize(0, 0)
+          .h(barHeight)
+          .gap(theme.space().s())
+          .align(Style.Align.CENTER)
+          .padding(
+              0,
+              !heading.group() && collapsible && hasActions
+                  ? padRight + actionsWidth(heading.actions()) + theme.space().s()
+                  : padRight,
+              0,
+              padLeft)
+          .radius(theme.radius().medium());
+
+      if (heading.group()) {
+        bar.fill(theme.surface().band()).border(stroke, theme.border().subtle());
+      }
+      if (collapsible) {
+        bar.role("button")
+            .label(heading.label())
+            .expanded(heading.open())
+            .motion(theme.motion().feedback());
+        if (!enabled) {
+          bar.disabled(true);
+        } else {
+          int hover = heading.group()
+              ? Theme.over(theme.surface().band(), theme.surface().hover())
+              : theme.surface().hover();
+          int pressed = heading.group()
+              ? Theme.over(theme.surface().band(), theme.surface().pressed())
+              : theme.surface().pressed();
+          bar.focusable()
+              .keepFocus()
+              .focusRing(theme.accent().edge())
+              .cursor(Cursor.POINTER)
+              .onPress(heading.onToggle())
+              .whenHovered(e -> e.fill(hover))
+              .whenPressed(e -> e.fill(pressed));
+        }
+      }
+
+      if (!heading.group() && collapsible) {
+        bar.child(icon(heading.open() ? Tree.OPEN : Tree.CLOSED, Icon.Variant.MUTED, chevronSize)
+            .shrink(0));
+      }
+      if (heading.leading() != null) {
+        bar.child(heading.leading().inert().shrink(0));
+      }
+      El title = label(
+              heading.group() ? Label.Variant.STRONG : Label.Variant.SMALL, heading.label())
+          .grow(1)
+          .ellipsis()
+          .minSize(0, 0);
+      bar.child(title);
+      if (heading.count() != null) {
+        // Shrinks with the label where room runs out, so that the chevron stays in the bar.
+        bar.child(label(Label.Variant.SMALL, heading.count()).ellipsis().minSize(0, 0));
+      }
+      if (!collapsible && hasActions) {
+        bar.child(headingActions(heading.actions(), enabled));
+      }
+      if (heading.group() && collapsible) {
+        El chevron = icon(heading.open() ? Tree.OPEN : Tree.CLOSED, Icon.Variant.MUTED, chevronSize)
+            .shrink(0);
+        if (hasActions) {
+          // Leave room before the chevron for the sibling actions strip so the label ellipsizes
+          // before the actions while the chevron stays at the far right.
+          chevron.margin(
+              0, 0, 0, actionsWidth(heading.actions()) + theme.space().s());
+        }
+        bar.child(chevron);
+      }
+
+      // At the bottom of its row, so that the room above sets it apart from the items before,
+      // with room for the focus ring inside the list's scroll clip.
+      El r =
+          row().align(Style.Align.END).padding(theme.space().xs(), Scene.RING).child(bar);
+      if (collapsible && hasActions) {
+        float right = heading.group()
+            ? Scene.RING + stroke + padRight + chevronSize + theme.space().s()
+            : Scene.RING + padRight;
+        right += actionsWidth(heading.actions());
+        // Each its own sibling after the toggle, centered on the bar, so that the bar's room
+        // around and between them stays the toggle's.
+        for (El button : heading.actions()) {
+          float w = size(button.style().width);
+          right -= w;
+          Style at = button.shrink(0).style();
+          at.position = Style.Position.ABSOLUTE;
+          at.right = Len.px(right);
+          at.bottom = Len.px(theme.space().xs() + (barHeight - size(at.height)) / 2);
+          r.child(enabled ? button : button.disabled(true).inert());
+          right -= theme.space().xs();
+        }
+      }
+      return r;
+    }
+
+    private El headingActions(List<El> buttons, boolean enabled) {
+      El strip = row().gap(theme.space().xs()).align(Style.Align.CENTER).shrink(0);
+      for (El button : buttons) {
+        strip.child(enabled ? button.shrink(0) : button.shrink(0).disabled(true));
+      }
+      return enabled ? strip.keepFocus().onPress(() -> {}) : strip.inert();
+    }
+
+    private float actionsWidth(List<El> buttons) {
+      float width = (buttons.size() - 1) * theme.space().xs();
+      for (El button : buttons) {
+        width += size(button.style().width);
+      }
+      return width;
+    }
+
+    /** An action's set size, else that of one control. */
+    private float size(Len set) {
+      return set.kind() == Len.Kind.PX ? set.value() : theme.size().control();
     }
 
     /** Whether the element or one inside it has an overlay, such as an open menu. */
