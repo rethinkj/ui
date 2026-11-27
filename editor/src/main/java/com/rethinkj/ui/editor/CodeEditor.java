@@ -3679,7 +3679,7 @@ public final class CodeEditor {
     if (state.doc == null) {
       return;
     }
-    editor.overlay(documentationPanel(theme, state));
+    editor.overlay(documentationPanel(state));
   }
 
   /**
@@ -3738,22 +3738,9 @@ public final class CodeEditor {
     state.navTarget = state.declaration.apply(pos);
   }
 
-  private static El documentationPanel(Theme theme, State state) {
-    Texts texts = Texts.CURRENT.get();
-    El panel = El.col()
-        .key("documentation")
-        .role("dialog")
-        .label(texts.documentation())
+  private static El documentationPanel(State state) {
+    El panel = Markdown.documentation(state.doc)
         .keepFocus()
-        .w(theme.size().tooltip())
-        .radius(theme.radius().medium())
-        .fill(theme.surface().popup())
-        .border(theme.size().stroke(), theme.border().control())
-        .shadow(theme.elevation().popup())
-        .motion(theme.motion().fade())
-        .padding(theme.space().l())
-        .scroll()
-        .scrollbars(theme.scrollbars())
         .onPressOutside(state::closeDocumentation)
         .onKey(k -> {
           if (k.name().equals("Escape") && k.modifiers() == 0) {
@@ -3762,7 +3749,6 @@ public final class CodeEditor {
           }
           return false;
         })
-        .child(Markdown.fragment(state.doc, Markdown.options()))
         .side(Side.BOTTOM, Style.Align.START, 0); // no gap the pointer would cross off the word
     if (state.docHover) {
       panel.onHover(over -> {

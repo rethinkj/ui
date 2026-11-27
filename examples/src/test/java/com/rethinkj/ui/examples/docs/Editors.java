@@ -530,6 +530,26 @@ final class Editors {
   }
   // docs:end code-editor-blocks
   final Completion.State completion = new Completion.State();
+  String completionSql = "SELECT id, total\nFROM ";
+  final CodeEditor.State completionEditor = new CodeEditor.State();
+  // docs:start completion-documentation
+  final Completion.State documentedCompletion =
+      new Completion.State().documentation("completion-doc", Editors::tableDocumentation);
+
+  static MarkdownDocument tableDocumentation(Completion.Entry entry) {
+    return switch (entry.text()) {
+      case "orders" -> Markdown.parse("""
+          **Table `orders`**
+
+          Customer orders placed in the store. Columns: `id`, `customer_id`, `total`, `status`.""");
+      case "order_items" -> Markdown.parse("""
+          **Table `order_items`**
+
+          Line items of an order. Columns: `order_id`, `sku`, `quantity`, `price`.""");
+      default -> null;
+    };
+  }
+  // docs:end completion-documentation
   String notes = "Ship by Friday.\nCall the north warehouse on Monday.";
   final Find.State find = new Find.State();
   final MarkdownDocument readme = Markdown.parse("""
@@ -740,6 +760,29 @@ final class Editors {
     El card = Card.flush(Card.toolbar("orders.sql", null), CodeEditor.embedded(withCompletions));
     // docs:end code-editor-embedded
     return Frame.of(card.wFull());
+  }
+
+  void completionSql(String value) {
+    completionSql = value;
+  }
+
+  static El completionDocumentation(Editors state) {
+    El editor = CodeEditor.codeEditor(
+            state.app, state.completionSql, state.completionEditor, Sql.of(), state::completionSql)
+        .key("query")
+        .label("Query")
+        .lines(6)
+        .wFull();
+    El withCompletions = Completion.complete(
+        state.app,
+        editor,
+        state.completionEditor.caret(),
+        state.documentedCompletion,
+        word -> TABLES.stream()
+            .filter(name -> name.startsWith(word.toLowerCase(Locale.ROOT)))
+            .map(name -> new Completion.Entry(name, Symbol.TABLE, "table"))
+            .toList());
+    return Frame.of(withCompletions);
   }
 
   static El placeholderAndReadOnly(Editors state) {

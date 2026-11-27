@@ -47,7 +47,10 @@ import java.util.function.IntConsumer;
  * its own state show that row while {@link State#loading} says so. In a tree dump
  * the list is {@code role=listbox} with {@code label="Completions"}, its entries {@code
  * role=option} with their text as the label and the keys {@code option-<index>}, the highlighted
- * one {@code selected}. Only entries in or near the visible part are built. The list is as wide
+ * one {@code selected}. When {@link State#documentation} is set, the highlighted entry's
+ * documentation shows beside the list after {@link Theme.Motion#tooltipDelay} as an overlay with
+ * key {@code documentation}, {@code role=dialog} and {@code label="Documentation"}. Only entries in
+ * or near the visible part are built. The list is as wide
  * as its first entries need, up to twice a field's width; a longer text ends with an ellipsis. Its
  * look is that of a {@link Menu}.
  */
@@ -100,6 +103,14 @@ public final class Completion {
     private String asked;
     private Work work;
     private List<Entry> answer = List.of();
+    // documentation: background provider, the entry asked for, its work, the document found,
+    // and an epoch that drops delayed timers when the highlight changes or the list closes.
+    private String docName;
+    private Function<Entry, MarkdownDocument> docProvider;
+    private Entry docEntry;
+    private Work docWork;
+    private MarkdownDocument doc;
+    private int docEpoch;
 
     public boolean isOpen() {
       return open;
@@ -111,7 +122,10 @@ public final class Completion {
       highlight = 0;
     }
 
-    /** Closes the list, and cancels the work that finds its entries in the background. */
+    /**
+     * Closes the list, and cancels the work that finds its entries or documentation in the
+     * background.
+     */
     public void close() {
       open = false;
       if (work != null) {
@@ -120,6 +134,19 @@ public final class Completion {
       }
       asked = null;
       answer = List.of();
+      clearDocumentation();
+    }
+
+    private void clearDocumentation() {
+      if (docWork != null) {
+        docWork.cancel();
+        docWork = null;
+      }
+      if (docEntry != null || doc != null) {
+        docEntry = null;
+        doc = null;
+        docEpoch++;
+      }
     }
 
     /**
@@ -153,6 +180,28 @@ public final class Completion {
     /** The highlighted entry's index. */
     public int highlight() {
       return highlight;
+    }
+
+    /**
+     * Supplies documentation for the highlighted entry on another thread ({@link App#background}),
+     * shown beside the list once the highlight rests on the entry for {@link
+     * Theme.Motion#tooltipDelay}; moving the highlight or closing the list cancels pending work
+     * and hides the panel. Returning null shows nothing. Pass a null {@code provider} to disable.
+     * {@code provider} gets only the entry: what else it reads it takes in its closure, and nothing
+     * of the app's state that the app's thread changes.
+     *
+     * @param name what the work is called, which {@link App#await} names
+     */
+    public State documentation(String name, Function<Entry, MarkdownDocument> provider) {
+      if (provider == null) {
+        docName = null;
+        docProvider = null;
+        clearDocumentation();
+      } else {
+        docName = Objects.requireNonNull(name, "name");
+        docProvider = provider;
+      }
+      return this;
     }
   }
 
@@ -281,6 +330,9 @@ public final class Completion {
       return field;
     }
     int count = entries.size();
+    if (!waiting) {
+      describe(theme, app, state, state.highlight < count ? entries.get(state.highlight) : null);
+    }
     int rows = count + (loading ? 1 : 0);
     El list = PassiveList.view(
             theme,
@@ -302,7 +354,46 @@ public final class Completion {
     list.style().minWidth = Len.px(width(theme, entries) + PassiveList.gutter(theme, rows, ROWS));
     list.style().maxHeight = Len.px(
         ROWS * theme.size().control() + 2 * (theme.space().s() + theme.size().stroke()));
+    if (state.doc != null) {
+      list.overlay(Markdown.documentation(state.doc)
+          .keepFocus()
+          .side(Side.RIGHT, Style.Align.START, theme.space().xs()));
+    }
     return field.overlay(Popup.frame(theme, list));
+  }
+
+  /**
+   * Schedules background documentation for {@code highlighted} after the theme's tooltip delay;
+   * cancels any previous work and drops its document when the highlighted entry changes.
+   */
+  private static void describe(Theme theme, App<?> app, State state, Entry highlighted) {
+    if (state.docProvider == null || highlighted == null) {
+      state.clearDocumentation();
+      return;
+    }
+    if (highlighted.equals(state.docEntry)) {
+      return;
+    }
+    state.clearDocumentation();
+    state.docEntry = highlighted;
+    int epoch = state.docEpoch;
+    app.after(theme.motion().tooltipDelay(), () -> {
+      if (!state.open || state.docEpoch != epoch || state.docProvider == null) {
+        return;
+      }
+      Function<Entry, MarkdownDocument> provider = state.docProvider;
+      state.docWork = app.background(
+          state.docName,
+          () -> provider.apply(highlighted),
+          found -> {
+            state.doc = found;
+            state.docWork = null;
+          },
+          error -> {
+            state.doc = null;
+            state.docWork = null;
+          });
+    });
   }
 
   /** Finds the word's entries on another thread, once per word; meanwhile those found before. */

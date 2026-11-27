@@ -118,6 +118,7 @@ class DocsExamplesTest {
       Map.entry("theming", List.of("system")),
       Map.entry("customers", List.of("loaded", "invalid", "saved")),
       Map.entry("code-editor", List.of("completions")),
+      Map.entry("completion-documentation", List.of("shown")),
       Map.entry("code-editor-placeholder", List.of("view")),
       Map.entry("code-editor-excerpt", List.of("view")),
       Map.entry("code-editor-json", List.of("view")),
@@ -274,6 +275,7 @@ class DocsExamplesTest {
             520,
             300));
     editors(all, "code-editor", Editors::codeEditor, 520, 260);
+    editors(all, "completion-documentation", Editors::completionDocumentation, 680, 190);
     editors(all, "code-editor-placeholder", Editors::placeholderAndReadOnly, 520, 180);
     editors(all, "code-editor-excerpt", Editors::excerpt, 520, 106);
     editors(all, "code-editor-json", Editors::json, 520, 200);
