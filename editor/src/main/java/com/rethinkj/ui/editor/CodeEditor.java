@@ -1009,7 +1009,7 @@ public final class CodeEditor {
     /**
      * As {@link #documentation(IntFunction)}, but {@code provider} runs on another thread through
      * {@link App#background} under {@code name}, which {@link App#await} names. Replaces any plain
-     * {@link #documentation(IntFunction)} provider. One piece of work runs at a time: a request
+     * {@link #documentation(IntFunction)} provider. Only the latest request delivers:  a request
      * for another offset or another text cancels the one before, and a result that arrives for a
      * text other than the editor's current one is dropped. On Control+Q and hover, the popover
      * opens when the documentation arrives if the caret or pointer is still on the same word;
@@ -1092,7 +1092,7 @@ public final class CodeEditor {
     /**
      * As {@link #declaration(IntFunction)}, but {@code provider} runs on another thread through
      * {@link App#background} under {@code name}, which {@link App#await} names. Replaces any plain
-     * {@link #declaration(IntFunction)} provider. One piece of work runs at a time: a request for
+     * {@link #declaration(IntFunction)} provider. Only the latest request delivers:  a request for
      * another offset or another text cancels the one before, and a result that arrives for a text
      * other than the editor's current one is dropped. Control+B and Control+click go to the
      * declaration when it arrives if the caret and the text are unchanged. Control+hover starts the
@@ -1155,7 +1155,7 @@ public final class CodeEditor {
     /**
      * As {@link #usages(IntFunction)}, but {@code provider} runs on another thread through {@link
      * App#background} under {@code name}, which {@link App#await} names. Replaces any plain {@link
-     * #usages(IntFunction)} provider. One piece of work runs at a time: a request for another
+     * #usages(IntFunction)} provider. Only the latest request delivers:  a request for another
      * offset or another text cancels the one before, and a result that arrives for a text other
      * than the editor's current one is dropped. Alt+F7 opens the usages menu at once with a
      * "Loading…" row until the usages arrive (closing if none); Control+Shift+F7 highlights when
@@ -1215,14 +1215,22 @@ public final class CodeEditor {
       usagesValue = null;
     }
 
-    /** Removes the usages layer if it is still the one HIGHLIGHT_USAGES set; whether it was. */
+    /**
+     * Removes the usages layer if it is still the one HIGHLIGHT_USAGES set, and stops highlighting
+     * that is on its way; whether it did either.
+     */
     private boolean clearUsages() {
+      boolean pending = false;
+      if (usagesWork != null && !usagesWorkMenu) {
+        pending = usagesWorkText.equals(builtText); // one for an older text would not show
+        cancelUsagesWork();
+      }
       boolean own = usagesShown != null && layers.get(USAGES_LAYER) == usagesShown;
       if (own) {
         layers.remove(USAGES_LAYER);
       }
       usagesShown = null;
-      return own;
+      return own || pending;
     }
 
     private void clearNavigation() {
@@ -3989,10 +3997,10 @@ public final class CodeEditor {
         }
       });
     }
-    if (state.docWork != null && state.docWorkHover) {
-      // Any press, also on the scrollbar, ends the hover: a drag stops its updates.
+    if (state.docWork != null) {
+      // Any press, also on the scrollbar or another control, moves on from the word asked about.
       editor.onAnyPointerDown(() -> {
-        if (state.docWork != null && state.docWorkHover) {
+        if (!state.overDoc) { // a press in the open popover stays with it
           state.cancelDocWork();
         }
       });

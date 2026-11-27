@@ -621,6 +621,7 @@ class CodeNavigationTest {
     AtomicReference<CountDownLatch> usagesRelease = new AtomicReference<>(new CountDownLatch(1));
     AtomicReference<CountDownLatch> docStarted = new AtomicReference<>(new CountDownLatch(1));
     AtomicReference<CountDownLatch> docRelease = new AtomicReference<>(new CountDownLatch(1));
+    CountDownLatch declInterrupted = new CountDownLatch(1);
 
     doc.editor
         .occurrences(false)
@@ -632,6 +633,9 @@ class CodeNavigationTest {
           }
           if (release != null) {
             awaitUninterruptibly(release);
+          }
+          if (Thread.currentThread().isInterrupted()) {
+            declInterrupted.countDown();
           }
           return offset == ordersAt
               ? SCHEMA_ORDERS
@@ -737,7 +741,9 @@ class CodeNavigationTest {
       app.await("declaration", timeout);
       app.frame();
       assertEquals(SCHEMA_ORDERS, doc.opened, "second request delivered after cancelling first");
-      assertEquals(ordersAt, doc.editor.caret(), "cancelled first request did not move caret");
+      assertEquals(ordersAt, doc.editor.caret(), "the first request's result never arrived");
+      assertTrue(
+          declInterrupted.await(10, TimeUnit.SECONDS), "the second request cancels the first");
     } finally {
       neverReleased.countDown();
     }

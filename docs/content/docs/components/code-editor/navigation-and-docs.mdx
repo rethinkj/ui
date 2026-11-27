@@ -52,7 +52,7 @@ When symbol knowledge lives outside the process (such as a language server or da
 ```java snippet="code-editor-navigation-background"
 ```
 
-- Only one request per kind runs at a time: requesting another offset or text cancels the previous one, and any result arriving for a different text is dropped.
+- Only the latest request per kind delivers: requesting another offset or text cancels the previous one, whose provider may still run if it ignores the interrupt, and any result arriving for a different text is dropped.
 - **Documentation (`Ctrl+Q` / hover):** Opens the popover on arrival if the caret or pointer is still on the same word; nothing opens for `null`.
 - **Declaration (`Ctrl+B` / `Ctrl+click` / `Ctrl+hover`):** Navigates on arrival if the caret and text are unchanged. **Ctrl+hover** starts after `Theme.Motion.tooltipDelay` and underlines the word once a declaration arrives.
 - **Usages (`Alt+F7` / `Ctrl+Shift+F7`):** **Alt+F7** opens the usages menu at once with a `"Loading…"` row until the usages arrive (closing if none); **Ctrl+Shift+F7** highlights them on arrival.
