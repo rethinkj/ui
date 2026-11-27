@@ -439,6 +439,27 @@ class FindKeysTest {
   }
 
   @Test
+  void goToLineTakesTheGuttersFirstLine() throws IOException {
+    Doc doc = new Doc(TEXT);
+    doc.editor.firstLine(42);
+    App<Doc> app = app(doc);
+    String tree = run(app, "frame\nfocus #query\nkey G control");
+    assertEquals("42 to 45", count(tree));
+    run(app, "type \"44:8\"\nkey Enter");
+    assertEquals(TEXT.indexOf("select") + 7, caret(doc));
+    assertTrue(Find.goToLine(doc.editor.find(), "43"));
+    run(app, "frame");
+    assertEquals(TEXT.indexOf("--"), caret(doc));
+    assertEquals(2, doc.editor.line());
+    assertTrue(Find.goToLine(doc.editor.find(), "10"));
+    run(app, "frame");
+    assertEquals(0, caret(doc), "before the first line clamps to the first");
+    assertTrue(Find.goToLine(doc.editor.find(), "99"));
+    run(app, "frame");
+    assertEquals(TEXT.lastIndexOf('\n') + 1, caret(doc), "past the end clamps to the last");
+  }
+
+  @Test
   void aReadOnlyEditorFindsButDoesNotReplace() throws IOException {
     Doc doc = new Doc(TEXT);
     doc.readOnly = true;

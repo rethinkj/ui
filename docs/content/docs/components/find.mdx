@@ -29,7 +29,7 @@ Regex replacements support capture groups (`$1`, `${name}`). Large documents are
 
 ## State API
 
-Read `Find.State` to inspect the current search (`isOpen()`, `query()`, `replacement()`, `matchCase()`, `wholeWord()`, `regex()`) or call `close()` to dismiss the bar while keeping the editor's selection. See [`Find.State` Javadoc](/api/com/rethinkj/ui/kit/Find.State.html).
+Read `Find.State` to inspect the current search (`isOpen()`, `query()`, `replacement()`, `matchCase()`, `wholeWord()`, `regex()`), call `firstLine(line)` to offset Go to line's numbering for an excerpt (1 by default), or call `close()` to dismiss the bar while keeping the editor's selection. See [`Find.State` Javadoc](/api/com/rethinkj/ui/kit/Find.State.html).
 
 ## Keyboard
 

@@ -642,14 +642,13 @@ public final class CodeEditor {
 
     /**
      * Numbers the gutter's lines from {@code line}, for an excerpt of a larger file; 1 unless set.
-     * {@link #line} still counts from 1 in the editor's string.
+     * Go to line takes and shows the same numbers; {@link #line} still counts from 1 in the
+     * editor's string.
      *
      * @throws IllegalArgumentException if {@code line} is less than 1
      */
     public State firstLine(int line) {
-      if (line < 1) {
-        throw new IllegalArgumentException("first line must be 1 or more, was " + line);
-      }
+      find.firstLine(line);
       firstLine = line;
       return this;
     }

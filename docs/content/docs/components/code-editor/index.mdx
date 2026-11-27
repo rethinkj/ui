@@ -53,7 +53,7 @@ To make a read-only editor, call `readOnly(true)` on `CodeEditor.State` and pass
 
 ### Excerpts
 
-When showing an excerpt from the middle of a larger file, call `firstLine(line)` on `CodeEditor.State` (1 by default) to number the gutter from that line. `line()` still counts from 1 in the editor's string.
+When showing an excerpt from the middle of a larger file, call `firstLine(line)` on `CodeEditor.State` (1 by default) to number the gutter from that line. Go to line (`Ctrl+G`) takes and shows the gutter's numbers, while `line()` still counts from 1 in the editor's string.
 
 ```java snippet="code-editor-excerpt"
 ```
@@ -103,7 +103,7 @@ To insert a snippet from a button or menu, call `replaceSelection(text)` on `Cod
 | `occurrences(boolean)` | Toggles highlighting other occurrences of the word under the cursor (on by default) |
 | `findBar(boolean)`, `find()` | Enables/disables the find bar (on by default) and returns its `Find.State` |
 | `readOnly(boolean)` | Makes the editor read-only, so it needs no `onChange` (off by default) |
-| `firstLine(line)` | Numbers the gutter from `line` (1 or more, 1 by default), for an excerpt of a larger file |
+| `firstLine(line)` | Numbers the gutter (and Go to line) from `line` (1 or more, 1 by default), for an excerpt of a larger file |
 
 ## Keyboard commands
 
