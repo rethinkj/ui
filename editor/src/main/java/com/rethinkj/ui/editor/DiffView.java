@@ -1403,14 +1403,8 @@ public final class DiffView {
    */
   private static void translatePoint(
       State state, int[] oldToNew, int at, IntConsumer onUnchanged, IntConsumer onRemoved) {
-    if (oldToNew.length == 0) { // an empty old text: only beside an empty new one
-      if (at == 0 && state.newDisplayed.isEmpty()) {
-        onUnchanged.accept(0);
-      }
-      return;
-    }
-    if (at < 0 || at > state.oldDisplayed.length()) {
-      return;
+    if (at < 0 || at > state.oldDisplayed.length() || oldToNew.length == 0) {
+      return; // an empty old text has no line to show a mark on
     }
     int oldLine = lineOf(state.oldStarts, at);
     int newLine = oldToNew[oldLine];
@@ -1969,14 +1963,13 @@ public final class DiffView {
     if (Double.isNaN(y) || rows.isEmpty()) {
       return null;
     }
-    rows.sort(Comparator.comparingInt(RemovedRow::line));
     int first = anchor;
     int last = anchor;
     boolean found = false;
-    for (int i = 0; i < rows.size(); i++) {
-      RemovedRow row = rows.get(i);
+    for (RemovedRow row : rows) {
       // Past the run's ends counts as its end rows; over a card between rows, as no row.
-      boolean under = (i == 0 || y >= row.top()) && (i + 1 == rows.size() || y < row.bottom());
+      boolean under = (row.line() == runFrom || y >= row.top())
+          && (row.line() == runTo - 1 || y < row.bottom());
       found |= under;
       if (under || row.line() == anchor) {
         first = Math.min(first, row.line());
