@@ -1819,10 +1819,8 @@ public final class CodeEditor {
       state.clearNavigation();
     }
     if (state.usagesMenu.isOpen()
-        && ((!state.usagesLoading && state.usagesFound.isEmpty())
-            || !value.equals(state.usagesValue))) {
-      state.closeUsagesMenu();
-    } else if (!state.usagesMenu.isOpen() && state.usagesLoading) {
+        ? !state.usagesLoading && state.usagesFound.isEmpty() || !value.equals(state.usagesValue)
+        : state.usagesLoading) {
       state.closeUsagesMenu();
     }
     wireBlocks(theme, state, value, editor, marks.blocks());

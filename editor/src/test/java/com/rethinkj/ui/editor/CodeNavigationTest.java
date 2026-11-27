@@ -5,6 +5,7 @@ import static com.rethinkj.ui.editor.CodeEditor.codeEditor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
@@ -410,7 +411,7 @@ class CodeNavigationTest {
   private static void awaitUninterruptibly(CountDownLatch latch) {
     try {
       latch.await(10, TimeUnit.SECONDS);
-    } catch (InterruptedException e) {
+    } catch (InterruptedException _) {
       Thread.currentThread().interrupt();
     }
   }
@@ -592,7 +593,7 @@ class CodeNavigationTest {
     app.frame();
     app.await("documentation", timeout);
     app.frame();
-    assertTrue(findOverlay(app, "documentation") == null, "null documentation opens nothing");
+    assertNull(findOverlay(app, "documentation"), "null documentation opens nothing");
 
     // 7. Setting a plain provider replaces the background one.
     doc.editor.declaration(doc::declarationAt);
@@ -692,7 +693,7 @@ class CodeNavigationTest {
             .filter(m -> m.color() == Theme.DARK.accent().edge())
             .count(),
         "outdated usages result dropped");
-    assertTrue(findOverlay(app, "documentation") == null, "outdated documentation result dropped");
+    assertNull(findOverlay(app, "documentation"), "outdated documentation result dropped");
 
     // 2. Moved caret: Ctrl+B result dropped if caret moved before arrival.
     CountDownLatch movedStarted = new CountDownLatch(1);
