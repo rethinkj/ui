@@ -578,7 +578,13 @@ public final class CodeEditor {
         List<El.Block> blocks,
         Function<El.Block, El> builder,
         Consumer<El.Block> reveal,
-        Function<El.Block, El> gutter) {}
+        Function<El.Block, El> gutter,
+        BlockPair pair) {}
+
+    @FunctionalInterface
+    interface BlockPair {
+      Object key(int insertLine, int ordinal);
+    }
 
     record OldNumbers(int maxLine, int newMaxLine, IntFunction<String> label) {}
 
@@ -1515,6 +1521,22 @@ public final class CodeEditor {
       return new Marks(
           diagnostics, current, allMarkers, highlights, usageHighlights, changes, hints, blocks);
     }
+
+    /** All marks of layers other than {@code skipLayer}, moved to {@code displayedText}. */
+    List<Mark> layerMarks(String displayedText, String skipLayer) {
+      if (layers.isEmpty()) {
+        return List.of();
+      }
+      long revision = field.revision(displayedText);
+      List<Mark> out = new ArrayList<>();
+      for (Map.Entry<String, Layer> entry : layers.entrySet()) {
+        if (skipLayer != null && skipLayer.equals(entry.getKey())) {
+          continue;
+        }
+        out.addAll(entry.getValue().marksFor(displayedText, revision, this));
+      }
+      return out;
+    }
   }
 
   /**
@@ -1907,6 +1929,8 @@ public final class CodeEditor {
     // instance using identity maps.
     Map<El.Block, Block> markMap =
         markBlocks.isEmpty() ? Map.of() : new IdentityHashMap<>(markBlocks.size());
+    State.BlockPair blockPair = extra == null ? null : extra.pair();
+    Map<Integer, Integer> markOrdinals = blockPair == null ? null : new HashMap<>();
     if (!markBlocks.isEmpty()) {
       String text = state.builtText;
       int len = text.length();
@@ -1926,6 +1950,13 @@ public final class CodeEditor {
           insertLine++;
         }
         El.Block block = El.Block.insert(insertLine).pinned(true);
+        if (blockPair != null) {
+          int ordinal = markOrdinals.merge(insertLine, 1, Integer::sum) - 1;
+          Object pairKey = blockPair.key(insertLine, ordinal);
+          if (pairKey != null) {
+            block = block.paired(pairKey);
+          }
+        }
         blocks.add(block);
         markMap.put(block, markBlock);
       }
