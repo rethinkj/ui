@@ -23,8 +23,13 @@ import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -391,5 +396,349 @@ class CodeNavigationTest {
         frame
         """, plainApp, out);
     assertEquals(3, plain.parentKeys, "navigation keys bubble to parent when providers are unset");
+  }
+
+  private static El findOverlay(App<?> app, String key) {
+    for (El overlay : app.tree().shownOverlays()) {
+      if (key.equals(overlay.key())) {
+        return overlay;
+      }
+    }
+    return null;
+  }
+
+  private static void awaitUninterruptibly(CountDownLatch latch) {
+    try {
+      latch.await(10, TimeUnit.SECONDS);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+  }
+
+  @Test
+  void backgroundDeclarationUsagesAndDocumentation() throws Exception {
+    Duration timeout = Duration.ofSeconds(10);
+    Doc doc = new Doc(false);
+    AtomicInteger bgDeclCalls = new AtomicInteger();
+    AtomicReference<Thread> bgDeclThread = new AtomicReference<>();
+    CountDownLatch usagesStarted = new CountDownLatch(1);
+    CountDownLatch usagesRelease = new CountDownLatch(1);
+    AtomicInteger usagesGate = new AtomicInteger(1); // hold the 1st call (Alt+F7) to check loading
+
+    int declFrom = SAMPLE.indexOf("paid_orders");
+    int secondUsage = SAMPLE.indexOf("paid_orders", declFrom + 1);
+    int thirdUsage = SAMPLE.indexOf("paid_orders", secondUsage + 1);
+
+    doc.editor
+        .occurrences(false)
+        .declarationInBackground("declaration", offset -> {
+          bgDeclCalls.incrementAndGet();
+          bgDeclThread.set(Thread.currentThread());
+          int from = CodeWords.start(SAMPLE, offset);
+          int to = CodeWords.end(SAMPLE, offset);
+          return switch (SAMPLE.substring(from, to)) {
+            case "paid_orders" ->
+              new CodeEditor.Location(declFrom, declFrom + "paid_orders".length());
+            case "orders" -> SCHEMA_ORDERS;
+            default -> null;
+          };
+        })
+        .usagesInBackground("usages", offset -> {
+          if (usagesGate.getAndDecrement() > 0) {
+            usagesStarted.countDown();
+            awaitUninterruptibly(usagesRelease);
+          }
+          int from = CodeWords.start(SAMPLE, offset);
+          int to = CodeWords.end(SAMPLE, offset);
+          if (!SAMPLE.substring(from, to).equals("paid_orders")) {
+            return List.of();
+          }
+          List<CodeEditor.Location> found = new ArrayList<>();
+          String name = "paid_orders";
+          for (int at = SAMPLE.indexOf(name);
+              at >= 0;
+              at = SAMPLE.indexOf(name, at + name.length())) {
+            found.add(new CodeEditor.Location(at, at + name.length()));
+          }
+          found.add(new CodeEditor.Location("report.sql", 8, 19, null));
+          return found;
+        })
+        .documentationInBackground("documentation", offset -> {
+          int from = CodeWords.start(SAMPLE, offset);
+          int to = CodeWords.end(SAMPLE, offset);
+          return SAMPLE.substring(from, to).equals("paid_orders")
+              ? Markdown.parse("CTE `paid_orders`.")
+              : null;
+        })
+        .onOpen(loc -> doc.opened = loc);
+
+    App<Doc> app = app(doc);
+    El editor = findByKey(app.tree(), "code");
+    app.focus(editor);
+    app.select(editor, secondUsage + 3, secondUsage + 3);
+    app.frame();
+
+    // 1. Ctrl+B resolves declaration on a background thread and moves the caret on arrival.
+    app.keyDown(new Key("B", Key.CONTROL, false));
+    app.keyUp(new Key("B", Key.CONTROL, false));
+    app.frame();
+    app.await("declaration", timeout);
+    app.frame();
+    assertEquals(declFrom, doc.editor.caret(), "background Ctrl+B moves caret to declaration");
+    assertTrue(
+        bgDeclThread.get() != null && bgDeclThread.get() != Thread.currentThread(),
+        "provider ran off the app thread");
+
+    // 2. Ctrl+hover waits for tooltipDelay before querying and underlines once arrived.
+    float[] thirdA = offsetPoint(app, thirdUsage + 1);
+    int callsBefore = bgDeclCalls.get();
+    app.pointerMove(thirdA[0], thirdA[1], Key.CONTROL);
+    app.frame();
+    assertEquals(callsBefore, bgDeclCalls.get(), "Ctrl+hover waits for tooltipDelay");
+    assertFalse(
+        decoratedLine(findByKey(app.tree(), "code"), doc.text, 6).contains("underline "),
+        "not underlined before declaration arrives");
+    app.advance(Theme.DARK.motion().tooltipDelay() + 0.05);
+    app.frame();
+    app.await("declaration", timeout);
+    app.frame();
+    assertEquals(callsBefore + 1, bgDeclCalls.get(), "Ctrl+hover queried after tooltipDelay");
+    assertEquals(Cursor.POINTER, app.cursor(), "pointer cursor once declaration arrived");
+    assertTrue(
+        decoratedLine(findByKey(app.tree(), "code"), doc.text, 6).contains("underline "),
+        "hovered word underlined once declaration arrived");
+    app.keyUp(new Key("Control", 0, false));
+    app.frame();
+    assertEquals(Cursor.TEXT, app.cursor(), "text cursor after releasing Control");
+
+    // 3. Ctrl+click resolves in background and moves the caret on arrival.
+    app.pointerDown(thirdA[0], thirdA[1], 1, Key.CONTROL);
+    app.pointerUp(thirdA[0], thirdA[1]);
+    app.frame();
+    app.await("declaration", timeout);
+    app.frame();
+    assertEquals(declFrom, doc.editor.caret(), "background Ctrl+click moves caret to declaration");
+    app.pointerLeave();
+    app.frame();
+
+    // 4. Alt+F7 opens immediately with a "Loading…" row, then populates usages on arrival.
+    app.keyDown(new Key("F7", Key.ALT, false));
+    app.keyUp(new Key("F7", Key.ALT, false));
+    app.frame();
+    app.advance(0.3);
+    app.frame();
+    assertTrue(usagesStarted.await(10, TimeUnit.SECONDS), "usages provider started");
+    Script.run("""
+        size 520 260 scale 1
+        frame
+        snap usages-loading
+        """, app, out);
+    String loadingTree = Files.readString(out.resolve("usages-loading.tree.txt"));
+    assertTrue(loadingTree.contains("#usages role=menu label=\"Usages\""), loadingTree);
+    assertTrue(loadingTree.contains("label=\"Loading…\""), loadingTree);
+
+    usagesRelease.countDown();
+    app.await("usages", timeout);
+    app.frame();
+    app.advance(0.3);
+    app.frame();
+    Script.run("""
+        size 520 260 scale 1
+        frame
+        snap usages-loaded
+        key ArrowDown
+        key Enter
+        frame
+        """, app, out);
+    String loadedTree = Files.readString(out.resolve("usages-loaded.tree.txt"));
+    assertFalse(loadedTree.contains("label=\"Loading…\""), loadedTree);
+    assertTrue(loadedTree.contains("label=\"6: FROM paid_orders\""), loadedTree);
+    assertEquals(secondUsage, doc.editor.caret(), "choosing loaded usage moves caret there");
+
+    // 5. Ctrl+Shift+F7 highlights usages on arrival.
+    app.keyDown(new Key("F7", Key.CONTROL | Key.SHIFT, false));
+    app.keyUp(new Key("F7", Key.CONTROL | Key.SHIFT, false));
+    app.frame();
+    app.await("usages", timeout);
+    app.frame();
+    El afterHighlight = findByKey(app.tree(), "code");
+    assertEquals(
+        3,
+        afterHighlight.scrollMarks().stream()
+            .filter(m -> m.color() == Theme.DARK.accent().edge())
+            .count(),
+        "background Ctrl+Shift+F7 highlights usages on arrival");
+
+    // 6. Ctrl+Q and hover documentation open on arrival, and null opens nothing.
+    app.keyDown(new Key("Q", Key.CONTROL, false));
+    app.keyUp(new Key("Q", Key.CONTROL, false));
+    app.frame();
+    app.await("documentation", timeout);
+    app.frame();
+    app.advance(0.3);
+    app.frame();
+    assertNotNull(findOverlay(app, "documentation"), "background Ctrl+Q opens popover");
+    app.keyDown(new Key("Escape", 0, false));
+    app.keyUp(new Key("Escape", 0, false));
+    app.frame();
+    app.advance(0.3);
+    app.frame();
+
+    // Hovering a word whose provider returns null opens nothing.
+    float[] selectPt = offsetPoint(app, SAMPLE.indexOf("SELECT") + 1);
+    app.pointerMove(selectPt[0], selectPt[1]);
+    app.frame();
+    app.advance(Theme.DARK.motion().tooltipDelay() + 0.05);
+    app.frame();
+    app.await("documentation", timeout);
+    app.frame();
+    assertTrue(findOverlay(app, "documentation") == null, "null documentation opens nothing");
+
+    // 7. Setting a plain provider replaces the background one.
+    doc.editor.declaration(doc::declarationAt);
+    app.select(findByKey(app.tree(), "code"), secondUsage + 2, secondUsage + 2);
+    app.frame();
+    int bgBeforeReplace = bgDeclCalls.get();
+    app.keyDown(new Key("B", Key.CONTROL, false));
+    app.keyUp(new Key("B", Key.CONTROL, false));
+    app.frame();
+    assertEquals(declFrom, doc.editor.caret(), "plain provider navigates synchronously");
+    assertEquals(bgBeforeReplace, bgDeclCalls.get(), "replaced background provider not called");
+  }
+
+  @Test
+  void backgroundProvidersDropOutdatedResultsAndCancelSupersededWork() throws Exception {
+    Duration timeout = Duration.ofSeconds(10);
+    Doc doc = new Doc(false);
+    int declFrom = SAMPLE.indexOf("paid_orders");
+    int secondUsage = SAMPLE.indexOf("paid_orders", declFrom + 1);
+    int ordersAt = SAMPLE.indexOf("FROM orders") + "FROM ".length();
+
+    AtomicReference<CountDownLatch> declStarted = new AtomicReference<>(new CountDownLatch(1));
+    AtomicReference<CountDownLatch> declRelease = new AtomicReference<>(new CountDownLatch(1));
+    AtomicReference<CountDownLatch> usagesStarted = new AtomicReference<>(new CountDownLatch(1));
+    AtomicReference<CountDownLatch> usagesRelease = new AtomicReference<>(new CountDownLatch(1));
+    AtomicReference<CountDownLatch> docStarted = new AtomicReference<>(new CountDownLatch(1));
+    AtomicReference<CountDownLatch> docRelease = new AtomicReference<>(new CountDownLatch(1));
+
+    doc.editor
+        .occurrences(false)
+        .declarationInBackground("declaration", offset -> {
+          CountDownLatch started = declStarted.get();
+          CountDownLatch release = declRelease.get();
+          if (started != null) {
+            started.countDown();
+          }
+          if (release != null) {
+            awaitUninterruptibly(release);
+          }
+          return offset == ordersAt
+              ? SCHEMA_ORDERS
+              : new CodeEditor.Location(declFrom, declFrom + "paid_orders".length());
+        })
+        .usagesInBackground("usages", offset -> {
+          usagesStarted.get().countDown();
+          awaitUninterruptibly(usagesRelease.get());
+          return List.of(new CodeEditor.Location(declFrom, declFrom + "paid_orders".length()));
+        })
+        .documentationInBackground("documentation", offset -> {
+          docStarted.get().countDown();
+          awaitUninterruptibly(docRelease.get());
+          return Markdown.parse("Stale doc.");
+        })
+        .onOpen(loc -> doc.opened = loc);
+
+    App<Doc> app = app(doc);
+    El editor = findByKey(app.tree(), "code");
+    app.focus(editor);
+    app.select(editor, secondUsage + 2, secondUsage + 2);
+    app.frame();
+
+    // 1. Outdated text: result arriving after the editor's text changed is dropped (all 3 kinds).
+    app.keyDown(new Key("B", Key.CONTROL, false));
+    app.keyUp(new Key("B", Key.CONTROL, false));
+    app.frame();
+    assertTrue(declStarted.get().await(10, TimeUnit.SECONDS));
+
+    app.keyDown(new Key("F7", Key.CONTROL | Key.SHIFT, false));
+    app.keyUp(new Key("F7", Key.CONTROL | Key.SHIFT, false));
+    app.frame();
+    assertTrue(usagesStarted.get().await(10, TimeUnit.SECONDS));
+
+    app.keyDown(new Key("Q", Key.CONTROL, false));
+    app.keyUp(new Key("Q", Key.CONTROL, false));
+    app.frame();
+    assertTrue(docStarted.get().await(10, TimeUnit.SECONDS));
+
+    // Edit the text before any of the three results arrive.
+    app.textInput("x");
+    app.frame();
+    int caretAfterEdit = doc.editor.caret();
+
+    declRelease.get().countDown();
+    usagesRelease.get().countDown();
+    docRelease.get().countDown();
+    app.await("declaration", timeout);
+    app.await("usages", timeout);
+    app.await("documentation", timeout);
+    app.frame();
+    app.advance(0.3);
+    app.frame();
+
+    assertEquals(caretAfterEdit, doc.editor.caret(), "outdated declaration result dropped");
+    assertEquals(
+        0,
+        findByKey(app.tree(), "code").scrollMarks().stream()
+            .filter(m -> m.color() == Theme.DARK.accent().edge())
+            .count(),
+        "outdated usages result dropped");
+    assertTrue(findOverlay(app, "documentation") == null, "outdated documentation result dropped");
+
+    // 2. Moved caret: Ctrl+B result dropped if caret moved before arrival.
+    CountDownLatch movedStarted = new CountDownLatch(1);
+    CountDownLatch movedRelease = new CountDownLatch(1);
+    declStarted.set(movedStarted);
+    declRelease.set(movedRelease);
+    app.select(findByKey(app.tree(), "code"), secondUsage + 2, secondUsage + 2);
+    app.frame();
+    app.keyDown(new Key("B", Key.CONTROL, false));
+    app.keyUp(new Key("B", Key.CONTROL, false));
+    app.frame();
+    assertTrue(movedStarted.await(10, TimeUnit.SECONDS));
+    app.select(findByKey(app.tree(), "code"), 0, 0);
+    app.frame();
+    movedRelease.countDown();
+    app.await("declaration", timeout);
+    app.frame();
+    assertEquals(0, doc.editor.caret(), "declaration dropped when caret moved");
+
+    // 3. New request at another offset cancels the previous in-flight work.
+    CountDownLatch firstStarted = new CountDownLatch(1);
+    CountDownLatch neverReleased = new CountDownLatch(1);
+    declStarted.set(firstStarted);
+    declRelease.set(neverReleased);
+    try {
+      app.select(findByKey(app.tree(), "code"), secondUsage + 2, secondUsage + 2);
+      app.frame();
+      app.keyDown(new Key("B", Key.CONTROL, false));
+      app.keyUp(new Key("B", Key.CONTROL, false));
+      app.frame();
+      assertTrue(firstStarted.await(10, TimeUnit.SECONDS));
+
+      // Second request at ordersAt runs immediately and cancels the blocked first one.
+      declStarted.set(null);
+      declRelease.set(null);
+      app.select(findByKey(app.tree(), "code"), ordersAt, ordersAt);
+      app.frame();
+      app.keyDown(new Key("B", Key.CONTROL, false));
+      app.keyUp(new Key("B", Key.CONTROL, false));
+      app.frame();
+      app.await("declaration", timeout);
+      app.frame();
+      assertEquals(SCHEMA_ORDERS, doc.opened, "second request delivered after cancelling first");
+      assertEquals(ordersAt, doc.editor.caret(), "cancelled first request did not move caret");
+    } finally {
+      neverReleased.countDown();
+    }
   }
 }

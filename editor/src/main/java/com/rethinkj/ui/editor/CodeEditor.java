@@ -19,6 +19,7 @@ import com.rethinkj.ui.Style;
 import com.rethinkj.ui.TextDocument;
 import com.rethinkj.ui.TextEdit;
 import com.rethinkj.ui.WindowState;
+import com.rethinkj.ui.Work;
 import com.rethinkj.ui.kit.Callout;
 import com.rethinkj.ui.kit.Find;
 import com.rethinkj.ui.kit.Icon;
@@ -42,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
@@ -530,6 +532,11 @@ public final class CodeEditor {
     private Map<Integer, CodeVision.Row> visionRows = Map.of();
     // Quick documentation: provider supplied by the app and the currently open popover.
     private IntFunction<MarkdownDocument> documentation;
+    private String documentationBackground;
+    private Work docWork;
+    private int docWorkOffset = -1;
+    private String docWorkText;
+    private boolean docWorkHover;
     private MarkdownDocument doc;
     private String docValue;
     private int docFrom = -1;
@@ -537,6 +544,8 @@ public final class CodeEditor {
     private int docCaret = -1;
     private boolean docHover;
     private int hoverPos = -1;
+    private int hoverMods;
+    private int hoverRestedPos = -1;
     private boolean overDoc;
     private double docLeftAt = Double.NaN; // when the pointer left the word and the popover
     // Rendered doc comments (reader mode): off by default.
@@ -556,7 +565,24 @@ public final class CodeEditor {
     };
     // Code navigation: declaration and usages providers, open usages menu and Ctrl-hover link.
     private IntFunction<Location> declaration;
+    private String declarationBackground;
+    private Work declWork;
+    private int declWorkOffset = -1;
+    private int declWorkFrom = -1;
+    private int declWorkTo = -1;
+    private String declWorkText;
+    private boolean declWorkHover;
+    // Control+click's caret, as the press placed it: taken at the build after the press.
+    private boolean clickPending;
+    private int clickCaret = -1;
+    private int clickAnchor = -1;
     private IntFunction<List<Location>> usages;
+    private String usagesBackground;
+    private Work usagesWork;
+    private int usagesWorkOffset = -1;
+    private String usagesWorkText;
+    private boolean usagesWorkMenu;
+    private boolean usagesLoading;
     private Consumer<Location> onOpen;
     private final Menu.State usagesMenu = new Menu.State();
     private List<Location> usagesFound = List.of();
@@ -959,14 +985,72 @@ public final class CodeEditor {
      * Supplies quick documentation for a character offset in the editor's string: a {@link
      * MarkdownDocument} to show in a popover, or null for none. Shown below a word after the
      * pointer rests on it for {@link Theme.Motion#tooltipDelay}, and at the caret on Control+Q
-     * ({@link Command#QUICK_DOCUMENTATION}). Null, the default, disables quick documentation.
+     * ({@link Command#QUICK_DOCUMENTATION}). Replaces any {@link #documentationInBackground}
+     * provider. Null, the default, disables quick documentation.
      */
     public State documentation(IntFunction<MarkdownDocument> provider) {
+      if (documentationBackground != null) {
+        cancelDocWork();
+      }
       documentation = provider;
+      documentationBackground = null;
       if (provider == null) {
         closeDocumentation();
       }
       return this;
+    }
+
+    /**
+     * As {@link #documentation(IntFunction)}, but {@code provider} runs on another thread through
+     * {@link App#background} under {@code name}, which {@link App#await} names. Replaces any plain
+     * {@link #documentation(IntFunction)} provider. One piece of work runs at a time: a request
+     * for another offset or another text cancels the one before, and a result that arrives for a
+     * text other than the editor's current one is dropped. On Control+Q and hover, the popover
+     * opens when the documentation arrives if the caret or pointer is still on the same word;
+     * nothing shows for null. {@code provider} runs off the app's thread and must not touch state
+     * that the app's thread mutates. Passing null for {@code provider} disables quick
+     * documentation.
+     *
+     * @param name what the work is called, which {@link App#await} names
+     */
+    public State documentationInBackground(String name, IntFunction<MarkdownDocument> provider) {
+      if (provider == null) {
+        return documentation(null);
+      }
+      Objects.requireNonNull(name, "name");
+      if (!name.equals(documentationBackground)) {
+        cancelDocWork();
+      }
+      documentation = provider;
+      documentationBackground = name;
+      return this;
+    }
+
+    private void clearDocWorkFields() {
+      docWork = null;
+      docWorkOffset = -1;
+      docWorkText = null;
+      docWorkHover = false;
+    }
+
+    private void cancelDocWork() {
+      if (docWork != null) {
+        docWork.cancel();
+      }
+      clearDocWorkFields();
+    }
+
+    /** Whether a popover shows, or Control+Q's is on its way. */
+    private boolean documentationShown() {
+      return doc != null || docWork != null && !docWorkHover;
+    }
+
+    /** Escape: closes the popover, and stops Control+Q's that is on its way. */
+    private void dismissDocumentation() {
+      closeDocumentation();
+      if (docWork != null && !docWorkHover) {
+        cancelDocWork();
+      }
     }
 
     private void closeDocumentation() {
@@ -983,11 +1067,16 @@ public final class CodeEditor {
     /**
      * Supplies the declaration of the symbol at a character offset in the editor's string, or null
      * for none. Reached with Control+B ({@link Command#GO_TO_DECLARATION}) or Control+click, which
-     * underlines the hovered word and shows a pointer cursor while Control is held. Null, the
-     * default, disables go to declaration.
+     * underlines the hovered word and shows a pointer cursor while Control is held. Replaces any
+     * {@link #declarationInBackground} provider. Null, the default, disables go to declaration.
      */
     public State declaration(IntFunction<Location> provider) {
+      if (declarationBackground != null) {
+        cancelDeclWork();
+        clearNavigation(); // the background provider's underline
+      }
       declaration = provider;
+      declarationBackground = null;
       if (provider == null) {
         clearNavigation();
       }
@@ -995,19 +1084,107 @@ public final class CodeEditor {
     }
 
     /**
+     * As {@link #declaration(IntFunction)}, but {@code provider} runs on another thread through
+     * {@link App#background} under {@code name}, which {@link App#await} names. Replaces any plain
+     * {@link #declaration(IntFunction)} provider. One piece of work runs at a time: a request for
+     * another offset or another text cancels the one before, and a result that arrives for a text
+     * other than the editor's current one is dropped. Control+B and Control+click go to the
+     * declaration when it arrives if the caret and the text are unchanged. Control+hover starts the
+     * request after {@link Theme.Motion#tooltipDelay} and underlines the word once a declaration
+     * arrives for it. {@code provider} runs off the app's thread and must not touch state that the
+     * app's thread mutates. Passing null for {@code provider} disables go to declaration.
+     *
+     * @param name what the work is called, which {@link App#await} names
+     */
+    public State declarationInBackground(String name, IntFunction<Location> provider) {
+      if (provider == null) {
+        return declaration(null);
+      }
+      Objects.requireNonNull(name, "name");
+      if (!name.equals(declarationBackground)) {
+        cancelDeclWork();
+        clearNavigation(); // the other provider's underline
+      }
+      declaration = provider;
+      declarationBackground = name;
+      return this;
+    }
+
+    private void clearDeclWorkFields() {
+      declWork = null;
+      declWorkOffset = -1;
+      declWorkFrom = -1;
+      declWorkTo = -1;
+      declWorkText = null;
+      declWorkHover = false;
+    }
+
+    private void cancelDeclWork() {
+      if (declWork != null) {
+        declWork.cancel();
+      }
+      clearDeclWorkFields();
+    }
+
+    /**
      * Supplies the usages of the symbol at a character offset in the editor's string, or null or an
      * empty list for none. Listed in a menu at the caret with Alt+F7 ({@link Command#FIND_USAGES})
      * and highlighted in this document in the {@code "usages"} markup layer with Control+Shift+F7
-     * ({@link Command#HIGHLIGHT_USAGES}). Null, the default, disables finding and highlighting
-     * usages.
+     * ({@link Command#HIGHLIGHT_USAGES}). Replaces any {@link #usagesInBackground} provider. Null,
+     * the default, disables finding and highlighting usages.
      */
     public State usages(IntFunction<List<Location>> provider) {
+      if (usagesBackground != null) {
+        cancelUsagesWork();
+      }
       usages = provider;
+      usagesBackground = null;
       if (provider == null) {
         closeUsagesMenu();
         clearUsages();
       }
       return this;
+    }
+
+    /**
+     * As {@link #usages(IntFunction)}, but {@code provider} runs on another thread through {@link
+     * App#background} under {@code name}, which {@link App#await} names. Replaces any plain {@link
+     * #usages(IntFunction)} provider. One piece of work runs at a time: a request for another
+     * offset or another text cancels the one before, and a result that arrives for a text other
+     * than the editor's current one is dropped. Alt+F7 opens the usages menu at once with a
+     * "Loading…" row until the usages arrive (closing if none); Control+Shift+F7 highlights when
+     * the usages arrive. {@code provider} runs off the app's thread and must not touch state that
+     * the app's thread mutates. Passing null for {@code provider} disables finding and
+     * highlighting usages.
+     *
+     * @param name what the work is called, which {@link App#await} names
+     */
+    public State usagesInBackground(String name, IntFunction<List<Location>> provider) {
+      if (provider == null) {
+        return usages(null);
+      }
+      Objects.requireNonNull(name, "name");
+      if (!name.equals(usagesBackground)) {
+        cancelUsagesWork();
+      }
+      usages = provider;
+      usagesBackground = name;
+      return this;
+    }
+
+    private void clearUsagesWorkFields() {
+      usagesWork = null;
+      usagesWorkOffset = -1;
+      usagesWorkText = null;
+      usagesWorkMenu = false;
+      usagesLoading = false;
+    }
+
+    private void cancelUsagesWork() {
+      if (usagesWork != null) {
+        usagesWork.cancel();
+      }
+      clearUsagesWorkFields();
     }
 
     /**
@@ -1022,6 +1199,11 @@ public final class CodeEditor {
 
     private void closeUsagesMenu() {
       usagesMenu.close();
+      if (usagesWork != null && usagesWorkMenu) {
+        cancelUsagesWork();
+      } else {
+        usagesLoading = false;
+      }
       usagesFound = List.of();
       usageLabels = List.of();
       usagesValue = null;
@@ -1637,7 +1819,10 @@ public final class CodeEditor {
       state.clearNavigation();
     }
     if (state.usagesMenu.isOpen()
-        && (state.usagesFound.isEmpty() || !value.equals(state.usagesValue))) {
+        && ((!state.usagesLoading && state.usagesFound.isEmpty())
+            || !value.equals(state.usagesValue))) {
+      state.closeUsagesMenu();
+    } else if (!state.usagesMenu.isOpen() && state.usagesLoading) {
       state.closeUsagesMenu();
     }
     wireBlocks(theme, state, value, editor, marks.blocks());
@@ -1747,11 +1932,16 @@ public final class CodeEditor {
           .atCaret()
           .side(Side.BOTTOM, Style.Align.START, theme.space().xs()));
     }
-    if (state.usagesMenu.isOpen() && !state.usagesFound.isEmpty()) {
-      List<Menu.Item> items = new ArrayList<>(state.usagesFound.size());
-      for (int i = 0; i < state.usagesFound.size(); i++) {
-        Location loc = state.usagesFound.get(i);
-        items.add(Menu.item(state.usageLabels.get(i), () -> goTo(app, state, editor, loc)));
+    if (state.usagesMenu.isOpen() && (state.usagesLoading || !state.usagesFound.isEmpty())) {
+      List<Menu.Item> items;
+      if (state.usagesLoading) {
+        items = List.of(Menu.item(Texts.CURRENT.get().loading(), null));
+      } else {
+        items = new ArrayList<>(state.usagesFound.size());
+        for (int i = 0; i < state.usagesFound.size(); i++) {
+          Location loc = state.usagesFound.get(i);
+          items.add(Menu.item(state.usageLabels.get(i), () -> goTo(app, state, editor, loc)));
+        }
       }
       editor.overlay(Menu.menu(state.usagesMenu, items)
           .key("usages")
@@ -1759,8 +1949,8 @@ public final class CodeEditor {
           .atCaret()
           .side(Side.BOTTOM, Style.Align.START, theme.space().xs()));
     }
-    attachDocumentation(app, theme, state, editor, value, extra);
-    attachPointerNavigation(app, state, editor, value, extra);
+    attachDocumentation(app, theme, state, editor, value);
+    attachPointerNavigation(app, theme, state, editor, value, extra);
     // The rail starts at the frame: the field's padding lies after the gutter.
     editor.style().paddingLeft = Len.ZERO;
     state.built = editor;
@@ -1790,10 +1980,10 @@ public final class CodeEditor {
       });
     }
     if (app == null) {
-      if (state.doc != null) {
+      if (state.documentationShown()) {
         editor.onKey(k -> {
-          if (k.name().equals("Escape") && k.modifiers() == 0 && state.doc != null) {
-            state.closeDocumentation();
+          if (k.name().equals("Escape") && k.modifiers() == 0 && state.documentationShown()) {
+            state.dismissDocumentation();
             return true;
           }
           return false;
@@ -1803,12 +1993,17 @@ public final class CodeEditor {
     }
     state.editor = editor;
     state.value = value;
+    if (state.clickPending) { // onSelect told the press's selection before this build
+      state.clickPending = false;
+      state.clickCaret = state.caret;
+      state.clickAnchor = state.anchor;
+    }
     state.lineComment = highlighter == null ? null : highlighter.lineComment();
     state.formatter = highlighter == null ? null : highlighter.formatter();
     state.currentDiagnostics = currentDiagnostics;
     editor.onKey(k -> {
-      if (k.name().equals("Escape") && k.modifiers() == 0 && state.doc != null) {
-        state.closeDocumentation();
+      if (k.name().equals("Escape") && k.modifiers() == 0 && state.documentationShown()) {
+        state.dismissDocumentation();
         return true;
       }
       if (diagnosticKey(app, state, editor, diagnostics, message, k)) {
@@ -2798,7 +2993,7 @@ public final class CodeEditor {
       return;
     }
     if (command == Command.QUICK_DOCUMENTATION) {
-      showDocumentationAtCaret(state, editor, text, caret);
+      showDocumentationAtCaret(app, state, editor, text, caret);
       return;
     }
     if (command == Command.TOGGLE_DOC_COMMENT) {
@@ -2810,11 +3005,11 @@ public final class CodeEditor {
       return;
     }
     if (command == Command.FIND_USAGES) {
-      findUsages(state, editor, text, caret);
+      findUsages(app, state, editor, text, caret);
       return;
     }
     if (command == Command.HIGHLIGHT_USAGES) {
-      highlightUsages(state, editor, text, caret);
+      highlightUsages(app, state, editor, text, caret);
       return;
     }
     if (editor.onEdit() == null || editor.isReadOnly()) {
@@ -3612,9 +3807,9 @@ public final class CodeEditor {
     return text.length();
   }
 
-  /** Wires hover quick documentation and attaches the open popover overlay, if any. */
+  /** Attaches the open quick-documentation popover overlay and manages its leave grace timer. */
   private static void attachDocumentation(
-      App<?> app, Theme theme, State state, El editor, String value, String extra) {
+      App<?> app, Theme theme, State state, El editor, String value) {
     if (state.doc != null && !value.equals(state.docValue)) {
       state.closeDocumentation();
     }
@@ -3644,58 +3839,132 @@ public final class CodeEditor {
         app.after(grace, () -> app.after(0, close));
       }
     }
-    if (state.documentation != null) {
-      editor.onTextHoverFor(theme.motion().tooltipDelay(), (pos, mods) -> {
-        if (state.doc != null && !state.docHover) {
-          return; // Control+Q's popover stays until the caret moves
-        }
-        String text = editor.text().string();
-        if (pos < 0
-            || pos >= text.length()
-            || !CodeWords.isWordChar(text.codePointAt(pos), extra)) {
-          return;
-        }
-        int from = CodeWords.start(text, pos, extra);
-        int to = CodeWords.end(text, pos, extra);
-        if (state.doc != null && state.docHover && state.docFrom == from && state.docTo == to) {
-          state.hoverPos = pos;
-          return;
-        }
-        MarkdownDocument doc = state.documentation.apply(pos);
-        if (doc == null) {
-          return;
-        }
-        state.doc = doc;
-        state.docValue = value;
-        state.docFrom = from;
-        state.docTo = to;
-        state.docCaret = state.caret;
-        state.docHover = true;
-        state.hoverPos = pos;
-        state.overDoc = false;
-        state.docLeftAt = Double.NaN;
-      });
-    }
     if (state.doc == null) {
       return;
     }
     editor.overlay(documentationPanel(theme, state));
   }
 
+  private static void hoverDocumentation(
+      App<?> app, State state, El editor, String value, String extra, int pos) {
+    if (state.doc != null && !state.docHover) {
+      return; // Control+Q's popover stays until the caret moves
+    }
+    String text = editor.text().string();
+    if (pos < 0 || pos >= text.length() || !CodeWords.isWordChar(text.codePointAt(pos), extra)) {
+      return;
+    }
+    int from = CodeWords.start(text, pos, extra);
+    int to = CodeWords.end(text, pos, extra);
+    if (state.doc != null && state.docHover && state.docFrom == from && state.docTo == to) {
+      state.hoverPos = pos;
+      return;
+    }
+    if (state.documentationBackground != null) {
+      if (app == null) {
+        return;
+      }
+      if (state.docWork != null
+          && (!state.docWorkHover // Control+Q goes first
+              || state.docWorkOffset == pos && text.equals(state.docWorkText))) {
+        return;
+      }
+      state.cancelDocWork();
+      String snapshotValue = value;
+      String snapshotText = text;
+      IntFunction<MarkdownDocument> provider = state.documentation;
+      state.docWorkOffset = pos;
+      state.docWorkText = snapshotText;
+      state.docWorkHover = true;
+      state.docWork = app.background(
+          state.documentationBackground,
+          () -> provider.apply(pos),
+          doc -> {
+            state.clearDocWorkFields();
+            if (doc == null
+                || (state.doc != null && !state.docHover)
+                || !Objects.equals(snapshotValue, state.value)
+                || !Objects.equals(snapshotText, state.builtText)
+                || state.hoverPos < from
+                || state.hoverPos >= to) {
+              return;
+            }
+            state.doc = doc;
+            state.docValue = snapshotValue;
+            state.docFrom = from;
+            state.docTo = to;
+            state.docCaret = state.caret;
+            state.docHover = true;
+            state.overDoc = false;
+            state.docLeftAt = Double.NaN;
+          },
+          error -> state.clearDocWorkFields());
+      return;
+    }
+    MarkdownDocument doc = state.documentation.apply(pos);
+    if (doc == null) {
+      return;
+    }
+    state.doc = doc;
+    state.docValue = value;
+    state.docFrom = from;
+    state.docTo = to;
+    state.docCaret = state.caret;
+    state.docHover = true;
+    state.hoverPos = pos;
+    state.overDoc = false;
+    state.docLeftAt = Double.NaN;
+  }
+
   /**
-   * Wires the single {@link El#onTextPointerMove} handler shared by hover documentation and
-   * Control+hover navigation, plus Control+click navigation via {@link El#onPointerDown}.
+   * Wires the single {@link El#onTextHoverFor} and {@link El#onTextPointerMove} handlers shared by
+   * hover documentation and Control+hover navigation, plus Control+click navigation via {@link
+   * El#onPointerDown}.
    */
   private static void attachPointerNavigation(
-      App<?> app, State state, El editor, String value, String extra) {
-    if ((state.doc != null && state.docHover) || state.declaration != null) {
-      editor.onTextPointerMove((pos, mods) -> {
+      App<?> app, Theme theme, State state, El editor, String value, String extra) {
+    if (state.documentation != null
+        || (state.declaration != null && state.declarationBackground != null)) {
+      editor.onTextHoverFor(theme.motion().tooltipDelay(), (pos, mods) -> {
         state.hoverPos = pos;
+        state.hoverMods = mods;
+        state.hoverRestedPos = pos;
+        if (state.documentation != null) {
+          hoverDocumentation(app, state, editor, value, extra, pos);
+        }
+        if (state.declaration != null
+            && state.declarationBackground != null
+            && mods == Key.CONTROL) {
+          requestNavigationHover(app, state, editor, value, extra, pos);
+        }
+      });
+    }
+    if ((state.doc != null && state.docHover)
+        || (state.docWork != null && state.docWorkHover)
+        || state.declaration != null) {
+      editor.onTextPointerMove((pos, mods) -> {
+        if (pos != state.hoverPos) {
+          state.hoverRestedPos = -1;
+        }
+        state.hoverPos = pos;
+        state.hoverMods = mods;
         if (state.doc != null && state.docHover && pos >= state.docFrom && pos < state.docTo) {
           state.docLeftAt = Double.NaN;
         }
         if (state.declaration != null) {
-          updateNavigationHover(state, editor, value, extra, pos, mods);
+          if (state.declarationBackground == null) {
+            updateNavigationHover(state, editor, value, extra, pos, mods);
+          } else {
+            updateBackgroundNavigationMove(app, state, editor, value, extra, pos, mods);
+          }
+        }
+      });
+    }
+    if (state.docWork != null && state.docWorkHover) {
+      // Any press, also on the scrollbar, ends the hover: a drag stops its updates.
+      editor.onAnyPointerDown(() -> {
+        if (state.docWork != null && state.docWorkHover) {
+          state.cancelDocWork();
         }
       });
     }
@@ -3708,6 +3977,27 @@ public final class CodeEditor {
         int pos =
             editor.textPositionAt((float) (x - editor.scrollX()), (float) (y - editor.scrollY()));
         state.clearNavigation(); // asks the app's resolver now, not the hover's cached answer
+        if (state.declarationBackground != null) {
+          if (app == null || pos < 0) {
+            return;
+          }
+          String text = editor.text().string();
+          if (pos >= text.length() || !CodeWords.isWordChar(text.codePointAt(pos), extra)) {
+            return;
+          }
+          // The press places the caret as any press does; a drag or a later move drops the jump.
+          state.clickPending = true;
+          requestGoToDeclaration(
+              app,
+              state,
+              value,
+              text,
+              pos,
+              () -> !state.clickPending
+                  && state.caret == state.clickCaret
+                  && state.anchor == state.clickAnchor);
+          return;
+        }
         updateNavigationHover(state, editor, value, extra, pos, mods);
         if (state.navTarget != null) {
           goTo(app, state, editor, state.navTarget);
@@ -3736,6 +4026,89 @@ public final class CodeEditor {
     state.navFrom = from;
     state.navTo = to;
     state.navTarget = state.declaration.apply(pos);
+  }
+
+  private static void updateBackgroundNavigationMove(
+      App<?> app, State state, El editor, String value, String extra, int pos, int mods) {
+    if (mods != Key.CONTROL || pos < 0) {
+      state.clearNavigation();
+      if (state.declWork != null && state.declWorkHover) {
+        state.cancelDeclWork();
+      }
+      return;
+    }
+    String text = editor.text().string();
+    if (pos >= text.length() || !CodeWords.isWordChar(text.codePointAt(pos), extra)) {
+      state.clearNavigation();
+      if (state.declWork != null && state.declWorkHover) {
+        state.cancelDeclWork();
+      }
+      return;
+    }
+    int from = CodeWords.start(text, pos, extra);
+    int to = CodeWords.end(text, pos, extra);
+    if (value.equals(state.navValue) && from == state.navFrom && to == state.navTo) {
+      return;
+    }
+    state.clearNavigation();
+    if (state.declWork != null
+        && state.declWorkHover
+        && (state.declWorkFrom != from
+            || state.declWorkTo != to
+            || !text.equals(state.declWorkText))) {
+      state.cancelDeclWork();
+    }
+    if (pos == state.hoverRestedPos) {
+      requestNavigationHover(app, state, editor, value, extra, pos);
+    }
+  }
+
+  private static void requestNavigationHover(
+      App<?> app, State state, El editor, String value, String extra, int pos) {
+    if (app == null || pos < 0) {
+      return;
+    }
+    String text = editor.text().string();
+    if (pos >= text.length() || !CodeWords.isWordChar(text.codePointAt(pos), extra)) {
+      return;
+    }
+    int from = CodeWords.start(text, pos, extra);
+    int to = CodeWords.end(text, pos, extra);
+    if (value.equals(state.navValue) && from == state.navFrom && to == state.navTo) {
+      return;
+    }
+    if (state.declWork != null
+        && (!state.declWorkHover // Control+B or Control+click goes first
+            || state.declWorkOffset == pos && text.equals(state.declWorkText))) {
+      return;
+    }
+    state.cancelDeclWork();
+    String snapshotValue = value;
+    String snapshotText = text;
+    IntFunction<Location> provider = state.declaration;
+    state.declWorkOffset = pos;
+    state.declWorkFrom = from;
+    state.declWorkTo = to;
+    state.declWorkText = snapshotText;
+    state.declWorkHover = true;
+    state.declWork = app.background(
+        state.declarationBackground,
+        () -> provider.apply(pos),
+        target -> {
+          state.clearDeclWorkFields();
+          if (!Objects.equals(snapshotValue, state.value)
+              || !Objects.equals(snapshotText, state.builtText)
+              || state.hoverMods != Key.CONTROL
+              || state.hoverPos < from
+              || state.hoverPos >= to) {
+            return;
+          }
+          state.navValue = snapshotValue;
+          state.navFrom = from;
+          state.navTo = to;
+          state.navTarget = target;
+        },
+        error -> state.clearDeclWorkFields());
   }
 
   private static El documentationPanel(Theme theme, State state) {
@@ -3777,7 +4150,8 @@ public final class CodeEditor {
         : panel.atCaret();
   }
 
-  private static void showDocumentationAtCaret(State state, El editor, String text, int caret) {
+  private static void showDocumentationAtCaret(
+      App<?> app, State state, El editor, String text, int caret) {
     if (state.documentation == null) {
       return;
     }
@@ -3785,6 +4159,50 @@ public final class CodeEditor {
     int from = CodeWords.start(text, caret, extra);
     int to = CodeWords.end(text, caret, extra);
     int query = symbolOffset(text, caret, extra);
+    if (state.documentationBackground != null) {
+      if (app == null) {
+        return;
+      }
+      if (state.docWork != null
+          && !state.docWorkHover
+          && state.docWorkOffset == query
+          && text.equals(state.docWorkText)) {
+        return;
+      }
+      state.cancelDocWork();
+      String snapshotValue = state.value;
+      String snapshotText = text;
+      int snapshotCaret = state.caret;
+      IntFunction<MarkdownDocument> provider = state.documentation;
+      state.docWorkOffset = query;
+      state.docWorkText = snapshotText;
+      state.docWorkHover = false;
+      state.docWork = app.background(
+          state.documentationBackground,
+          () -> provider.apply(query),
+          doc -> {
+            state.clearDocWorkFields();
+            if (!Objects.equals(snapshotValue, state.value)
+                || !Objects.equals(snapshotText, state.builtText)
+                || !sameWord(snapshotText, state.caret, from, to, snapshotCaret, extra)) {
+              return;
+            }
+            if (doc == null) {
+              state.closeDocumentation();
+              return;
+            }
+            state.doc = doc;
+            state.docValue = snapshotValue;
+            state.docFrom = from;
+            state.docTo = to;
+            state.docCaret = state.caret;
+            state.docHover = false;
+            state.overDoc = false;
+            state.docLeftAt = Double.NaN;
+          },
+          error -> state.clearDocWorkFields());
+      return;
+    }
     MarkdownDocument doc = state.documentation.apply(query);
     if (doc == null) {
       state.closeDocumentation();
@@ -3798,6 +4216,37 @@ public final class CodeEditor {
     state.docHover = false;
     state.overDoc = false;
     state.docLeftAt = Double.NaN;
+  }
+
+  private static boolean sameWord(
+      String text, int caretNow, int from, int to, int caretBefore, String extra) {
+    if (from < to) {
+      int clamped = Math.clamp(caretNow, 0, text.length());
+      return CodeWords.start(text, clamped, extra) == from
+          && CodeWords.end(text, clamped, extra) == to;
+    }
+    return caretNow == caretBefore;
+  }
+
+  /** Whether {@code tree}, such as the last frame's, holds {@code element}, not leaving it. */
+  private static boolean shown(El tree, El element) {
+    if (tree == null || element == null || tree.isExiting()) {
+      return false;
+    }
+    if (tree == element) {
+      return true;
+    }
+    for (El child : tree.children()) {
+      if (shown(child, element)) {
+        return true;
+      }
+    }
+    for (El overlay : tree.overlays()) {
+      if (shown(overlay, element)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /** Offset inside the word at {@code caret} (for end-of-word carets), or {@code caret}. */
@@ -3842,14 +4291,106 @@ public final class CodeEditor {
       return;
     }
     int query = symbolOffset(text, caret, editor.text().wordCharacters());
+    if (state.declarationBackground != null) {
+      int caretBefore = state.caret;
+      int anchorBefore = state.anchor;
+      requestGoToDeclaration(
+          app,
+          state,
+          state.value,
+          text,
+          query,
+          () -> state.caret == caretBefore && state.anchor == anchorBefore);
+      return;
+    }
     goTo(app, state, editor, state.declaration.apply(query));
   }
 
-  private static void findUsages(State state, El editor, String text, int caret) {
+  private static void requestGoToDeclaration(
+      App<?> app, State state, String value, String text, int query, BooleanSupplier stays) {
+    if (app == null) {
+      return;
+    }
+    state.cancelDeclWork();
+    String snapshotValue = value;
+    String snapshotText = text;
+    IntFunction<Location> provider = state.declaration;
+    state.declWorkOffset = query;
+    state.declWorkText = snapshotText;
+    state.declWorkHover = false;
+    state.declWork = app.background(
+        state.declarationBackground,
+        () -> provider.apply(query),
+        target -> {
+          state.clearDeclWorkFields();
+          if (target == null
+              || !shown(app.tree(), state.editor) // closed while the work ran
+              || !Objects.equals(snapshotValue, state.value)
+              || !Objects.equals(snapshotText, state.builtText)
+              || !stays.getAsBoolean()) {
+            return;
+          }
+          goTo(app, state, state.editor, target);
+        },
+        error -> state.clearDeclWorkFields());
+  }
+
+  private static void findUsages(App<?> app, State state, El editor, String text, int caret) {
     if (state.usages == null) {
       return;
     }
     int query = symbolOffset(text, caret, editor.text().wordCharacters());
+    if (state.usagesBackground != null) {
+      if (app == null) {
+        return;
+      }
+      if (state.usagesWork != null
+          && state.usagesWorkMenu
+          && state.usagesWorkOffset == query
+          && text.equals(state.usagesWorkText)) {
+        if (!state.usagesMenu.isOpen()) {
+          state.usagesLoading = true;
+          state.usagesMenu.openByKey();
+        }
+        return;
+      }
+      state.cancelUsagesWork();
+      String snapshotValue = state.value;
+      String snapshotText = text;
+      IntFunction<List<Location>> provider = state.usages;
+      state.usagesFound = List.of();
+      state.usageLabels = List.of();
+      state.usagesValue = snapshotValue;
+      state.usagesWorkOffset = query;
+      state.usagesWorkText = snapshotText;
+      state.usagesWorkMenu = true;
+      state.usagesLoading = true;
+      state.usagesMenu.openByKey();
+      state.usagesWork = app.background(
+          state.usagesBackground,
+          () -> provider.apply(query),
+          found -> {
+            state.clearUsagesWorkFields();
+            if (!state.usagesMenu.isOpen()
+                || !Objects.equals(snapshotValue, state.value)
+                || !Objects.equals(snapshotText, state.builtText)
+                || found == null
+                || found.isEmpty()) {
+              state.closeUsagesMenu();
+              return;
+            }
+            state.usagesFound = List.copyOf(found);
+            state.usageLabels =
+                state.usagesFound.stream().map(l -> usageLabel(snapshotText, l)).toList();
+            state.usagesValue = snapshotValue;
+            state.usagesMenu.openByKey();
+          },
+          error -> {
+            state.clearUsagesWorkFields();
+            state.closeUsagesMenu();
+          });
+      return;
+    }
     List<Location> found = state.usages.apply(query);
     if (found == null || found.isEmpty()) {
       state.closeUsagesMenu();
@@ -3861,12 +4402,49 @@ public final class CodeEditor {
     state.usagesMenu.openByKey();
   }
 
-  private static void highlightUsages(State state, El editor, String text, int caret) {
+  private static void highlightUsages(App<?> app, State state, El editor, String text, int caret) {
     if (state.usages == null) {
       return;
     }
     int query = symbolOffset(text, caret, editor.text().wordCharacters());
-    List<Location> found = state.usages.apply(query);
+    if (state.usagesBackground != null) {
+      if (app == null) {
+        return;
+      }
+      if (state.usagesWork != null
+          && !state.usagesWorkMenu
+          && state.usagesWorkOffset == query
+          && text.equals(state.usagesWorkText)) {
+        return;
+      }
+      if (state.usagesLoading) {
+        state.closeUsagesMenu();
+      }
+      state.cancelUsagesWork();
+      String snapshotValue = state.value;
+      String snapshotText = text;
+      IntFunction<List<Location>> provider = state.usages;
+      state.usagesWorkOffset = query;
+      state.usagesWorkText = snapshotText;
+      state.usagesWorkMenu = false;
+      state.usagesWork = app.background(
+          state.usagesBackground,
+          () -> provider.apply(query),
+          found -> {
+            state.clearUsagesWorkFields();
+            if (!Objects.equals(snapshotValue, state.value)
+                || !Objects.equals(snapshotText, state.builtText)) {
+              return;
+            }
+            applyUsageHighlights(state, snapshotText, found);
+          },
+          error -> state.clearUsagesWorkFields());
+      return;
+    }
+    applyUsageHighlights(state, text, state.usages.apply(query));
+  }
+
+  private static void applyUsageHighlights(State state, String text, List<Location> found) {
     List<Highlight> highlights = new ArrayList<>();
     for (Location loc : found == null ? List.<Location>of() : found) {
       if (loc.document() == null) {

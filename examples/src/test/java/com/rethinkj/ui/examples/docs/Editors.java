@@ -332,16 +332,16 @@ final class Editors {
   CodeEditor.Location openedLocation;
   // docs:start code-editor-navigation
   final CodeEditor.State navigatedEditor = new CodeEditor.State()
-      .declaration(this::declarationAt)
-      .usages(this::usagesAt)
+      .declaration(offset -> declarationIn(cteQuery, offset))
+      .usages(offset -> usagesIn(cteQuery, offset))
       .onOpen(this::openLocation);
 
-  CodeEditor.Location declarationAt(int offset) {
-    int start = CodeWords.start(cteQuery, offset);
-    int end = CodeWords.end(cteQuery, offset);
-    return switch (cteQuery.substring(start, end)) {
+  CodeEditor.Location declarationIn(String sql, int offset) {
+    int start = CodeWords.start(sql, offset);
+    int end = CodeWords.end(sql, offset);
+    return switch (sql.substring(start, end)) {
       case "paid_orders" -> {
-        int declared = cteQuery.indexOf("paid_orders");
+        int declared = sql.indexOf("paid_orders");
         yield new CodeEditor.Location(declared, declared + "paid_orders".length());
       }
       case "orders" -> new CodeEditor.Location("schema.sql", 14, 20, null);
@@ -349,17 +349,15 @@ final class Editors {
     };
   }
 
-  List<CodeEditor.Location> usagesAt(int offset) {
-    int start = CodeWords.start(cteQuery, offset);
-    int end = CodeWords.end(cteQuery, offset);
-    if (!cteQuery.substring(start, end).equals("paid_orders")) {
+  List<CodeEditor.Location> usagesIn(String sql, int offset) {
+    int start = CodeWords.start(sql, offset);
+    int end = CodeWords.end(sql, offset);
+    if (!sql.substring(start, end).equals("paid_orders")) {
       return List.of();
     }
     List<CodeEditor.Location> found = new ArrayList<>();
     String symbol = "paid_orders";
-    for (int at = cteQuery.indexOf(symbol);
-        at >= 0;
-        at = cteQuery.indexOf(symbol, at + symbol.length())) {
+    for (int at = sql.indexOf(symbol); at >= 0; at = sql.indexOf(symbol, at + symbol.length())) {
       found.add(new CodeEditor.Location(at, at + symbol.length()));
     }
     found.add(new CodeEditor.Location("report.sql", 8, 19, null));
@@ -370,6 +368,17 @@ final class Editors {
     openedLocation = location;
   }
   // docs:end code-editor-navigation
+  // docs:start code-editor-navigation-background
+  final CodeEditor.State remoteEditor = new CodeEditor.State().onOpen(this::openLocation);
+
+  // Called on each build, before CodeEditor.codeEditor.
+  void lookUpInBackground() {
+    String sql = cteQuery; // the text the offsets are in; the work reads it on another thread
+    remoteEditor
+        .declarationInBackground("declaration", offset -> declarationIn(sql, offset))
+        .usagesInBackground("usages", offset -> usagesIn(sql, offset));
+  }
+  // docs:end code-editor-navigation-background
   // docs:start line-blocks
   String source = "/** Summarizes paid orders. */\nint total() {\n  return 0;\n}";
   List<El.Block> lineBlocks = new ArrayList<>(List.of(El.Block.replace(0, 0), El.Block.insert(1)));
