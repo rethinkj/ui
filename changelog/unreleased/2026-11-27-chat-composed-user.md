@@ -1,0 +1,1 @@
+- `Chat` now supports composed user messages via `Chat.user(options, parts...)`, selectable prose paragraphs via `Chat.text(text)`, and collapsible or static context blocks via `Chat.context(icon, title, meta, open, onToggle, details...)`; composed user bubbles stay at `Theme.Chat.bubbleWidth()` and copy the explicit text passed to `Chat.Options.copy(clipboard, text)`.

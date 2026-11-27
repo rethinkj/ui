@@ -51,6 +51,15 @@ To make a read-only editor, call `readOnly(true)` on `CodeEditor.State` and pass
 
 <Shot src="examples/docs/code-editor-placeholder/view-{theme}" alt="An empty SQL editor that says Type a query, above an editor that shows the statement of a view and cannot be changed" />
 
+### Excerpts
+
+When showing an excerpt from the middle of a larger file, call `firstLine(line)` on `CodeEditor.State` (1 by default) to number the gutter from that line. `line()` still counts from 1 in the editor's string.
+
+```java snippet="code-editor-excerpt"
+```
+
+<Shot src="examples/docs/code-editor-excerpt/view-{theme}" alt="A read-only Java excerpt in the code editor with gutter lines numbered 42 to 45" />
+
 ## Embedded in a card
 
 By default, `CodeEditor` has an outer input border. Inside a [flush card](/docs/components/card) or panel, wrap it with `CodeEditor.embedded(editor)` to remove the outer border and corners so it sits edge-to-edge with a top accent line on focus:
@@ -94,6 +103,7 @@ To insert a snippet from a button or menu, call `replaceSelection(text)` on `Cod
 | `occurrences(boolean)` | Toggles highlighting other occurrences of the word under the cursor (on by default) |
 | `findBar(boolean)`, `find()` | Enables/disables the find bar (on by default) and returns its `Find.State` |
 | `readOnly(boolean)` | Makes the editor read-only, so it needs no `onChange` (off by default) |
+| `firstLine(line)` | Numbers the gutter from `line` (1 or more, 1 by default), for an excerpt of a larger file |
 
 ## Keyboard commands
 

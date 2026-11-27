@@ -165,8 +165,8 @@ public final class CodeEditor {
 
   /**
    * Something shown on the code of a {@link State#markup markup layer}: a {@link Diagnostic}, a
-   * gutter {@link Marker}, a {@link Highlight} behind a range of characters, a version control
-   * {@link Change} bar, or an inline {@link InlayHint} inside a line.
+   * gutter {@link Marker}, a {@link Highlight} behind characters or across whole lines, a version
+   * control {@link Change} bar, or an inline {@link InlayHint} inside a line.
    */
   public sealed interface Mark permits Diagnostic, Marker, Highlight, Change, InlayHint {}
 
@@ -232,10 +232,37 @@ public final class CodeEditor {
   }
 
   /**
-   * A background behind characters {@code from} to {@code to} of the string in the theme's {@code
-   * code().occurrence()} color, such as the usages of a symbol.
+   * A background over characters {@code from} to {@code to} of the string: {@link Tone#OCCURRENCE}
+   * paints {@code code().occurrence()} behind those characters (such as the usages of a symbol),
+   * and {@link Tone#NOTE} paints {@code code().note()} as a full-line background across every line
+   * {@code from} to {@code to} touches, in place of the caret's line band, with a thin stripe at the
+   * code edge of the gutter.
+   *
+   * @param from start offset in the markup layer's text
+   * @param to end offset in the markup layer's text
+   * @param tone how the highlight is painted
    */
-  public record Highlight(int from, int to) implements Mark {}
+  public record Highlight(int from, int to, Tone tone) implements Mark {
+    /** How a {@link Highlight} is painted. */
+    public enum Tone {
+      /** Behind the highlighted characters in {@code code().occurrence()}. */
+      OCCURRENCE,
+      /**
+       * Across every whole line the highlight touches in {@code code().note()}, with a thin stripe
+       * at the code edge of the gutter.
+       */
+      NOTE
+    }
+
+    public Highlight {
+      Objects.requireNonNull(tone, "tone");
+    }
+
+    /** A character-range highlight in {@link Tone#OCCURRENCE}. */
+    public Highlight(int from, int to) {
+      this(from, to, Tone.OCCURRENCE);
+    }
+  }
 
   /**
    * Lines of characters {@code from} to {@code to} of the string that changed against the version
@@ -430,6 +457,7 @@ public final class CodeEditor {
     private boolean inlineDiagnostics;
     private boolean findBar = true;
     private boolean readOnly;
+    private int firstLine = 1;
     // Control+D: the selection it made, and whether it went by whole words from the caret.
     private int nextFrom = -1;
     private int nextTo = -1;
@@ -584,6 +612,20 @@ public final class CodeEditor {
     }
 
     /**
+     * Numbers the gutter's lines from {@code line}, for an excerpt of a larger file; 1 unless set.
+     * {@link #line} still counts from 1 in the editor's string.
+     *
+     * @throws IllegalArgumentException if {@code line} is less than 1
+     */
+    public State firstLine(int line) {
+      if (line < 1) {
+        throw new IllegalArgumentException("first line must be 1 or more, was " + line);
+      }
+      firstLine = line;
+      return this;
+    }
+
+    /**
      * Whether standalone doc comments are rendered in place of their raw lines when the
      * highlighter is a {@link Language}; off unless set. Changing the mode clears per-comment
      * toggles. Comments are found a bounded part per build: with its app ({@link
@@ -618,9 +660,10 @@ public final class CodeEditor {
     }
 
     /**
-     * The caret's line, from 1: the number of line breaks before it, plus one, which the gutter
-     * shows next to it. Like {@link #column}, it is about the string of the editor's last build, so
-     * a view reads it after building the editor, as for a status bar below it.
+     * The caret's line in the editor's string, from 1: the number of line breaks before it, plus
+     * one (regardless of {@link #firstLine}). Like {@link #column}, it is about the string of the
+     * editor's last build, so a view reads it after building the editor, as for a status bar below
+     * it.
      */
     public int line() {
       return position()[0];
@@ -757,7 +800,7 @@ public final class CodeEditor {
      * tooltip and accessible name, and reserves that slot on every line so line numbers do not
      * shift. Pressing the button passes its line to {@code onPress}, or the selected lines when it
      * lies inside a selection spanning several lines; pressing and dragging over the gutter picks a
-     * range in either direction, previewed in {@code code().occurrence()}, and reports it on
+     * range in either direction, previewed in {@code code().note()}, and reports it on
      * release (Escape cancels). Passing a null {@code symbol} or {@code onPress} removes it.
      */
     public State lineAction(Icon symbol, String label, Consumer<Lines> onPress) {
@@ -777,8 +820,11 @@ public final class CodeEditor {
      * marks before, computed for {@code text}. All layers show together: {@link Diagnostic}s draw squiggles,
      * show in the gutter's first icon slot, mark the scrollbar and take part in F8/Shift+F8,
      * {@link Marker}s show side by side in the gutter's icon lane (layers in order, then {@link
-     * #markers}), {@link Highlight}s draw a background in {@code code().occurrence()}, and {@link
-     * Change}s draw a bar in the gutter's change lane and ticks along the vertical scrollbar, and {@link InlayHint}s show inline inside their lines.
+     * #markers}), {@link Highlight}s draw a character background in {@code code().occurrence()}
+     * ({@link Highlight.Tone#OCCURRENCE}) or a whole-line tint in {@code code().note()} with a
+     * gutter stripe ({@link Highlight.Tone#NOTE}), {@link Change}s draw a bar in the gutter's
+     * change lane and ticks along the vertical scrollbar, and {@link InlayHint}s show inline inside
+     * their lines.
      *
      * <p>{@code text} is the revision the marks were computed for and may be older than the
      * editor's current value. The marks move with each change of the value, each edit of a bulk
@@ -1361,7 +1407,9 @@ public final class CodeEditor {
         }
         case Highlight h -> {
           int from = edits.mapRange(h.from(), h.to());
-          yield from < 0 ? null : new Highlight(from, from + Math.max(0, h.to() - h.from()));
+          yield from < 0
+              ? null
+              : new Highlight(from, from + Math.max(0, h.to() - h.from()), h.tone());
         }
         case Change c -> {
           int from = edits.mapRange(c.from(), c.to());
@@ -1525,6 +1573,9 @@ public final class CodeEditor {
     List<Diagnostic> currentDiagnostics = marks.currentDiagnostics();
     List<Marker> markers = marks.markers();
     List<Highlight> highlights = marks.highlights();
+    List<Highlight> noteHighlights = highlights.isEmpty()
+        ? List.of()
+        : highlights.stream().filter(h -> h.tone == Highlight.Tone.NOTE).toList();
     List<Highlight> usageHighlights = marks.usageHighlights();
     List<Change> changes = marks.changes();
     String builtText = state.builtText;
@@ -1567,13 +1618,21 @@ public final class CodeEditor {
     editor
         .decorate((line, start, text, out) -> {
           int end = start + text.length();
-          if (!state.diff && state.caret >= start && state.caret <= end) {
+          boolean noted = false;
+          for (Highlight h : noteHighlights) {
+            noted |= touchesLine(h.from, h.to, start, end);
+          }
+          // A noted line takes the note's tint for the caret band, so that marked code keeps its
+          // contrast.
+          if (noted) {
+            out.lineBackground(code.note());
+          } else if (!state.diff && state.caret >= start && state.caret <= end) {
             out.lineBackground(code.line());
           }
           if (state.dragLines != null
               && line >= state.dragLines.first()
               && line <= state.dragLines.last()) {
-            out.lineBackground(code.occurrence());
+            out.lineBackground(code.note());
           }
           guides(text, code.guide(), out);
           for (int at : pair) {
@@ -1588,7 +1647,7 @@ public final class CodeEditor {
             }
           }
           for (Highlight h : highlights) {
-            if (h.to > start && h.from < end) {
+            if (h.tone == Highlight.Tone.OCCURRENCE && h.to > start && h.from < end) {
               out.background(h.from - start, h.to - start, code.occurrence());
             }
           }
@@ -1613,6 +1672,7 @@ public final class CodeEditor {
                 markers,
                 markerSlots,
                 changes,
+                noteHighlights,
                 !fixes.isEmpty() && editor.onEdit() != null && !editor.isReadOnly(),
                 fixError,
                 line),
@@ -1974,10 +2034,16 @@ public final class CodeEditor {
     return max;
   }
 
+  /** Whether range {@code from..to} touches a line spanning {@code start..end} (before its LF). */
+  private static boolean touchesLine(int from, int to, int start, int end) {
+    return from == to ? from >= start && from <= end : from < to && to > start && from <= end;
+  }
+
   /**
    * The gutter's cell of a line: a bar in the accent's edge and a tint where the line is in the
    * marked block, then the lanes in fixed order — icons (diagnostic/bulb slot plus app marker
-   * slots), the line's number, the VCS change bar, and the fold/doc toggle.
+   * slots), the line's number, the VCS change bar, and the fold/doc toggle — plus an optional
+   * edge stripe on lines touched by a {@link Highlight.Tone#NOTE} highlight.
    */
   private static El cell(
       App<?> app,
@@ -1989,6 +2055,7 @@ public final class CodeEditor {
       List<Marker> markers,
       int markerSlots,
       List<Change> changes,
+      List<Highlight> notes,
       boolean hasFixes,
       boolean fixError,
       El.Gutter.Line line) {
@@ -2058,7 +2125,7 @@ public final class CodeEditor {
           .w(newW)
           .shrink(0));
     } else {
-      cell.child(El.text(String.valueOf(line.index() + 1))
+      cell.child(El.text(String.valueOf((long) line.index() + state.firstLine))
           .font(mono.font().get())
           .fontSize(mono.size())
           .color(line.caret() ? theme.text().primary() : theme.text().muted())
@@ -2078,6 +2145,22 @@ public final class CodeEditor {
           control.opacity(1);
         }
       });
+    }
+    for (Highlight h : notes) {
+      if (touchesLine(h.from, h.to, line.start(), line.end())) {
+        El stripe = El.el()
+            .key("note")
+            .w(bar)
+            .fill(Colors.alpha(theme.code().note(), 1))
+            .inert();
+        Style at = stripe.style();
+        at.position = Style.Position.ABSOLUTE;
+        at.right = Len.ZERO;
+        at.top = Len.ZERO;
+        at.bottom = Len.ZERO;
+        cell.child(stripe);
+        break;
+      }
     }
     return cell;
   }

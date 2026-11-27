@@ -57,6 +57,22 @@ final class Editors {
   /** The editor of a statement that is only shown: it takes no edits, so it needs no handler. */
   final CodeEditor.State definitionEditor = new CodeEditor.State().readOnly(true);
   // docs:end code-editor-read-only
+  String excerpt = """
+      if (order.attempts() >= maxAttempts) {
+        return Result.failed(order);
+      }
+      return retry(order);""";
+  // docs:start code-editor-excerpt
+  final CodeEditor.State excerptEditor = new CodeEditor.State().readOnly(true).firstLine(42);
+
+  static El excerptView(Editors state) {
+    return CodeEditor.codeEditor(state.app, state.excerpt, state.excerptEditor, Java.of(), null)
+        .key("excerpt")
+        .label("Orders.java")
+        .lines(4)
+        .wFull();
+  }
+  // docs:end code-editor-excerpt
   String document = """
       {
         "id": 1042,
@@ -694,6 +710,10 @@ final class Editors {
     return Frame.of(draft, definition);
   }
 
+  static El excerpt(Editors state) {
+    return Frame.of(excerptView(state));
+  }
+
   // docs:start code-editor-position
   /** The cursor's line and column, such as "Ln 3, Col 9", for the window's status bar. */
   static El cursorPosition(Editors state) {
@@ -1122,6 +1142,81 @@ final class Editors {
         Chat.working());
     El transcript = Card.card(question, answer, followUp).wFull();
     // docs:end chat
+    return Frame.of(transcript);
+  }
+
+  final Button.Copied reviewCopied = new Button.Copied();
+  boolean ordersContextOpen = true;
+  boolean retryContextOpen;
+  boolean tableContextOpen;
+  boolean slowQueryContextOpen = true;
+  final String slowQuery =
+      "SELECT id, total FROM orders\nWHERE status = 'open'\nORDER BY created_at DESC;";
+  final CodeEditor.State slowQueryEditor = new CodeEditor.State().readOnly(true);
+
+  void toggleOrdersContext() {
+    ordersContextOpen = !ordersContextOpen;
+  }
+
+  void toggleRetryContext() {
+    retryContextOpen = !retryContextOpen;
+  }
+
+  void toggleTableContext() {
+    tableContextOpen = !tableContextOpen;
+  }
+
+  void toggleSlowQueryContext() {
+    slowQueryContextOpen = !slowQueryContextOpen;
+  }
+
+  static El chatContext(Editors state) {
+    // docs:start chat-context
+    Clipboard clipboard = state.app.clipboard();
+    String rawPrompt =
+        "Please review these two spots before merging.\n\nOrders.java (L42–58)\nOrderRetry.java (L12–19)";
+    El review = Chat.user(
+        Chat.options().copy(clipboard, rawPrompt).copied(state.reviewCopied).time("14:31"),
+        Chat.text("Please review these two spots before merging."),
+        Chat.context(
+            Symbol.CODE,
+            "Orders.java",
+            "L42–58",
+            state.ordersContextOpen,
+            state::toggleOrdersContext,
+            Label.label(
+                Label.Variant.MONO,
+                "if (order.attempts() >= maxAttempts) {\n  return Result.failed(order);\n}")),
+        Chat.context(
+            Symbol.CODE,
+            "OrderRetry.java",
+            "L12–19",
+            state.retryContextOpen,
+            state::toggleRetryContext,
+            Label.label(
+                Label.Variant.MONO, "Duration backoff = Duration.ofSeconds(1L << attempt);")));
+    El query = Chat.user(
+        Chat.options().time("14:34"),
+        Chat.context(
+            Symbol.TABLE,
+            "orders",
+            "12 columns",
+            state.tableContextOpen,
+            state::toggleTableContext,
+            Label.label(Label.Variant.MONO, "id, customer_id, status, total, created_at")),
+        Chat.context(
+            Symbol.DATABASE,
+            "Slow query",
+            "1.8 s",
+            state.slowQueryContextOpen,
+            state::toggleSlowQueryContext,
+            CodeEditor.codeEditor(state.app, state.slowQuery, state.slowQueryEditor, Sql.of(), null)
+                .lines(3)
+                .wFull()),
+        Chat.context(Symbol.DOCUMENT, "explain-plan.txt", "4 KB", false, null),
+        Chat.text("Why is this query slow?"));
+    El transcript = Card.card(review, query).wFull();
+    // docs:end chat-context
     return Frame.of(transcript);
   }
 

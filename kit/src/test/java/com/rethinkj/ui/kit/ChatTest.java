@@ -168,6 +168,110 @@ class ChatTest {
   }
 
   @Test
+  void composedUserBubbleSpansBubbleWidthAndCopiesRawText() throws IOException {
+    Clipboard clipboard = Clipboard.inMemory();
+    Button.Copied copied = new Button.Copied();
+    boolean[] open = {false};
+    String rawPrompt = "Check Orders.java (L42–58)";
+    App<boolean[]> app = new App<>(
+            open,
+            s -> col()
+                .wFull()
+                .gap(Theme.DARK.space().l())
+                .children(
+                    Chat.user(
+                            Chat.options()
+                                .copy(clipboard, rawPrompt)
+                                .copied(copied)
+                                .time("14:31"),
+                            Chat.text("Check this."),
+                            null,
+                            Chat.context(
+                                Symbol.CODE,
+                                "Orders.java",
+                                "L42–58",
+                                s[0],
+                                () -> s[0] = !s[0],
+                                Label.label(Label.Variant.MONO, "return retry(order);")))
+                        .key("with-copy"),
+                    Chat.user(Chat.options().copy(clipboard), Chat.text("No explicit copy text."))
+                        .key("without-copy")))
+        .provide(Theme.CURRENT, s -> Theme.DARK);
+    app.textRendering(TextRendering.LINUX);
+
+    Script.run("size 500 320\nframe", app, out);
+    float expectedWidth = 500f * Theme.DARK.chat().bubbleWidth();
+    El bubble = findByKey(app.tree(), "with-copy").children().get(0);
+    assertEquals(expectedWidth, bubble.width(), 1.5f);
+    assertEquals(500f, bubble.x() + bubble.width(), 1.5f);
+
+    // Without explicit copy text, composed user messages omit the copy button.
+    El withoutCopy = findByKey(app.tree(), "without-copy");
+    assertEquals(1, withoutCopy.children().size(), "no footer when copy text is null");
+
+    // Pressing the copy button writes the explicit raw prompt; opening the block keeps width.
+    Script.run("""
+        press role=button label="Copy message"
+        frame
+        press role=button label="Orders.java"
+        frame""", app, out);
+    assertEquals(rawPrompt, clipboard.read());
+    assertTrue(open[0]);
+    El openedBubble = findByKey(app.tree(), "with-copy").children().get(0);
+    assertEquals(expectedWidth, openedBubble.width(), 1.5f);
+    assertEquals(500f, openedBubble.x() + openedBubble.width(), 1.5f);
+  }
+
+  @Test
+  void contextBlockTogglesAndSupportsStaticRows() throws IOException {
+    boolean[] open = {false};
+    App<boolean[]> app = new App<>(
+            open,
+            s -> col()
+                .wFull()
+                .gap(Theme.DARK.space().m())
+                .children(
+                    Chat.context(
+                        Symbol.CODE,
+                        "Orders.java",
+                        "L42–58",
+                        s[0],
+                        () -> s[0] = !s[0],
+                        null,
+                        Label.label(Label.Variant.MONO, "return retry(order);")),
+                    Chat.context(Symbol.DOCUMENT, "explain-plan.txt", "4 KB", false, null),
+                    Chat.context(
+                        Symbol.DATABASE,
+                        "Slow query",
+                        "1.8 s",
+                        true,
+                        null,
+                        Label.label(Label.Variant.MONO, "SELECT * FROM orders;")),
+                    Chat.context(Symbol.CODE, "a.go", "Lines 123–456 · 1.5 KB", false, () -> {})
+                        .key("long-meta")))
+        .provide(Theme.CURRENT, s -> Theme.DARK);
+    app.textRendering(TextRendering.LINUX);
+
+    Script.run("size 160 300\nframe", app, out);
+    // Long metadata gives way to the title and keeps the chevron inside a narrow block.
+    El longMeta = findByKey(app.tree(), "long-meta");
+    El chevron = longMeta.children().get(0).children().getLast();
+    assertTrue(
+        chevron.x() + chevron.width() <= longMeta.x() + longMeta.width(),
+        "chevron ends at " + (chevron.x() + chevron.width()));
+    assertFalse(longMeta.children().get(0).children().get(1).text().shortened(), "title cut");
+
+    // A static row still shows its details when open; a closed block hides them.
+    String closed = app.tree().dump();
+    assertTrue(closed.contains("SELECT * FROM orders;"), closed);
+    assertFalse(closed.contains("return retry(order);"), closed);
+
+    Script.run("press role=button label=\"Orders.java\"\nframe", app, out);
+    assertTrue(open[0]);
+    assertTrue(app.tree().dump().contains("return retry(order);"));
+  }
+
+  @Test
   void workingIndicatorUsesLocalizedTexts() throws IOException {
     App<Object> app = new App<>(
             new Object(), s -> col().wFull().children(Chat.agent(Chat.working())))

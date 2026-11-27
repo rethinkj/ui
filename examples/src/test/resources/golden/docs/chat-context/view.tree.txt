@@ -1,0 +1,66 @@
+el 0,0 580x530
+  el 12,12 556x497
+    el role=article label="User message" 29,29 522x202
+      el 133,29 418x176
+        text role=paragraph "Please review these two spots before merging." 146,38 392x17 readonly lines 1-1/1
+        el 146,63 392x95
+          el role=button label="Orders.java" 147,64 390x28 expanded value="L42–58"
+            text label="code" "\u{F339}" 155,70 16x16
+            text "Orders.java" 175,70 70x16
+            text "L42–58" 249,71 260x15
+            text label="chevron_up" "\u{F2B5}" 513,70 16x16
+          el role=separator 147,92 390x1
+          el 147,93 390x64
+            text "if (order.attempts() >= maxAttempts) {\n  return Result.failed(order);\n}" 155,101 374x48
+        el 146,166 392x30
+          el role=button label="OrderRetry.java" 147,167 390x28 expanded=false value="L12–19"
+            text label="code" "\u{F339}" 155,173 16x16
+            text "OrderRetry.java" 175,173 96x16
+            text "L12–19" 275,174 234x15
+            text label="chevron_down" "\u{F2A2}" 513,173 16x16
+      el 489,207 62x24
+        el #copy role=button label="Copy message" 489,207 24x24
+          text label="copy" "\u{F32A}" 493,211 16x16
+        text "14:31" 517,212 34x15
+    el role=article label="User message" 29,243 522x249
+      el 133,243 418x232
+        el 146,252 392x30
+          el role=button label="orders" 147,253 390x28 expanded=false value="12 columns"
+            text label="table" "\u{EBF4}" 155,259 16x16
+            text "orders" 175,259 40x16
+            text "12 columns" 219,260 290x15
+            text label="chevron_down" "\u{F2A2}" 513,259 16x16
+        el 146,290 392x113
+          el role=button label="Slow query" 147,291 390x28 expanded value="1.8 s"
+            text label="database" "\u{F0D7}" 155,297 16x16
+            text "Slow query" 175,297 69x16
+            text "1.8 s" 248,298 261x15
+            text label="chevron_up" "\u{F2B5}" 513,297 16x16
+          el role=separator 147,319 390x1
+          el 147,320 390x82
+            text role=textbox "SELECT id, total FROM orders\nWHERE status = 'open'\nORDER BY created_at DESC;" 155,328 374x66 readonly lines 1-3/3
+              el #rail 156,329 56x64
+              el #gutter 156,333 55x48
+                el #line-0 156,333 55x16
+                  el 162,341 12x0
+                  text "1" 178,333 7x16
+                  el 189,341 2x0
+                  el 195,341 12x0
+                el #line-1 156,349 55x16
+                  el 162,357 12x0
+                  text "2" 178,349 7x16
+                  el 189,357 2x0
+                  el 195,357 12x0
+                el #line-2 156,365 55x16
+                  el 162,373 12x0
+                  text "3" 178,365 7x16
+                  el 189,373 2x0
+                  el 195,373 12x0
+        el 146,411 392x30
+          el role=group label="explain-plan.txt" 147,412 390x28
+            text label="document" "\u{E4D7}" 155,418 16x16
+            text "explain-plan.txt" 175,418 95x16
+            text "4 KB" 274,419 255x15
+        text role=paragraph "Why is this query slow?" 146,449 392x17 readonly lines 1-1/1
+      el 517,477 34x15
+        text "14:34" 517,477 34x15
