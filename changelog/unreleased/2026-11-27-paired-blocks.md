@@ -1,0 +1,1 @@
+- Multi-line fields coupled with `ScrollState.scrollWith` now synchronize the heights of `El.Block` entries paired with `El.Block.paired(key)` in the same frame, taking the larger of their heights as either side grows or shrinks and sharing the same estimate until measured. The `El.Block` record gains a `pair` component while keeping its 4-argument constructor.

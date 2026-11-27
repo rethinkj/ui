@@ -181,6 +181,7 @@ public final class El {
   private List<Text.Box> rangeBoxes; // the rows of the range, from this element's corner
   private FieldPart fieldPartKey; // non-null on a field's post-layout part; see Animator
   private boolean overflowsBlock; // a block its builder did not clip: wider children show
+  private float blockMeasuredHeight = Float.NaN; // natural height before pairing stretches its band
 
   /** Which kind of post-layout child of a multi-line field an element is. */
   enum PartKind {
@@ -301,15 +302,21 @@ public final class El {
    * including {@code first}.
    *
    * <p>The block's height comes from its element laid out at the field's content width, unless
-   * {@link #lines(int)} fixes it to an exact number of text lines.
+   * {@link #lines(int)} fixes it to an exact number of text lines. When two multi-line fields are
+   * coupled with {@link ScrollState#scrollWith}, blocks with equal non-null {@link #pair() pair}
+   * keys ({@link #paired(Object)}) take the larger of their heights in the same frame, growing and
+   * shrinking together; a block that is not yet measured takes its partner's height once measured,
+   * or uses the same single-line estimate on both sides.
    *
    * @param placement whether the block inserts space before a line or replaces a whole-line range
    * @param first the line index, from 0 (up to the line count for {@link Placement#INSERT})
    * @param last equal to {@code first} for {@link Placement#INSERT}; the last hidden line, at least
    *     {@code first}, for {@link Placement#REPLACE}
    * @param lines exact height in text lines, or 0 to measure the block's element
+   * @param pair optional key pairing this block's height with a block of an equal key in a {@link
+   *     ScrollState#scrollWith coupled} multi-line field, or {@code null} if unpaired
    */
-  public record Block(Placement placement, int first, int last, int lines) {
+  public record Block(Placement placement, int first, int last, int lines, Object pair) {
 
     /** How a {@link Block} relates to the lines of the field's string. */
     public enum Placement {
@@ -337,19 +344,35 @@ public final class El {
       }
     }
 
+    /** Creates an unpaired block with {@code pair} set to {@code null}. */
+    public Block(Placement placement, int first, int last, int lines) {
+      this(placement, first, last, lines, null);
+    }
+
     /** A block inserted before line {@code line} (or after the last line when equal to line count). */
     public static Block insert(int line) {
-      return new Block(Placement.INSERT, line, line, 0);
+      return new Block(Placement.INSERT, line, line, 0, null);
     }
 
     /** A block replacing lines {@code first} through {@code last} inclusive. */
     public static Block replace(int first, int last) {
-      return new Block(Placement.REPLACE, first, last, 0);
+      return new Block(Placement.REPLACE, first, last, 0, null);
     }
 
     /** A copy of this block with an exact height of {@code lines} text lines, or 0 to measure. */
     public Block lines(int lines) {
-      return new Block(placement, first, last, lines);
+      return new Block(placement, first, last, lines, pair);
+    }
+
+    /**
+     * A copy of this block paired under {@code key} (or unpaired when {@code key} is {@code null}):
+     * in two multi-line fields coupled with {@link ScrollState#scrollWith}, blocks with equal
+     * non-null pair keys take the larger of their heights in the same frame, growing and shrinking
+     * together. Until either side is measured, both use the same estimate; once one side is
+     * measured, an unmeasured partner takes that height.
+     */
+    public Block paired(Object key) {
+      return new Block(placement, first, last, lines, key);
     }
   }
 
@@ -2410,6 +2433,7 @@ public final class El {
         float bx = part.x;
         float by = part.y;
         float bh = part.height;
+        float oldNatural = part.blockMeasuredHeight();
         float contentWidth = text.contentWidth() / scale;
         boolean exact = false; // a block of a number of rows keeps their band
         for (Map.Entry<BlockKey, El> cached : field.blockCache == null
@@ -2423,6 +2447,7 @@ public final class El {
           Flex.layout(part, contentWidth, bh);
         } else {
           Flex.layout(part, contentWidth, Measure.MAX_CONTENT);
+          part.blockMeasuredHeight = part.height;
         }
         float blockW = contentWidth;
         if (!text.wraps()) { // as measureBlock: wider children show unless the builder clipped it
@@ -2435,9 +2460,9 @@ public final class El {
           }
           blockW = Math.max(contentWidth, extent[0]);
         }
-        boolean grew = !exact && part.height != bh;
-        part.place(bx, by, blockW, exact ? bh : part.height); // the band Text keeps, unrounded
-        if (grew) {
+        boolean changed = !exact && part.height != oldNatural;
+        part.place(bx, by, blockW, exact || !changed ? bh : part.height);
+        if (changed) {
           text.restale(); // the rows below make room for it, measured from the block cache
           return true;
         }
@@ -2850,6 +2875,7 @@ public final class El {
     } else {
       Flex.layout(built, contentWidth, Measure.MAX_CONTENT);
     }
+    built.blockMeasuredHeight = built.height;
     if (!text.wraps()) {
       // Unclipped children wider than the view (such as deeply indented rows) stay reachable when
       // scrolled sideways; Scene clips the block to the field's content box.
@@ -2864,6 +2890,11 @@ public final class El {
     built.clip(); // a block draws in its band only
     field.blockCache.put(key, built);
     return built;
+  }
+
+  /** For {@link Text}: natural measured height of a block element before pairing stretches it. */
+  float blockMeasuredHeight() {
+    return Float.isNaN(blockMeasuredHeight) ? height : blockMeasuredHeight;
   }
 
   /** The gutter's cell of line {@code line} through {@code lastLine}. */

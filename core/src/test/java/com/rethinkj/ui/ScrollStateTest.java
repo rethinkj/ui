@@ -2,6 +2,8 @@ package com.rethinkj.ui;
 
 import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.el;
+import static com.rethinkj.ui.Fields.key;
+import static com.rethinkj.ui.Fields.type;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -371,6 +373,182 @@ class ScrollStateTest {
         List.of(new ScrollState.Anchor(10, 15), new ScrollState.Anchor(20, 15));
     assertThrows(
         IllegalArgumentException.class, () -> model.left.scrollWith(model.right, crossing));
+  }
+
+  @Test
+  void pairedBlocksMatchHeightsAcrossCoupledFieldsWhenGrowingShrinkingAndOffScreen() {
+    TextLibraries.assumeLoaded();
+
+    final class Diff {
+      final ScrollState left = new ScrollState();
+      final ScrollState right = new ScrollState();
+      final FieldState leftField = new FieldState();
+      final FieldState rightField = new FieldState();
+      final String text = Coupled.numberedLines(35);
+      String reply = "one";
+      float rightHeight;
+    }
+
+    Diff model = new Diff();
+    model.left.scrollWith(model.right, List.of());
+    El.Block leftComment = El.Block.insert(2).paired("comment");
+    El.Block rightComment = El.Block.insert(2).paired("comment");
+    El.Block leftShort = El.Block.insert(3).paired("short");
+    El.Block rightShort = El.Block.insert(30).paired("short"); // off screen on right
+    El.Block leftFar = El.Block.insert(28).paired("far"); // off screen on both
+    El.Block rightFar = El.Block.insert(28).paired("far");
+
+    App<Diff> app = new App<>(model, m -> {
+      El left = El.text(m.text)
+          .editable(v -> {})
+          .multiline()
+          .key("left")
+          .font(Font.mono())
+          .fontSize(14)
+          .w(180)
+          .lines(8)
+          .padding(4)
+          .fieldState(m.leftField)
+          .scrollState(m.left)
+          .blocks(
+              List.of(leftComment, leftShort, leftFar),
+              b -> {
+                if ("comment".equals(b.pair())) {
+                  return El.col()
+                      .padding(4)
+                      .fill(0xFF26262E)
+                      .child(El.text(m.reply)
+                          .editable(v -> m.reply = v)
+                          .multiline()
+                          .fitLines()
+                          .maxLines(5)
+                          .key("reply")
+                          .font(Font.mono())
+                          .fontSize(12)
+                          .w(150));
+                }
+                if ("short".equals(b.pair())) {
+                  return el().h(8);
+                }
+                return el().h(64);
+              },
+              null);
+      El right = El.text(m.text)
+          .editable(v -> {})
+          .multiline()
+          .key("right")
+          .font(Font.mono())
+          .fontSize(14)
+          .w(180)
+          .lines(8)
+          .padding(4)
+          .fieldState(m.rightField)
+          .scrollState(m.right)
+          .blocks(
+              List.of(rightComment, rightShort, rightFar),
+              b -> "comment".equals(b.pair()) ? el().h(m.rightHeight).fill(0x20888888) : el(),
+              null);
+      return El.row().wFull().hFull().padding(10).gap(10).children(left, right);
+    });
+    app.textRendering(TextRendering.LINUX);
+    app.resize(420, 260, 1);
+    app.frame();
+
+    El left = app.tree().children().get(0);
+    El right = app.tree().children().get(1);
+    El leftBlock = blockChild(left, "block-2");
+    El rightBlock = blockChild(right, "block-2");
+    float h1 = leftBlock.height();
+    assertTrue(h1 > 10, "comment block measured its height: " + h1);
+    assertEquals(h1, rightBlock.height(), 0.5f, "spacer matches comment height on initial frame");
+    assertEquals(
+        left.editor().lineIndex().lineTop(2, left.text().lineHeight()),
+        right.editor().lineIndex().lineTop(2, right.text().lineHeight()),
+        0.5,
+        "lines after paired block stay aligned");
+    assertEquals(
+        left.text().extentHeight(),
+        right.text().extentHeight(),
+        0.5,
+        "total height matches including off-screen paired blocks");
+
+    // Unmeasured partner takes the measured side's height even when smaller than one line, and
+    // a pair unmeasured on both sides uses the same single-line estimate on both sides.
+    Lines leftLines = left.editor().lineIndex();
+    Lines rightLines = right.editor().lineIndex();
+    assertEquals(8, rightLines.blockHeight(2), "unmeasured partner takes measured 8px height");
+    assertEquals(
+        leftLines.blockHeight(2),
+        rightLines.blockHeight(1),
+        "unmeasured pair uses the same estimate on both sides");
+
+    // Focus the reply field inside left's block and add a second line: partner grows in the same
+    // frame.
+    El reply = blockChild(leftBlock, "reply");
+    float rx = left.x() + leftBlock.x() + reply.x() + reply.width() - 4;
+    float ry = left.y() + leftBlock.y() + reply.y() + reply.height() / 2;
+    app.pointerDown(rx, ry);
+    app.pointerUp(rx, ry);
+    app.frame();
+    assertEquals("reply", app.focused().key());
+
+    key(app, "Enter");
+    type(app, "two");
+    left = app.tree().children().get(0);
+    right = app.tree().children().get(1);
+    float h2 = blockChild(left, "block-2").height();
+    assertTrue(h2 > h1 + 5, "reply grew with a second line: " + h1 + " -> " + h2);
+    assertEquals(
+        h2, blockChild(right, "block-2").height(), 0.5f, "partner grew to match in the same frame");
+    assertEquals(left.text().extentHeight(), right.text().extentHeight(), 0.5);
+
+    // Delete the second line: both sides shrink back to h1 in the same frame.
+    key(app, "Backspace");
+    key(app, "Backspace");
+    key(app, "Backspace");
+    key(app, "Backspace");
+    left = app.tree().children().get(0);
+    right = app.tree().children().get(1);
+    assertEquals(h1, blockChild(left, "block-2").height(), 0.5f, "left shrank back");
+    assertEquals(
+        h1, blockChild(right, "block-2").height(), 0.5f, "partner shrank back in the same frame");
+    assertEquals(left.text().extentHeight(), right.text().extentHeight(), 0.5);
+
+    // Both sides measured: max wins in either direction, and shrinking the taller side shrinks
+    // both back to the other side's height.
+    model.rightHeight = 90;
+    app.invalidate();
+    app.frame();
+    left = app.tree().children().get(0);
+    right = app.tree().children().get(1);
+    assertEquals(90, blockChild(left, "block-2").height(), 0.5f, "left matches taller right");
+    assertEquals(90, blockChild(right, "block-2").height(), 0.5f);
+
+    model.rightHeight = 0;
+    app.invalidate();
+    app.frame();
+    left = app.tree().children().get(0);
+    right = app.tree().children().get(1);
+    assertEquals(h1, blockChild(left, "block-2").height(), 0.5f);
+    assertEquals(h1, blockChild(right, "block-2").height(), 0.5f);
+
+    // Uncoupling restores each side's own natural height.
+    model.left.scrollWith(null, List.of());
+    app.invalidate();
+    app.frame();
+    left = app.tree().children().get(0);
+    right = app.tree().children().get(1);
+    assertEquals(h1, blockChild(left, "block-2").height(), 0.5f);
+    assertEquals(0, blockChild(right, "block-2").height(), 0.5f);
+  }
+
+  private static El blockChild(El parent, String key) {
+    for (El child : parent.children()) {
+      if (key.equals(child.key())) {
+        return child;
+      }
+    }
+    throw new AssertionError("no child #" + key + " in " + parent.dump());
   }
 
   /** A transcript of variable-height rows and a plain scroll area, both following their end. */

@@ -228,8 +228,11 @@ public final class ScrollState {
    * fractional line (counting blocks between lines) piecewise linearly between surrounding {@code
    * anchors}, shifted by the first or last anchor's difference outside them (or line {@code n} to
    * line {@code n} when {@code anchors} is empty), and converts back to the follower's pixel offset
-   * by its own line tops. Horizontally both keep the same offset. A partner not in the current tree
-   * is left alone.
+   * by its own line tops. Horizontally both keep the same offset. {@link El.Block#paired Paired}
+   * blocks with equal pair keys take the larger of their heights in both fields in the same frame,
+   * growing and shrinking together; a block that is not yet measured takes its partner's height
+   * once measured, or uses the same single-line estimate on both sides. A partner not in the
+   * current tree is left alone.
    *
    * @param other the partner scroll state, or {@code null} to uncouple
    * @param anchors line pairs aligning this area's lines with {@code other}'s; empty (or {@code
@@ -347,6 +350,11 @@ public final class ScrollState {
     double y = target.scrollY();
     follow(leader, false, false);
     return target.scrollX() != x || target.scrollY() != y;
+  }
+
+  /** The coupled partner element in the same tree, or null if uncoupled or not shown. */
+  El partnerElement() {
+    return partner != null && inSameTree(partner) ? partner.el : null;
   }
 
   private boolean inSameTree(ScrollState other) {

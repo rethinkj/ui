@@ -4656,11 +4656,14 @@ public final class App<S> {
         editor.place(focused, focused || scopeSelected.contains(editor), caretOn);
         placed.add(editor.element());
       }
-      // A coupled field follows its leader again with what layout measured, a few times at most;
-      // one still moving then follows on at the next placing.
+      // Coupled fields exchange paired block heights and follow their leader again with what
+      // layout measured, a few times at most; one still moving then follows on at the next placing.
       boolean moved = true;
       for (int pass = 0; pass < 3 && moved; pass++) {
         moved = false;
+        for (Editor editor : shown) {
+          moved |= syncPairedBlocks(editor.element());
+        }
         for (Editor editor : shown) {
           ScrollState scroll = editor.element().scrollState();
           moved |= scroll != null && scroll.refollow(editor.element());
@@ -4748,6 +4751,32 @@ public final class App<S> {
       sweepEditors();
     }
     return partsBuilt;
+  }
+
+  /**
+   * Exchanges paired block heights from {@code el}'s coupled partner (or clears partner heights
+   * when uncoupled), keeping the top of the view anchored if blocks above it changed height.
+   */
+  private static boolean syncPairedBlocks(El el) {
+    Text text = el.text();
+    if (!text.multiline() || !text.hasPairedBlocks() || !text.laidOut()) {
+      return false;
+    }
+    ScrollState scroll = el.scrollState();
+    El partnerEl = scroll == null ? null : scroll.partnerElement();
+    Map<Object, Long> partnerHeights =
+        partnerEl != null && partnerEl.text() != null && partnerEl.text().multiline()
+            ? partnerEl.text().ownPairedBlockHeights()
+            : Map.of();
+    float shift = text.syncPairedBlockHeights(partnerHeights);
+    if (Float.isNaN(shift)) {
+      return false;
+    }
+    if (shift != 0) {
+      el.measureScroll();
+      el.setScroll(el.scrollX(), el.scrollY() + shift / text.scale());
+    }
+    return true;
   }
 
   /**

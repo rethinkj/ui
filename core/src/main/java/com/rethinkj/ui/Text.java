@@ -248,6 +248,7 @@ public final class Text implements Measure {
   private boolean highlightPending;
   private List<El.Fold> folds = List.of();
   private List<El.Block> blocks = List.of();
+  private boolean hasPairedBlocks;
   private BlockMeasurer blockMeasurer;
   private List<El.Hint> hints = List.of();
   private HintMeasurer hintMeasurer;
@@ -2771,6 +2772,60 @@ public final class Text implements Measure {
       viewStale = true;
     }
     this.blocks = next;
+    boolean paired = false;
+    for (El.Block b : next) {
+      if (b.pair() != null) {
+        paired = true;
+        break;
+      }
+    }
+    this.hasPairedBlocks = paired;
+  }
+
+  /** Whether any block of this multi-line field is paired with a coupled partner. */
+  boolean hasPairedBlocks() {
+    return hasPairedBlocks;
+  }
+
+  /** Known natural heights of active paired blocks in physical pixels, keyed by pair key. */
+  Map<Object, Long> ownPairedBlockHeights() {
+    if (!hasPairedBlocks || !laidOut) {
+      return Map.of();
+    }
+    return shownLines().ownPairedHeights();
+  }
+
+  /**
+   * Applies the coupled partner's known paired block heights to this field. Marks the view stale
+   * when any active block's effective height changes, and returns how far the top of the view
+   * shifted in physical pixels because blocks above it changed height, or {@code Float.NaN} when
+   * no height changed.
+   */
+  float syncPairedBlockHeights(Map<Object, Long> partner) {
+    if (!hasPairedBlocks || !laidOut) {
+      return Float.NaN;
+    }
+    Lines lines = shownLines();
+    if (!lines.hasPairedBlocks()) {
+      return Float.NaN;
+    }
+    double lh = lineHeight;
+    int anchorSlot = lines.slotAt(viewY, lh);
+    boolean anchorInBlock = anchorSlot >= lines.count()
+        || lines.isHidden(anchorSlot)
+        || (lines.hasBlockAt(anchorSlot) && viewY < lines.lineTop(anchorSlot, lh));
+    int anchorBlock = anchorInBlock ? lines.blockAtY(anchorSlot, viewY, lh) : -1;
+    double anchorTopBefore = anchorBlock >= 0
+        ? lines.blockTop(anchorBlock, lh)
+        : anchorInBlock ? lines.slotTop(anchorSlot, lh) : lines.lineTop(anchorSlot, lh);
+    if (!lines.pairedBlockHeights(partner)) {
+      return Float.NaN;
+    }
+    viewStale = true;
+    double anchorTopAfter = anchorBlock >= 0
+        ? lines.blockTop(anchorBlock, lh)
+        : anchorInBlock ? lines.slotTop(anchorSlot, lh) : lines.lineTop(anchorSlot, lh);
+    return (float) (anchorTopAfter - anchorTopBefore);
   }
 
   /** For {@link El}: the inline hints of a multi-line field and their measurer. */
@@ -3136,7 +3191,8 @@ public final class Text implements Measure {
             if (b.lines() == 0) {
               El built = blockMeasurer.measure(b, bi - start, width, scale, lineHeight);
               lines.blockHeight(
-                  bi, Math.max(0, Math.round(Math.ceil(built.height() * scale - 1e-4))));
+                  bi,
+                  Math.max(0, Math.round(Math.ceil(built.blockMeasuredHeight() * scale - 1e-4))));
             }
           }
         }
@@ -3412,7 +3468,8 @@ public final class Text implements Measure {
               built =
                   blockMeasurer.measure(block, bi - bStart, contentWidthLogical, scale, lineHeight);
               if (block.lines() == 0) {
-                long measuredPx = Math.max(0, Math.round(Math.ceil(built.height() * scale - 1e-4)));
+                long measuredPx =
+                    Math.max(0, Math.round(Math.ceil(built.blockMeasuredHeight() * scale - 1e-4)));
                 lines.blockHeight(bi, measuredPx);
               }
             }

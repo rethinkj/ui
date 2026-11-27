@@ -103,6 +103,8 @@ final class Lines {
   private Object blockLayout;
   private long blockLineHeight = 1;
   private Map<BlockKey, Long> measuredBlocks = new HashMap<>();
+  private boolean hasPairedBlocks;
+  private Map<Object, Long> pairedHeights; // partner's known natural height by pair key, or null
   private El.Block[] activeBlocks = NO_BLOCKS;
   private int[] activeBlockOrdinals = NO_LINES;
   private int[] blockSlots = NO_LINES;
@@ -641,6 +643,9 @@ final class Lines {
     blockLayout = layout;
     blockLineHeight = lh;
     measuredBlocks.clear();
+    if (pairedHeights != null) {
+      pairedHeights.clear();
+    }
     if (hasBlocks()) {
       buildPixels();
     }
@@ -726,6 +731,8 @@ final class Lines {
       activeBlockOrdinals = NO_LINES;
       blockSlots = NO_LINES;
       blockSlotStarts = NO_LINES;
+      hasPairedBlocks = false;
+      pairedHeights = null;
       return;
     }
     // Collect active REPLACE blocks first so INSERTs strictly inside a replaced range are hidden.
@@ -767,6 +774,8 @@ final class Lines {
       activeBlockOrdinals = NO_LINES;
       blockSlots = NO_LINES;
       blockSlotStarts = NO_LINES;
+      hasPairedBlocks = false;
+      pairedHeights = null;
       return;
     }
     // Stable sort: by slot (first), with INSERT before REPLACE at the same slot, keeping list
@@ -789,8 +798,12 @@ final class Lines {
     int[] slots = new int[m];
     int[] starts = new int[m + 1];
     int sCount = 0;
+    boolean paired = false;
     for (int i = 0; i < m; i++) {
       El.Block b = activeBlocks[i];
+      if (b.pair() != null) {
+        paired = true;
+      }
       int ord = seen.getOrDefault(b, 0);
       seen.put(b, ord + 1);
       activeBlockOrdinals[i] = ord;
@@ -799,6 +812,10 @@ final class Lines {
         starts[sCount] = i;
         sCount++;
       }
+    }
+    hasPairedBlocks = paired;
+    if (!paired) {
+      pairedHeights = null;
     }
     starts[sCount] = m;
     blockSlots = Arrays.copyOf(slots, sCount);
@@ -883,6 +900,10 @@ final class Lines {
 
   boolean hasBlocks() {
     return activeBlocks.length > 0;
+  }
+
+  boolean hasPairedBlocks() {
+    return hasPairedBlocks;
   }
 
   boolean hasReplaceBlocks() {
@@ -1068,12 +1089,27 @@ final class Lines {
     totalPixels = 0;
   }
 
-  private long initialBlockHeight(El.Block block, int ordinal) {
+  private Long ownBlockHeight(El.Block block, int ordinal) {
     if (block.lines() > 0) {
       return block.lines() * blockLineHeight;
     }
-    Long cached = measuredBlocks.get(new BlockKey(block, ordinal));
-    return cached != null ? cached : blockLineHeight;
+    return measuredBlocks.get(new BlockKey(block, ordinal));
+  }
+
+  private long effectiveBlockHeight(El.Block block, int ordinal) {
+    Long own = ownBlockHeight(block, ordinal);
+    Object pair = block.pair();
+    Long partner = pair == null || pairedHeights == null ? null : pairedHeights.get(pair);
+    if (own != null && partner != null) {
+      return Math.max(own, partner);
+    }
+    if (own != null) {
+      return own;
+    }
+    if (partner != null) {
+      return partner;
+    }
+    return blockLineHeight;
   }
 
   private void buildPixels() {
@@ -1081,7 +1117,7 @@ final class Lines {
     slotPixels = new long[n];
     blockHeights = new long[activeBlocks.length];
     for (int i = 0; i < activeBlocks.length; i++) {
-      long h = initialBlockHeight(activeBlocks[i], activeBlockOrdinals[i]);
+      long h = effectiveBlockHeight(activeBlocks[i], activeBlockOrdinals[i]);
       blockHeights[i] = h;
       slotPixels[activeBlocks[i].first()] += h;
     }
@@ -1105,19 +1141,83 @@ final class Lines {
       return;
     }
     long h = Math.max(0, measuredPixels);
-    measuredBlocks.put(new BlockKey(b, activeBlockOrdinals[activeIndex]), h);
+    int ordinal = activeBlockOrdinals[activeIndex];
+    measuredBlocks.put(new BlockKey(b, ordinal), h);
+    setEffectiveBlockHeight(activeIndex, effectiveBlockHeight(b, ordinal));
+  }
+
+  private boolean setEffectiveBlockHeight(int activeIndex, long h) {
     long delta = h - blockHeights[activeIndex];
     if (delta == 0) {
-      return;
+      return false;
     }
     blockHeights[activeIndex] = h;
-    int slot = b.first();
+    int slot = activeBlocks[activeIndex].first();
     slotPixels[slot] += delta;
     totalPixels += delta;
     int n = count + 1;
     for (int i = slot + 1; i <= n; i += i & -i) {
       pixelTree[i] += delta;
     }
+    return true;
+  }
+
+  /**
+   * Known natural heights (measured or fixed-line) of active paired blocks, in physical pixels,
+   * keyed by pair key.
+   */
+  Map<Object, Long> ownPairedHeights() {
+    if (!hasPairedBlocks) {
+      return Map.of();
+    }
+    Map<Object, Long> out = null;
+    for (int i = 0; i < activeBlocks.length; i++) {
+      El.Block b = activeBlocks[i];
+      Object pair = b.pair();
+      if (pair == null) {
+        continue;
+      }
+      Long own = ownBlockHeight(b, activeBlockOrdinals[i]);
+      if (own == null) {
+        continue;
+      }
+      if (out == null) {
+        out = new HashMap<>();
+      }
+      out.merge(pair, own, Math::max);
+    }
+    return out == null ? Map.of() : out;
+  }
+
+  /**
+   * Applies the coupled partner's known natural block heights (in physical pixels, by pair key) to
+   * this field's active paired blocks.
+   *
+   * @return whether any active block's effective height changed
+   */
+  boolean pairedBlockHeights(Map<Object, Long> partner) {
+    if (!hasPairedBlocks) {
+      return false;
+    }
+    boolean empty = partner == null || partner.isEmpty();
+    if (empty && (pairedHeights == null || pairedHeights.isEmpty())) {
+      return false;
+    }
+    if (!empty && partner.equals(pairedHeights)) {
+      return false;
+    }
+    pairedHeights = empty ? null : new HashMap<>(partner);
+    if (blockHeights == null) {
+      return false;
+    }
+    boolean changed = false;
+    for (int i = 0; i < activeBlocks.length; i++) {
+      El.Block b = activeBlocks[i];
+      if (b.pair() != null) {
+        changed |= setEffectiveBlockHeight(i, effectiveBlockHeight(b, activeBlockOrdinals[i]));
+      }
+    }
+    return changed;
   }
 
   long blockHeight(int activeIndex) {
