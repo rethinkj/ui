@@ -57,6 +57,22 @@ final class Editors {
   /** The editor of a statement that is only shown: it takes no edits, so it needs no handler. */
   final CodeEditor.State definitionEditor = new CodeEditor.State().readOnly(true);
   // docs:end code-editor-read-only
+  String excerpt = """
+      if (order.attempts() >= maxAttempts) {
+        return Result.failed(order);
+      }
+      return retry(order);""";
+  // docs:start code-editor-excerpt
+  final CodeEditor.State excerptEditor = new CodeEditor.State().readOnly(true).firstLine(42);
+
+  static El excerptView(Editors state) {
+    return CodeEditor.codeEditor(state.app, state.excerpt, state.excerptEditor, Java.of(), null)
+        .key("excerpt")
+        .label("Orders.java")
+        .lines(4)
+        .wFull();
+  }
+  // docs:end code-editor-excerpt
   String document = """
       {
         "id": 1042,
@@ -683,6 +699,10 @@ final class Editors {
         .wFull();
     // docs:end code-editor-placeholder
     return Frame.of(draft, definition);
+  }
+
+  static El excerpt(Editors state) {
+    return Frame.of(excerptView(state));
   }
 
   // docs:start code-editor-position

@@ -1,0 +1,1 @@
+- `CodeEditor.State.firstLine(line)` numbers the editor's gutter from `line` (1 or more, 1 by default) when displaying an excerpt of a larger file; `State.line()` still counts from 1 in the editor's string.

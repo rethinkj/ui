@@ -409,6 +409,7 @@ public final class CodeEditor {
     private boolean inlineDiagnostics;
     private boolean findBar = true;
     private boolean readOnly;
+    private int firstLine = 1;
     // Control+D: the selection it made, and whether it went by whole words from the caret.
     private int nextFrom = -1;
     private int nextTo = -1;
@@ -561,6 +562,20 @@ public final class CodeEditor {
     }
 
     /**
+     * Numbers the gutter's lines from {@code line}, for an excerpt of a larger file; 1 unless set.
+     * {@link #line} still counts from 1 in the editor's string.
+     *
+     * @throws IllegalArgumentException if {@code line} is less than 1
+     */
+    public State firstLine(int line) {
+      if (line < 1) {
+        throw new IllegalArgumentException("first line must be 1 or more, was " + line);
+      }
+      firstLine = line;
+      return this;
+    }
+
+    /**
      * Whether standalone doc comments are rendered in place of their raw lines when the
      * highlighter is a {@link Language}; off unless set. Changing the mode clears per-comment
      * toggles. Comments are found a bounded part per build: with its app ({@link
@@ -595,9 +610,10 @@ public final class CodeEditor {
     }
 
     /**
-     * The caret's line, from 1: the number of line breaks before it, plus one, which the gutter
-     * shows next to it. Like {@link #column}, it is about the string of the editor's last build, so
-     * a view reads it after building the editor, as for a status bar below it.
+     * The caret's line in the editor's string, from 1: the number of line breaks before it, plus
+     * one (regardless of {@link #firstLine}). Like {@link #column}, it is about the string of the
+     * editor's last build, so a view reads it after building the editor, as for a status bar below
+     * it.
      */
     public int line() {
       return position()[0];
@@ -1986,7 +2002,7 @@ public final class CodeEditor {
           .w(newW)
           .shrink(0));
     } else {
-      cell.child(El.text(String.valueOf(line.index() + 1))
+      cell.child(El.text(String.valueOf((long) line.index() + state.firstLine))
           .font(mono.font().get())
           .fontSize(mono.size())
           .color(line.caret() ? theme.text().primary() : theme.text().muted())
