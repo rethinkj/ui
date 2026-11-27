@@ -4,6 +4,8 @@ import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.el;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
@@ -682,6 +684,7 @@ class DiffViewTest {
     El tree = app.tree();
     El chunk1 = findByKey(tree, "deleted-1");
     El removedThread = findByKey(tree, "removed-block-1-removed-thread");
+    findByKey(tree, "removed-block-3-removed-thread"); // the same app key, on removed c
     El chunk2 = findByKey(tree, "deleted-2");
     assertEquals(
         chunk1.y() + chunk1.height(),
@@ -698,15 +701,14 @@ class DiffViewTest {
     El oldRow1 = findByKey(tree, "old-line-1");
     El oldRow2 = findByKey(tree, "old-line-2");
     El oldRow3 = findByKey(tree, "old-line-3");
-    assertTrue(findByKeyOrNull(oldRow1, "note") != null, "removed a carries note stripe");
-    assertTrue(findByKeyOrNull(oldRow2, "note") != null, "removed b carries note stripe");
-    assertEquals(null, findByKeyOrNull(oldRow3, "note"), "removed c has no note stripe");
-    assertTrue(findByKeyOrNull(oldRow2, "marker-1") != null, "removed b carries marker");
+    assertNotNull(findByKeyOrNull(oldRow1, "note"), "removed a carries note stripe");
+    assertNotNull(findByKeyOrNull(oldRow2, "note"), "removed b carries note stripe");
+    assertNull(findByKeyOrNull(oldRow3, "note"), "removed c has no note stripe");
+    assertNotNull(findByKeyOrNull(oldRow2, "marker-1"), "removed b carries marker");
 
     El newLine2 = findByKey(tree, "line-2");
-    assertTrue(findByKeyOrNull(newLine2, "note") != null, "unchanged OLD note maps to NEW line 2");
-    assertTrue(
-        findByKeyOrNull(newLine2, "marker-1") != null, "unchanged OLD marker maps to NEW line 2");
+    assertNotNull(findByKeyOrNull(newLine2, "note"), "unchanged OLD note maps to NEW line 2");
+    assertNotNull(findByKeyOrNull(newLine2, "marker-1"), "unchanged OLD marker maps to NEW line 2");
     El unchangedThread = findByKey(tree, "unchanged-thread");
     assertTrue(unchangedThread.y() > newLine2.y(), "unchanged OLD block sits below NEW line 2");
 
@@ -726,17 +728,18 @@ class DiffViewTest {
     app.pointerUp(action1[0], action1[1]);
     app.frame();
 
-    // Drag across removed lines 2..3 -> Side.OLD (2..3).
+    // Drag from removed line 1 across its thread to removed line 3 -> Side.OLD (1..3).
     tree = app.tree();
-    float[] dragStart = absCenter(tree, findByKey(tree, "action-old-line-2"));
+    float[] acrossStart = absCenter(tree, findByKey(tree, "action-old-line-1"));
     float[] dragEnd = absCenter(tree, findByKey(tree, "old-line-3"));
-    app.pointerMove(dragStart[0], dragStart[1]);
+    app.pointerMove(acrossStart[0], acrossStart[1]);
     app.frame();
-    app.pointerDown(dragStart[0], dragStart[1]);
-    app.pointerMove(dragStart[0], dragEnd[1]);
+    app.pointerDown(acrossStart[0], acrossStart[1]);
+    app.pointerMove(acrossStart[0], dragEnd[1]);
     app.frame();
-    app.pointerUp(dragStart[0], dragEnd[1]);
+    app.pointerUp(acrossStart[0], dragEnd[1]);
     app.frame();
+    float[] dragStart = absCenter(app.tree(), findByKey(app.tree(), "action-old-line-2"));
 
     // Dragging past the removed run into NEW line 1 stays clamped to the removed run (2..3).
     tree = app.tree();
@@ -761,7 +764,7 @@ class DiffViewTest {
     assertEquals(
         List.of(
             new DiffView.Lines(DiffView.Side.OLD, 1, 1),
-            new DiffView.Lines(DiffView.Side.OLD, 2, 3),
+            new DiffView.Lines(DiffView.Side.OLD, 1, 3),
             new DiffView.Lines(DiffView.Side.OLD, 2, 3),
             new DiffView.Lines(DiffView.Side.NEW, 1, 1)),
         pressed);

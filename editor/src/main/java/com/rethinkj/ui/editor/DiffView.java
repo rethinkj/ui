@@ -380,7 +380,7 @@ public final class DiffView {
       } else {
         // One line height below the top of line newStart - 1, whatever blocks follow it; below
         // line 0 the offsets step by whole line heights.
-        y = text.lineToOffset(hunk.newStart() - 1) + text.lineToOffset(0) - text.lineToOffset(-1);
+        y = text.lineToOffset(hunk.newStart() - 1.0) + text.lineToOffset(0) - text.lineToOffset(-1);
       }
       app.scrollTo(field, 0, Math.max(0, y));
     }
@@ -1394,7 +1394,7 @@ public final class DiffView {
 
   private static int translateOffset(State state, int oldLine, int newLine, int oldOffset) {
     int col = oldOffset - state.oldStarts[oldLine];
-    return Math.clamp(state.newStarts[newLine] + col, 0, state.newDisplayed.length());
+    return Math.clamp((long) state.newStarts[newLine] + col, 0, state.newDisplayed.length());
   }
 
   /**
@@ -1403,8 +1403,14 @@ public final class DiffView {
    */
   private static void translatePoint(
       State state, int[] oldToNew, int at, IntConsumer onUnchanged, IntConsumer onRemoved) {
-    if (at < 0 || at > state.oldDisplayed.length() || oldToNew.length == 0) {
-      return; // an empty old text has no line to show a mark on
+    if (oldToNew.length == 0) { // an empty old text: only beside an empty new one
+      if (at == 0 && state.newDisplayed.isEmpty()) {
+        onUnchanged.accept(0);
+      }
+      return;
+    }
+    if (at < 0 || at > state.oldDisplayed.length()) {
+      return;
     }
     int oldLine = lineOf(state.oldStarts, at);
     int newLine = oldToNew[oldLine];
@@ -1647,16 +1653,15 @@ public final class DiffView {
       firstChunk = false;
       if (atEnd != null) {
         int insertLine = emptyNew ? 1 : newStart;
-        for (int i = 0; i < atEnd.size(); i++) {
-          CodeEditor.Block markBlock = atEnd.get(i);
-          String prefix = "removed-block-" + (to - 1) + "-";
-          int ordinal = i;
+        String prefix = "removed-block-" + (to - 1) + "-";
+        for (CodeEditor.Block markBlock : atEnd) {
           El.Block extra = El.Block.insert(insertLine).pinned(true);
           blocks.add(extra);
           removedBlocks.put(extra, () -> {
             El element = markBlock.element().get();
             // By old line too: all removed lines insert at one line, where the app's keys collide.
-            return element.key(prefix + (element.key() != null ? element.key() : ordinal));
+            // One without a key gets the field's own key by its place at that line.
+            return element.key() != null ? element.key(prefix + element.key()) : element;
           });
         }
       }
@@ -1781,7 +1786,7 @@ public final class DiffView {
       List<Diff.Span> occurrences,
       int occurrenceColor) {}
 
-  private record RemovedRow(int line, float top) {}
+  private record RemovedRow(int line, float top, float bottom) {}
 
   /**
    * Gutter rows for deleted lines of {@code chunk} in unified diff, matching {@link CodeEditor}'s
@@ -1951,7 +1956,7 @@ public final class DiffView {
           continue;
         }
         float rowTop = blockCell.y() + row.y();
-        rows.add(new RemovedRow(line, rowTop));
+        rows.add(new RemovedRow(line, rowTop, rowTop + row.height()));
         if (line == anchor) {
           for (El child : row.children()) {
             if (("action-old-line-" + anchor).equals(child.key())) {
@@ -1967,16 +1972,18 @@ public final class DiffView {
     rows.sort(Comparator.comparingInt(RemovedRow::line));
     int first = anchor;
     int last = anchor;
+    boolean found = false;
     for (int i = 0; i < rows.size(); i++) {
       RemovedRow row = rows.get(i);
-      boolean under = (i == 0 || y >= row.top())
-          && (i + 1 == rows.size() || y < rows.get(i + 1).top());
+      // Past the run's ends counts as its end rows; over a card between rows, as no row.
+      boolean under = (i == 0 || y >= row.top()) && (i + 1 == rows.size() || y < row.bottom());
+      found |= under;
       if (under || row.line() == anchor) {
         first = Math.min(first, row.line());
         last = Math.max(last, row.line());
       }
     }
-    return new Lines(Side.OLD, first, last);
+    return found ? new Lines(Side.OLD, first, last) : null;
   }
 
   private record Expanded(String text, int[] offsets) {
