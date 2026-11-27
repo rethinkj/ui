@@ -40,7 +40,7 @@ Because hints live in a markup layer, they move across edits: `AFTER` hints stay
 
 ## Blocks between lines
 
-Pass `CodeEditor.Block(at, element)` marks through `markup(layer, text, list)` on `CodeEditor.State` to place arbitrary elements — such as an inline review card — below the line of `at`. The `Supplier<El>` is called each time the block is built, so it reads live state (such as a reply draft) without another `markup` call on each keystroke. Give the returned element a `.key(...)` so focusable controls inside it keep their focus and state across rebuilds.
+Pass `CodeEditor.Block(at, element)` marks through `markup(layer, text, list)` on `CodeEditor.State` to place arbitrary elements — such as an inline review card — below the line of `at`. The `Supplier<El>` is called each time the block is built, so it reads live state (such as a reply draft) without another `markup` call on each keystroke. Give the returned element a `.key(...)` so focusable controls inside it keep their focus and state across rebuilds. Block marks stay at the left edge with the view's width while the code scrolls sideways, and focusing a control inside one does not scroll the code horizontally; code vision rows and rendered doc comments still scroll with the code.
 
 <Shot src="examples/docs/code-editor-blocks/view-{theme}" alt="A SQL query in the code editor with a framed review card below the WHERE line showing an avatar, author name, muted timestamp, comment text, and a reply text field" />
 

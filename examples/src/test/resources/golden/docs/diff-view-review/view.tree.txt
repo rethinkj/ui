@@ -161,7 +161,7 @@ el 0,0 800x340
       el #unchanged-0 role=button label="5 unchanged lines" 489,17 291x16
         text label="chevron_down" "\u{F2A1}" 497,19 12x12
         text "5 unchanged lines" 513,18 104x14
-      el #diff-review-1 489,161 291x94
+      el #diff-review-1 489,161 290.5x94
         el 489,165 283x86
           el 498,174 265x20
             el role=img label="Ada Lovelace" 498,174 20x20

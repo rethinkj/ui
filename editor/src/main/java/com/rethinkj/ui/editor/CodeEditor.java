@@ -329,9 +329,10 @@ public final class CodeEditor {
    * <p>{@code element} is called each time the block is built, so it can read live state (such as
    * a reply draft) without another {@link State#markup} call. Give the returned element a key
    * ({@link El#key}) so focusable controls inside it keep their focus and state across rebuilds.
-   * At the same insert line a mark block appears before any {@link Vision} row of the next line;
-   * a block on a line inside a rendered doc comment appears after that comment; an enclosing fold
-   * hides it.
+   * The block stays at the left edge of the view with the view's width while the code scrolls
+   * sideways, and focusing a control inside it does not scroll the code horizontally. At the same
+   * insert line a mark block appears before any {@link Vision} row of the next line; a block on a
+   * line inside a rendered doc comment appears after that comment; an enclosing fold hides it.
    *
    * @param at UTF-16 offset in the markup layer's text, 0 or more
    * @param element builds the element each time the block is shown
@@ -647,14 +648,13 @@ public final class CodeEditor {
 
     /**
      * Numbers the gutter's lines from {@code line}, for an excerpt of a larger file; 1 unless set.
-     * {@link #line} still counts from 1 in the editor's string.
+     * Go to line takes and shows the same numbers; {@link #line} still counts from 1 in the
+     * editor's string.
      *
      * @throws IllegalArgumentException if {@code line} is less than 1
      */
     public State firstLine(int line) {
-      if (line < 1) {
-        throw new IllegalArgumentException("first line must be 1 or more, was " + line);
-      }
+      find.firstLine(line);
       firstLine = line;
       return this;
     }
@@ -1949,7 +1949,7 @@ public final class CodeEditor {
         while (insertLine < lines && isFoldHidden(folds, insertLine)) { // below a pill, not in it
           insertLine++;
         }
-        El.Block block = El.Block.insert(insertLine);
+        El.Block block = El.Block.insert(insertLine).pinned(true);
         if (blockPair != null) {
           int ordinal = markOrdinals.merge(insertLine, 1, Integer::sum) - 1;
           Object pairKey = blockPair.key(insertLine, ordinal);

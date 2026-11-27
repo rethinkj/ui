@@ -1,0 +1,1 @@
+- `Find.State.firstLine(line)` offsets Go to line's numbering and displayed range from `line` (1 or more, 1 by default); `CodeEditor.State.firstLine(line)` sets it automatically so Ctrl+G and `Find.goToLine` take the gutter's line numbers in an excerpt.

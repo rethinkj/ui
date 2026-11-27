@@ -98,6 +98,7 @@ public final class Find {
     String query = "";
     String replacement = "";
     String line = "";
+    int firstLine = 1;
     boolean matchCase;
     boolean wholeWord;
     boolean regex;
@@ -162,6 +163,19 @@ public final class Find {
     /** Whether the search keeps to the selection the bar opened with. */
     public boolean inSelection() {
       return !isScope() && inSelection && scopeTo > scopeFrom;
+    }
+
+    /**
+     * The number of the field's first line, as Go to line takes and shows it; 1 unless set.
+     *
+     * @throws IllegalArgumentException if {@code line} is less than 1
+     */
+    public State firstLine(int line) {
+      if (line < 1) {
+        throw new IllegalArgumentException("first line must be 1 or more, was " + line);
+      }
+      firstLine = line;
+      return this;
     }
 
     /** Closes the bar; the field or scope keeps its selection. */
@@ -838,7 +852,8 @@ public final class Find {
     }
     String text = field.text().string();
     int start = 0;
-    for (int line = 1; line < at[0]; line++) {
+    long target = (long) at[0] - state.firstLine + 1;
+    for (int line = 1; line < target; line++) {
       int feed = text.indexOf('\n', start);
       if (feed < 0) {
         break;
@@ -1294,7 +1309,11 @@ public final class Find {
         .gap(theme.space().xs())
         .align(Style.Align.CENTER)
         .child(field)
-        .child(label(Label.Variant.MUTED, texts.range("1", Integer.toString(lines)))
+        .child(label(
+                Label.Variant.MUTED,
+                texts.range(
+                    Integer.toString(state.firstLine),
+                    Long.toString((long) state.firstLine + lines - 1)))
             .key("count")
             .shrink(0)
             .fontFeatures("+tnum")
