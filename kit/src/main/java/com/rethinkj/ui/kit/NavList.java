@@ -363,7 +363,43 @@ public final class NavList {
    * Identifies the row a shared {@link Menu.State} is open for, and whether a key opened it, in
    * which case the menu hangs from the list, also while the row is out of view.
    */
-  private record MenuAnchor(String key, String labelAtIndex, boolean byKey) {}
+  private static final class MenuAnchor {
+    final String key;
+    final String labelAtIndex;
+    final boolean byKey;
+    boolean shown; // set once a key-opened menu has appeared, so a later reappearance closes it
+
+    MenuAnchor(String key, String labelAtIndex, boolean byKey) {
+      this.key = key;
+      this.labelAtIndex = labelAtIndex;
+      this.byKey = byKey;
+    }
+
+    String key() {
+      return key;
+    }
+
+    String labelAtIndex() {
+      return labelAtIndex;
+    }
+
+    boolean byKey() {
+      return byKey;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+      return other instanceof MenuAnchor that
+          && byKey == that.byKey
+          && Objects.equals(key, that.key)
+          && Objects.equals(labelAtIndex, that.labelAtIndex);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(key, labelAtIndex, byKey);
+    }
+  }
 
   /** What one rebuild of the list needs to build its rows and to take its keys. */
   private static final class Rows {
@@ -426,11 +462,23 @@ public final class NavList {
           if (menuKey) {
             menuKey = false;
             menu.openAt(x, y);
-            menu.anchor = keyAnchor;
+            menu.anchor = anchor(keyAnchor.key, selectedMenu, true);
           }
         });
-        if (menu.isOpen() && keyAnchor.equals(menu.anchor)) {
+        if (menu.isOpen() && menu.anchor instanceof MenuAnchor open && keyAnchor.equals(open)) {
           Menu.contextMenu(list, menu, selectedMenu.contextMenu());
+          // A key-opened menu hangs from the list: if a build dropped it (such as when the app
+          // selected another row while this row was out of view) and it appears again, close it.
+          list.overlays().getLast().onShownFor(0, () -> {
+            if (menu.anchor != open) {
+              return;
+            }
+            if (open.shown) {
+              menu.close();
+            } else {
+              open.shown = true;
+            }
+          });
         }
       }
       return list.focusable()

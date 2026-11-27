@@ -1,0 +1,1 @@
+- `NavList`: a row context menu opened with Shift+F10 or the Menu key no longer comes back and stays open when the app moves the selection to another row and back while the row is out of view; it closes again in the next frame.
