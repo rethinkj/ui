@@ -495,17 +495,29 @@ class CompletionTest {
   @Test
   void longDocumentationInASmallWindowShrinksOffTheListSoEntriesStayClickable() throws IOException {
     TextLibraries.assumeLoaded();
-    String paragraph = "Long documentation paragraph describing the columns, constraints and "
-        + "indexes of the highlighted table in detail.\n\n";
+    String paragraph = """
+        Long documentation paragraph describing the columns, constraints and \
+        indexes of the highlighted table in detail.
+
+        """;
     MarkdownDocument longDoc = Markdown.parse(paragraph.repeat(12));
     App<Query> app = app();
     app.state().completion.documentation("doc", entry -> longDoc);
 
-    Script.run(
-        "size 480 320\nframe\npress #query\ntype \"SELECT c\"\nkey Space control\nframe\n"
-            + "advance 0.6\nframe\nawait\nframe\nadvance 0.25\nframe\nsnap s",
-        app,
-        out);
+    Script.run("""
+        size 480 320
+        frame
+        press #query
+        type "SELECT c"
+        key Space control
+        frame
+        advance 0.6
+        frame
+        await
+        frame
+        advance 0.25
+        frame
+        snap s""", app, out);
     String tree = java.nio.file.Files.readString(out.resolve("s.tree.txt"));
     int[] panel = assertOffTheList(tree);
 
