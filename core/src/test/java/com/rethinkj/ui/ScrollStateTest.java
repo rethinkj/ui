@@ -391,7 +391,7 @@ class ScrollStateTest {
     }
 
     Diff model = new Diff();
-    model.left.scrollWith(model.right, List.of());
+    model.left.scrollWith(model.right, List.of(new ScrollState.Anchor(0, 1)));
     El.Block leftComment = El.Block.insert(2).paired("comment");
     El.Block rightComment = El.Block.insert(2).paired("comment");
     El.Block leftShort = El.Block.insert(3).paired("short");
@@ -399,7 +399,7 @@ class ScrollStateTest {
     El.Block leftFar = El.Block.insert(28).paired("far"); // off screen on both
     El.Block rightFar = El.Block.insert(28).paired("far");
     El.Block leftTop = El.Block.insert(0).paired("top");
-    El.Block rightTop = El.Block.insert(0).paired("top"); // a spacer of 0 px until paired
+    El.Block rightTop = El.Block.insert(1).paired("top"); // before the line left's line 0 aligns
 
     App<Diff> app = new App<>(model, m -> {
       El left = El.text(m.text)
@@ -538,15 +538,21 @@ class ScrollStateTest {
     assertEquals(h1, blockChild(left, "block-2").height(), 0.5f);
     assertEquals(h1, blockChild(right, "block-2").height(), 0.5f);
 
-    // A pair before the first line grows from 0 px: both views stay at their start.
+    // A pair before the lines anchored together grows from 0 px: both views keep it in view.
+    model.right.scrollTo(0, right.text().lineHeight()); // its line 1 at the top, left's line 0
+    app.invalidate();
+    app.frame();
+    right = app.tree().children().get(1);
+    double rightY = right.scrollY();
+    assertTrue(rightY > 0, "right follows left's line 0 with its line 1: " + rightY);
     model.top = 40;
     app.invalidate();
     app.frame();
     left = app.tree().children().get(0);
     right = app.tree().children().get(1);
-    assertEquals(40, blockChild(right, "block-0").height(), 0.5f);
+    assertEquals(40, blockChild(right, "block-1").height(), 0.5f);
     assertEquals(0, left.scrollY());
-    assertEquals(0, right.scrollY());
+    assertEquals(rightY, right.scrollY());
 
     // Uncoupling restores each side's own natural height.
     model.left.scrollWith(null, List.of());

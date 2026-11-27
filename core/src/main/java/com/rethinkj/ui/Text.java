@@ -2811,10 +2811,15 @@ public final class Text implements Measure {
     }
     double lh = lineHeight;
     int anchorSlot = lines.slotAt(viewY, lh);
-    boolean anchorInBlock = anchorSlot >= lines.count()
+    // Paired: a view at the top of a slot keeps it there, so that a pair growing from 0 px before
+    // the lines it aligns shows on both sides.
+    boolean atSlot =
+        hasPairedBlocks && lines.hasBlockAt(anchorSlot) && viewY <= lines.slotTop(anchorSlot, lh);
+    boolean anchorInBlock = atSlot
+        || anchorSlot >= lines.count()
         || lines.isHidden(anchorSlot)
         || (lines.hasBlockAt(anchorSlot) && viewY < lines.lineTop(anchorSlot, lh));
-    int anchorBlock = anchorInBlock ? lines.blockAtY(anchorSlot, viewY, lh) : -1;
+    int anchorBlock = anchorInBlock && !atSlot ? lines.blockAtY(anchorSlot, viewY, lh) : -1;
     double anchorTopBefore = anchorBlock >= 0
         ? lines.blockTop(anchorBlock, lh)
         : anchorInBlock ? lines.slotTop(anchorSlot, lh) : lines.lineTop(anchorSlot, lh);
@@ -2822,9 +2827,6 @@ public final class Text implements Measure {
       return Float.NaN;
     }
     viewStale = true;
-    if (viewY <= 0) {
-      return 0; // a view at its start stays there, as its partner does
-    }
     double anchorTopAfter = anchorBlock >= 0
         ? lines.blockTop(anchorBlock, lh)
         : anchorInBlock ? lines.slotTop(anchorSlot, lh) : lines.lineTop(anchorSlot, lh);
@@ -3424,10 +3426,15 @@ public final class Text implements Measure {
   private float layOutWithBlocks(Lines lines) {
     double lh = lineHeight;
     int anchorSlot = lines.slotAt(viewY, lh);
-    boolean anchorInBlock = anchorSlot >= lines.count()
+    // Paired: a view at the top of a slot keeps it there, so that a pair growing from 0 px before
+    // the lines it aligns shows on both sides.
+    boolean atSlot =
+        hasPairedBlocks && lines.hasBlockAt(anchorSlot) && viewY <= lines.slotTop(anchorSlot, lh);
+    boolean anchorInBlock = atSlot
+        || anchorSlot >= lines.count()
         || lines.isHidden(anchorSlot)
         || (lines.hasBlockAt(anchorSlot) && viewY < lines.lineTop(anchorSlot, lh));
-    int anchorBlock = anchorInBlock ? lines.blockAtY(anchorSlot, viewY, lh) : -1;
+    int anchorBlock = anchorInBlock && !atSlot ? lines.blockAtY(anchorSlot, viewY, lh) : -1;
     double anchorTopBefore = anchorBlock >= 0
         ? lines.blockTop(anchorBlock, lh)
         : anchorInBlock ? lines.slotTop(anchorSlot, lh) : lines.lineTop(anchorSlot, lh);
@@ -3522,9 +3529,6 @@ public final class Text implements Measure {
     this.placedBlocks = List.copyOf(blocksPlaced);
     highlightPending = pending;
     marks = marks(placed);
-    if (hasPairedBlocks && viewY <= 0) {
-      return 0; // as syncPairedBlockHeights: both views of a pair stay at their start
-    }
     double anchorTopAfter = anchorBlock >= 0
         ? lines.blockTop(anchorBlock, lh)
         : anchorInBlock ? lines.slotTop(anchorSlot, lh) : lines.lineTop(anchorSlot, lh);
