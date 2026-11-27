@@ -1337,6 +1337,26 @@ final class Lines {
     return -1;
   }
 
+  /**
+   * The active block of slot {@code slot} whose band holds {@code y}, or one of 0 px right at
+   * {@code y}; -1 if none, as when {@code y} is on the slot's line.
+   */
+  int edgeBlockAtY(int slot, double y, double lineHeight) {
+    int si = blockSlotIndex(slot);
+    if (si < 0) {
+      return -1;
+    }
+    double top = slotTop(slot, lineHeight);
+    for (int i = blockSlotStarts[si]; i < blockSlotStarts[si + 1]; i++) {
+      double bottom = top + blockHeights[i];
+      if (y < bottom || y <= top) {
+        return i;
+      }
+      top = bottom;
+    }
+    return -1;
+  }
+
   /** Total height of all visible text rows and active blocks, in physical pixels. */
   double totalHeight(double lineHeight) {
     return totalRows() * lineHeight + totalBlockPixels();

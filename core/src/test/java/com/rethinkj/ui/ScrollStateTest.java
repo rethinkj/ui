@@ -400,6 +400,9 @@ class ScrollStateTest {
     El.Block rightFar = El.Block.insert(28).paired("far");
     El.Block leftTop = El.Block.insert(0).paired("top");
     El.Block rightTop = El.Block.insert(1).paired("top"); // before the line left's line 0 aligns
+    // A filler of a fixed line count comes first, as in a diff.
+    El.Block leftFiller = El.Block.insert(0).lines(1);
+    El.Block rightFiller = El.Block.insert(1).lines(1);
 
     App<Diff> app = new App<>(model, m -> {
       El left = El.text(m.text)
@@ -414,7 +417,7 @@ class ScrollStateTest {
           .fieldState(m.leftField)
           .scrollState(m.left)
           .blocks(
-              List.of(leftTop, leftComment, leftShort, leftFar),
+              List.of(leftFiller, leftTop, leftComment, leftShort, leftFar),
               b -> {
                 if ("comment".equals(b.pair())) {
                   return El.col()
@@ -451,7 +454,7 @@ class ScrollStateTest {
           .fieldState(m.rightField)
           .scrollState(m.right)
           .blocks(
-              List.of(rightTop, rightComment, rightShort, rightFar),
+              List.of(rightFiller, rightTop, rightComment, rightShort, rightFar),
               b -> "comment".equals(b.pair()) ? el().h(m.rightHeight).fill(0x20888888) : el(),
               null);
       return El.row().wFull().hFull().padding(10).gap(10).children(left, right);
@@ -482,10 +485,10 @@ class ScrollStateTest {
     // a pair unmeasured on both sides uses the same single-line estimate on both sides.
     Lines leftLines = left.editor().lineIndex();
     Lines rightLines = right.editor().lineIndex();
-    assertEquals(8, rightLines.blockHeight(3), "unmeasured partner takes measured 8px height");
+    assertEquals(8, rightLines.blockHeight(4), "unmeasured partner takes measured 8px height");
     assertEquals(
-        leftLines.blockHeight(3),
-        rightLines.blockHeight(2),
+        leftLines.blockHeight(4),
+        rightLines.blockHeight(3),
         "unmeasured pair uses the same estimate on both sides");
 
     // Focus the reply field inside left's block and add a second line: partner grows in the same
@@ -538,21 +541,22 @@ class ScrollStateTest {
     assertEquals(h1, blockChild(left, "block-2").height(), 0.5f);
     assertEquals(h1, blockChild(right, "block-2").height(), 0.5f);
 
-    // A pair before the lines anchored together grows from 0 px: both views keep it in view.
-    model.right.scrollTo(0, right.text().lineHeight()); // its line 1 at the top, left's line 0
+    // A pair right after the fillers before the lines anchored together grows from 0 px: both
+    // views keep their offsets, so the pair grows into view on both sides.
+    double lh = right.text().lineHeight();
+    model.right.scrollTo(0, 2 * lh); // its line 1 at the top; left follows with its line 0
     app.invalidate();
     app.frame();
-    right = app.tree().children().get(1);
-    double rightY = right.scrollY();
-    assertTrue(rightY > 0, "right follows left's line 0 with its line 1: " + rightY);
+    assertEquals(lh, app.tree().children().get(0).scrollY());
+    assertEquals(2 * lh, app.tree().children().get(1).scrollY());
     model.top = 40;
     app.invalidate();
     app.frame();
     left = app.tree().children().get(0);
     right = app.tree().children().get(1);
-    assertEquals(40, blockChild(right, "block-1").height(), 0.5f);
-    assertEquals(0, left.scrollY());
-    assertEquals(rightY, right.scrollY());
+    assertEquals(40, blockChild(right, "block-1-1").height(), 0.5f);
+    assertEquals(lh, left.scrollY());
+    assertEquals(2 * lh, right.scrollY());
 
     // Uncoupling restores each side's own natural height.
     model.left.scrollWith(null, List.of());
