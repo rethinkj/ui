@@ -1,0 +1,25 @@
+el 0,0 520x106
+  text #excerpt role=textbox label="Orders.java" "if (order.attempts() >= maxAttempts) {\n  return Result.failed(order);\n}\nreturn retry(order);" 12,12 496x82 readonly lines 1-4/4
+    el #rail 13,13 64x80
+    el #gutter 13,17 63x64
+      el #line-0 13,17 63x16
+        el 19,25 12x0
+        text "42" 35,17 15x16
+        el 54,25 2x0
+        el #fold-line-0 role=button label="Fold" 60,19 12x12
+          text label="chevron_down" "\u{F2A1}" 60,19 12x12
+      el #line-1 13,33 63x16
+        el 19,41 12x0
+        text "43" 35,33 15x16
+        el 54,41 2x0
+        el 60,41 12x0
+      el #line-2 13,49 63x16
+        el 19,57 12x0
+        text "44" 35,49 15x16
+        el 54,57 2x0
+        el 60,57 12x0
+      el #line-3 13,65 63x16
+        el 19,73 12x0
+        text "45" 35,65 15x16
+        el 54,73 2x0
+        el 60,73 12x0
