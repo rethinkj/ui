@@ -219,10 +219,9 @@ final class SystemFonts {
    */
   static List<Face> candidates(
       List<Face> all, String family, int weight, boolean italic, String style) {
-    String target = family.toLowerCase(Locale.ROOT);
     List<Face> matched = new ArrayList<>();
     for (Face face : all) {
-      if (face.family().toLowerCase(Locale.ROOT).equals(target)) {
+      if (face.family().equalsIgnoreCase(family)) { // as families() groups them
         matched.add(face);
       }
     }
