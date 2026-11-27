@@ -2822,6 +2822,9 @@ public final class Text implements Measure {
       return Float.NaN;
     }
     viewStale = true;
+    if (viewY <= 0) {
+      return 0; // a view at its start stays there, as its partner does
+    }
     double anchorTopAfter = anchorBlock >= 0
         ? lines.blockTop(anchorBlock, lh)
         : anchorInBlock ? lines.slotTop(anchorSlot, lh) : lines.lineTop(anchorSlot, lh);

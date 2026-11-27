@@ -397,6 +397,8 @@ class ScrollStateTest {
     El.Block rightShort = El.Block.insert(30).paired("short"); // off screen on right
     El.Block leftFar = El.Block.insert(28).paired("far"); // off screen on both
     El.Block rightFar = El.Block.insert(28).paired("far");
+    El.Block leftTop = El.Block.insert(0).paired("top");
+    El.Block rightTop = El.Block.insert(0).paired("top"); // a spacer of 0 px until paired
 
     App<Diff> app = new App<>(model, m -> {
       El left = El.text(m.text)
@@ -411,7 +413,7 @@ class ScrollStateTest {
           .fieldState(m.leftField)
           .scrollState(m.left)
           .blocks(
-              List.of(leftComment, leftShort, leftFar),
+              List.of(leftTop, leftComment, leftShort, leftFar),
               b -> {
                 if ("comment".equals(b.pair())) {
                   return El.col()
@@ -430,6 +432,9 @@ class ScrollStateTest {
                 if ("short".equals(b.pair())) {
                   return el().h(8);
                 }
+                if ("top".equals(b.pair())) {
+                  return el().h(40);
+                }
                 return el().h(64);
               },
               null);
@@ -445,7 +450,7 @@ class ScrollStateTest {
           .fieldState(m.rightField)
           .scrollState(m.right)
           .blocks(
-              List.of(rightComment, rightShort, rightFar),
+              List.of(rightTop, rightComment, rightShort, rightFar),
               b -> "comment".equals(b.pair()) ? el().h(m.rightHeight).fill(0x20888888) : el(),
               null);
       return El.row().wFull().hFull().padding(10).gap(10).children(left, right);
@@ -462,6 +467,8 @@ class ScrollStateTest {
     assertTrue(h1 > 10, "comment block measured its height: " + h1);
     assertEquals(h1, rightBlock.height(), 0.5f, "spacer matches comment height on initial frame");
     assertEquals(
+        0, right.scrollY(), "a spacer growing before the first line keeps the view at the start");
+    assertEquals(
         left.editor().lineIndex().lineTop(2, left.text().lineHeight()),
         right.editor().lineIndex().lineTop(2, right.text().lineHeight()),
         0.5,
@@ -476,10 +483,10 @@ class ScrollStateTest {
     // a pair unmeasured on both sides uses the same single-line estimate on both sides.
     Lines leftLines = left.editor().lineIndex();
     Lines rightLines = right.editor().lineIndex();
-    assertEquals(8, rightLines.blockHeight(2), "unmeasured partner takes measured 8px height");
+    assertEquals(8, rightLines.blockHeight(3), "unmeasured partner takes measured 8px height");
     assertEquals(
-        leftLines.blockHeight(2),
-        rightLines.blockHeight(1),
+        leftLines.blockHeight(3),
+        rightLines.blockHeight(2),
         "unmeasured pair uses the same estimate on both sides");
 
     // Focus the reply field inside left's block and add a second line: partner grows in the same

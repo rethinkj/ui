@@ -2461,7 +2461,7 @@ public final class El {
           blockW = Math.max(contentWidth, extent[0]);
         }
         boolean changed = !exact && part.height != oldNatural;
-        part.place(bx, by, blockW, exact || !changed ? bh : part.height);
+        part.place(bx, by, blockW, bh); // the band Text keeps; placeBlocks places a changed one
         if (changed) {
           text.restale(); // the rows below make room for it, measured from the block cache
           return true;
