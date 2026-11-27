@@ -387,6 +387,7 @@ class ScrollStateTest {
       final String text = Coupled.numberedLines(35);
       String reply = "one";
       float rightHeight;
+      float top;
     }
 
     Diff model = new Diff();
@@ -433,7 +434,7 @@ class ScrollStateTest {
                   return el().h(8);
                 }
                 if ("top".equals(b.pair())) {
-                  return el().h(40);
+                  return el().h(m.top);
                 }
                 return el().h(64);
               },
@@ -466,8 +467,6 @@ class ScrollStateTest {
     float h1 = leftBlock.height();
     assertTrue(h1 > 10, "comment block measured its height: " + h1);
     assertEquals(h1, rightBlock.height(), 0.5f, "spacer matches comment height on initial frame");
-    assertEquals(
-        0, right.scrollY(), "a spacer growing before the first line keeps the view at the start");
     assertEquals(
         left.editor().lineIndex().lineTop(2, left.text().lineHeight()),
         right.editor().lineIndex().lineTop(2, right.text().lineHeight()),
@@ -538,6 +537,16 @@ class ScrollStateTest {
     right = app.tree().children().get(1);
     assertEquals(h1, blockChild(left, "block-2").height(), 0.5f);
     assertEquals(h1, blockChild(right, "block-2").height(), 0.5f);
+
+    // A pair before the first line grows from 0 px: both views stay at their start.
+    model.top = 40;
+    app.invalidate();
+    app.frame();
+    left = app.tree().children().get(0);
+    right = app.tree().children().get(1);
+    assertEquals(40, blockChild(right, "block-0").height(), 0.5f);
+    assertEquals(0, left.scrollY());
+    assertEquals(0, right.scrollY());
 
     // Uncoupling restores each side's own natural height.
     model.left.scrollWith(null, List.of());

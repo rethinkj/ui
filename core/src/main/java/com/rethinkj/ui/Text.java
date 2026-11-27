@@ -3522,6 +3522,9 @@ public final class Text implements Measure {
     this.placedBlocks = List.copyOf(blocksPlaced);
     highlightPending = pending;
     marks = marks(placed);
+    if (hasPairedBlocks && viewY <= 0) {
+      return 0; // as syncPairedBlockHeights: both views of a pair stay at their start
+    }
     double anchorTopAfter = anchorBlock >= 0
         ? lines.blockTop(anchorBlock, lh)
         : anchorInBlock ? lines.slotTop(anchorSlot, lh) : lines.lineTop(anchorSlot, lh);
