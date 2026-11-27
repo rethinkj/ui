@@ -1,0 +1,1 @@
+- A long completion documentation panel in a small window now stays off the completion list instead of covering its entries: an overlay with `El.avoidAnchor()` that scrolls and fits nowhere beside, below or above its anchor is made narrower or shorter to fit the larger room off it, and is not shown where even that leaves too little room.

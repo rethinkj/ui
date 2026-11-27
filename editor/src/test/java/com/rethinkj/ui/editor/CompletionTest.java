@@ -16,6 +16,7 @@ import com.rethinkj.ui.Script;
 import com.rethinkj.ui.TextEdit;
 import com.rethinkj.ui.kit.Completion;
 import com.rethinkj.ui.kit.Markdown;
+import com.rethinkj.ui.kit.MarkdownDocument;
 import com.rethinkj.ui.kit.Symbol;
 import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.text.TextRendering;
@@ -118,6 +119,27 @@ class CompletionTest {
       Integer.parseInt(m.group(3)),
       Integer.parseInt(m.group(4))
     };
+  }
+
+  /** Asserts that the documentation panel lies off the completion list; returns its box. */
+  private static int[] assertOffTheList(String tree) {
+    int[] list = box(tree, "completions");
+    int[] panel = box(tree, "documentation");
+    assertTrue(
+        panel[0] >= list[0] + list[2]
+            || panel[0] + panel[2] <= list[0]
+            || panel[1] >= list[1] + list[3]
+            || panel[1] + panel[3] <= list[1],
+        tree);
+    return panel;
+  }
+
+  /** The scroll offset of the documentation panel in a tree dump. */
+  private static String scroll(String tree) {
+    var m =
+        java.util.regex.Pattern.compile("el #documentation .*? scroll (\\S+)").matcher(tree);
+    assertTrue(m.find(), tree);
+    return m.group(1);
   }
 
   private String run(App<Query> app, String script) throws IOException {
@@ -468,6 +490,54 @@ class CompletionTest {
     tree = java.nio.file.Files.readString(out.resolve("s.tree.txt"));
     assertTrue(tree.contains("el #completions role=listbox"), tree);
     assertFalse(tree.contains("#documentation"), "null shows nothing: " + tree);
+  }
+
+  @Test
+  void longDocumentationInASmallWindowShrinksOffTheListSoEntriesStayClickable() throws IOException {
+    TextLibraries.assumeLoaded();
+    String paragraph = "Long documentation paragraph describing the columns, constraints and "
+        + "indexes of the highlighted table in detail.\n\n";
+    MarkdownDocument longDoc = Markdown.parse(paragraph.repeat(12));
+    App<Query> app = app();
+    app.state().completion.documentation("doc", entry -> longDoc);
+
+    Script.run(
+        "size 480 320\nframe\npress #query\ntype \"SELECT c\"\nkey Space control\nframe\n"
+            + "advance 0.6\nframe\nawait\nframe\nadvance 0.25\nframe\nsnap s",
+        app,
+        out);
+    String tree = java.nio.file.Files.readString(out.resolve("s.tree.txt"));
+    int[] panel = assertOffTheList(tree);
+
+    // Where the list leaves too little room on every side, it is not shown rather than over it.
+    Script.run("size 204 100\nframe\nsnap s", app, out);
+    tree = java.nio.file.Files.readString(out.resolve("s.tree.txt"));
+    assertTrue(tree.contains("el #completions") && !tree.contains("el #documentation"), tree);
+    Script.run("size 480 320\nframe", app, out);
+    // Scrolled to its end, it stays there when a press on it rebuilds the view.
+    Script.run("wheel #documentation 0 5000\nframe\nsnap s", app, out);
+    String scrolled = scroll(java.nio.file.Files.readString(out.resolve("s.tree.txt")));
+    Script.run("press #documentation\nframe\nsnap s", app, out);
+    assertEquals(scrolled, scroll(java.nio.file.Files.readString(out.resolve("s.tree.txt"))));
+
+    // Leaving as the highlight moves, it fades out where it was, not over the entries.
+    Script.run("key ArrowDown\nframe\nadvance 0.05\nframe\nsnap s", app, out);
+    tree = java.nio.file.Files.readString(out.resolve("s.tree.txt"));
+    assertTrue(tree.contains("exiting"), tree);
+    assertOffTheList(tree);
+
+    // In a larger window, the next entry's panel has its full size beside the list.
+    Script.run(
+        "size 800 500\nadvance 0.6\nframe\nawait\nframe\nadvance 0.25\nframe\nsnap s", app, out);
+    tree = java.nio.file.Files.readString(out.resolve("s.tree.txt"));
+    int[] grownList = box(tree, "completions");
+    int[] grownPanel = box(tree, "documentation");
+    assertTrue(grownPanel[0] >= grownList[0] + grownList[2], tree);
+    assertTrue(grownPanel[2] > panel[2] || grownPanel[3] > panel[3], tree);
+
+    // Back in the small window, pressing an entry still hits the list and inserts it.
+    Script.run("size 480 320\nframe\npress #option-1\nframe", app, out);
+    assertEquals("SELECT customer_id", app.state().sql);
   }
 
   @Test

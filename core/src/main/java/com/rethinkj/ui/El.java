@@ -124,6 +124,8 @@ public final class El {
   // small, because rows are placed near the offset.
   private double scrollX;
   private double scrollY;
+  private double askedX; // the offsets the last setScroll asked for, before it clamped them
+  private double askedY;
   private double maxScrollX;
   private double maxScrollY;
   // How far the offsets reach past the content, for bars over its end and a selection scope's
@@ -513,6 +515,8 @@ public final class El {
     El anchor; // as the last placement found it, in window coordinates
     float anchorX;
     float anchorY;
+    float fitWidth = Float.NaN; // the size the last fit off its anchor gave it, which it keeps
+    float fitHeight = Float.NaN; // while it leaves, as its content is laid out for that size
   }
 
   /** The state of a {@link #rows virtual list}: its rows, and the index of its first child. */
@@ -4538,7 +4542,10 @@ public final class El {
   /**
    * Keeps this overlay off its anchor: where {@link #side} would place it over the anchor, as
    * when neither side has room for it, it goes across, below or above the anchor for one beside
-   * it, or beside it for one below or above, if that has room. A tooltip does that by itself.
+   * it, or beside it for one below or above, if that has room. One that {@link #scroll scrolls}
+   * and fits nowhere off the anchor is made narrower or shorter to fit the larger room beside or
+   * across from it, and not shown where even that leaves too little room. A tooltip does that by
+   * itself.
    */
   public El avoidAnchor() {
     layer().avoidsAnchor = true;
@@ -5769,6 +5776,19 @@ public final class El {
   }
 
   /**
+   * Sets the offsets of the scroll areas from this one again to what they last asked for, clamped
+   * to what they measure now: for an overlay laid out anew after its offsets were restored.
+   */
+  void refitScrolls() {
+    if (scrollArea) {
+      setScroll(askedX, askedY);
+    }
+    for (El child : children) {
+      child.refitScrolls();
+    }
+  }
+
+  /**
    * How much of the right edge of this scroll area the strips of vertical bars cover, which its
    * content can scroll past; see {@link #measureScrolls}.
    */
@@ -5831,6 +5851,8 @@ public final class El {
    * after layout, and applying a coupled offset itself.
    */
   boolean setScroll(double x, double y) {
+    askedX = x;
+    askedY = y;
     double newX = Math.clamp(x, 0, maxScrollX);
     double newY = Math.clamp(y, minScrollY(), maxScrollY);
     boolean changed = newX != scrollX || newY != scrollY;

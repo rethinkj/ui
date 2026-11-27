@@ -142,7 +142,9 @@ final class Overlays {
             && (el.editor() == null || el.editor().rangeBox(l.rangeFrom, l.rangeTo).length == 0)) {
           continue; // range is hidden or scrolled out of view
         }
-        place(overlay, el, left, top, width, height, within, dialog);
+        if (!place(overlay, el, left, top, width, height, within, dialog)) {
+          continue;
+        }
         if (inert || el.isInert()) {
           overlay.inert();
         }
@@ -225,8 +227,10 @@ final class Overlays {
    * asks the same side, so that submenus go on the way the first that flipped at the window's edge
    * went. Along the side it keeps inside {@code dialog}, the nearest modal overlay it is in, as far
    * as it can.
+   *
+   * @return false for one that avoids its anchor, scrolls and fits nowhere off it: not shown
    */
-  private static void place(
+  private static boolean place(
       El overlay,
       El anchor,
       float x,
@@ -240,8 +244,9 @@ final class Overlays {
     l.anchor = anchor;
     l.anchorX = x;
     l.anchorY = y;
-    float w = overlay.laidOutWidth(); // placing it anew ends what its cycle shows
-    float h = overlay.laidOutHeight();
+    boolean fitted = overlay.isExiting() && !Float.isNaN(l.fitWidth);
+    float w = fitted ? l.fitWidth : overlay.laidOutWidth(); // placing it anew ends its cycle
+    float h = fitted ? l.fitHeight : overlay.laidOutHeight();
     float ml = overlay.margin(Side.LEFT);
     float mr = overlay.margin(Side.RIGHT);
     float mt = overlay.margin(Side.TOP);
@@ -316,11 +321,56 @@ final class Overlays {
         if (!overlaps(acrossLeft + ml, acrossTop + mt, w, h, ax, ay, aw, ah)) {
           left = acrossLeft;
           top = acrossTop;
+        } else if (l.gap >= 0 && overlay.style().overflowY == Style.Overflow.SCROLL) {
+          // One that scrolls is made smaller, for this placement only, to the larger room off the
+          // anchor: narrower beside it, or shorter across from it; to the other where its
+          // padding keeps it larger than that room.
+          float roomX = Math.clamp(
+              (float) Math.floor(Math.max(width - ax - aw, ax) - l.gap - ml - mr),
+              0,
+              Math.max(width - ml - mr, 0));
+          float roomY = Math.clamp(
+              (float) Math.floor(Math.max(height - ay - ah, ay) - l.gap - mt - mb),
+              0,
+              Math.max(height - mt - mb, 0));
+          boolean first = Math.min(w, roomX) * Math.min(h, height - mt - mb)
+              >= Math.min(w, width - ml - mr) * Math.min(h, roomY);
+          Style s = overlay.style();
+          Len maxWidth = s.maxWidth;
+          Len maxHeight = s.maxHeight;
+          for (boolean narrower : new boolean[] {first, !first}) {
+            if (narrower) {
+              s.maxWidth = limit(maxWidth, roomX);
+            } else {
+              s.maxHeight = limit(maxHeight, roomY);
+            }
+            Flex.layout(overlay, width, height);
+            s.maxWidth = maxWidth;
+            s.maxHeight = maxHeight;
+            El.measureScrolls(overlay);
+            overlay.refitScrolls(); // Animator restored them against the larger layout
+            w = l.fitWidth = overlay.laidOutWidth();
+            h = l.fitHeight = overlay.laidOutHeight();
+            if (narrower) {
+              left = beside(down || after != turn, ax, aw, w + ml + mr, l.gap, width);
+              top = along(l.align, ay, ah, h + mt + mb, height, edge, dialogTop, dialogBottom);
+            } else {
+              top = beside(!down || after != turn, ay, ah, h + mt + mb, l.gap, height);
+              left = along(l.align, ax, aw, w + ml + mr, width, edge, dialogLeft, dialogRight);
+            }
+            if (!overlaps(left + ml, top + mt, w, h, ax, ay, aw, ah)) {
+              break;
+            }
+          }
+          if (overlaps(left + ml, top + mt, w, h, ax, ay, aw, ah)) {
+            return false; // over the anchor, it would take the presses meant for it
+          }
         }
       }
     }
     // On whole pixels, as layout places everything else.
     overlay.place(Math.round(left + ml), Math.round(top + mt), w, h);
+    return true;
   }
 
   /**
