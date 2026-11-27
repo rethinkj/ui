@@ -193,6 +193,10 @@ Other examples: `Showcase`, `DataBrowser`, `Documents`, `Manual`, `Settings`, `C
 
 Full documentation is at **[ui.rethinkj.com](https://ui.rethinkj.com)** (also available as Markdown for AI agents via [llms.txt](https://ui.rethinkj.com/llms.txt) and [llms-full.txt](https://ui.rethinkj.com/llms-full.txt)).
 
+## Contributing
+
+Pull requests are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md). Report security problems as described in [SECURITY.md](SECURITY.md).
+
 ## License
 
 MIT — see [LICENSE](LICENSE). Bundled fonts, icons, and native libraries include their own licenses in their modules.
