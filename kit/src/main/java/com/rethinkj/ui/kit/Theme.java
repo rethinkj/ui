@@ -891,6 +891,8 @@ public record Theme(
    *     the accent's edge; it stays blue with another accent
    * @param guide the thin lines at each step of indentation in the white space that starts a line
    * @param property the names of an object's members, such as the keys of JSON
+   * @param note translucent, behind whole lines of a {@code CodeEditor.Highlight.Tone.NOTE}
+   *     highlight, distinct from occurrences, find matches and diff tints
    */
   public record Code(
       int keyword,
@@ -905,7 +907,8 @@ public record Theme(
       int occurrence,
       int block,
       int guide,
-      int property) {
+      int property,
+      int note) {
 
     /** For dark surfaces. */
     public static final Code DARK = new Code(
@@ -921,7 +924,8 @@ public record Theme(
         alpha(WHITE, 0.03f),
         alpha(BLUE_496, 0.05f),
         alpha(WHITE, 0.02f),
-        BLUE_782);
+        BLUE_782,
+        alpha(VIOLET_478, 0.10f));
 
     /** For light surfaces. */
     public static final Code LIGHT = new Code(
@@ -937,7 +941,43 @@ public record Theme(
         alpha(BLACK, 0.11f),
         alpha(BLUE_447, 0.22f),
         alpha(BLACK, 0.25f),
-        BLUE_366);
+        BLUE_366,
+        alpha(VIOLET_782, 0.35f));
+
+    /**
+     * The colors of code with the note tint of {@link #DARK} where the caret's line is light on
+     * dark, else of {@link #LIGHT}.
+     */
+    public Code(
+        int keyword,
+        int string,
+        int number,
+        int comment,
+        int operator,
+        int line,
+        int bracket,
+        int match,
+        int current,
+        int occurrence,
+        int block,
+        int guide,
+        int property) {
+      this(
+          keyword,
+          string,
+          number,
+          comment,
+          operator,
+          line,
+          bracket,
+          match,
+          current,
+          occurrence,
+          block,
+          guide,
+          property,
+          alpha(line, 1) == WHITE ? DARK.note : LIGHT.note);
+    }
 
     /**
      * The colors of code with members' names in the color of strings, which they are in JSON, so

@@ -5,6 +5,7 @@ import static com.rethinkj.ui.editor.CodeEditor.codeEditor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
@@ -13,6 +14,7 @@ import com.rethinkj.ui.Script;
 import com.rethinkj.ui.TextEdit;
 import com.rethinkj.ui.kit.Icon;
 import com.rethinkj.ui.kit.Symbol;
+import com.rethinkj.ui.kit.Theme;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -640,6 +642,87 @@ class CodeEditorMarkupTest {
     String undone = Files.readString(out.resolve("undone.tree.txt"));
     assertTrue(cell(undone, 0).contains("Top marker"), undone);
     assertTrue(cell(undone, 1).contains("Bottom marker"), undone);
+  }
+
+  @Test
+  void noteHighlightPaintsWholeLinesAndGutterStripeKeepsWidthAndMovesWithEdits()
+      throws IOException {
+    TextLibraries.assumeLoaded();
+    assertEquals(CodeEditor.Highlight.Tone.OCCURRENCE, new CodeEditor.Highlight(0, 4).tone());
+    assertThrows(NullPointerException.class, () -> new CodeEditor.Highlight(0, 4, null));
+
+    String text = """
+        SELECT o.id, o.total
+        FROM orders o
+        WHERE o.status = 'paid'
+          AND o.total > 100
+        ORDER BY o.total DESC;""";
+    Doc doc = new Doc(text);
+    Theme theme = Theme.DARK;
+    App<Doc> app = new App<>(
+        doc,
+        state -> col()
+            .wFull()
+            .hFull()
+            .padding(12)
+            .fill(theme.surface().window())
+            .child(
+                codeEditor(state.app, state.text, state.editor, null, value -> state.text = value)
+                    .key("code")
+                    .lines(7)
+                    .wFull()));
+    doc.app = app;
+    app.provide(Theme.CURRENT, state -> theme);
+    app.textRendering(TextRendering.LINUX);
+
+    // Measure the gutter width without any NOTE highlight.
+    Script.run("size 480 180 scale 2\nframe\nsnap plain", app, out);
+    String plain = Files.readString(out.resolve("plain.tree.txt"));
+    String plainGutterWidth = gutterWidth(plain);
+
+    // Add an occurrence highlight on line 1 and a multi-line NOTE highlight across lines 2 and 3.
+    int ordersFrom = text.indexOf("orders");
+    int noteFrom = text.indexOf("WHERE");
+    int noteTo = text.indexOf("100") + "100".length();
+    doc.editor.markup(
+        "references",
+        text,
+        List.of(new CodeEditor.Highlight(ordersFrom, ordersFrom + "orders".length())));
+    doc.editor.markup(
+        "review",
+        text,
+        List.of(new CodeEditor.Highlight(noteFrom, noteTo, CodeEditor.Highlight.Tone.NOTE)));
+    app.invalidate();
+
+    List<Path> files = Script.run("size 480 180 scale 2\nframe\nsnap view", app, out);
+    Golden.assertSnaps("note-tone-dark-2x-", files, "view");
+    String view = Files.readString(out.resolve("view.tree.txt"));
+    assertEquals(plainGutterWidth, gutterWidth(view), "gutter width stays unchanged with notes");
+    assertNull(elementSize(view, 0, "note"), view);
+    assertNull(elementSize(view, 1, "note"), view);
+    assertEquals("2x16", elementSize(view, 2, "note"), view);
+    assertEquals("2x16", elementSize(view, 3, "note"), view);
+    assertNull(elementSize(view, 4, "note"), view);
+
+    // Inserting a line above shifts the NOTE highlight down while keeping its tone.
+    doc.text = "-- review\n" + text;
+    app.invalidate();
+    Script.run("size 480 180 scale 2\nframe\nsnap shifted", app, out);
+    String shifted = Files.readString(out.resolve("shifted.tree.txt"));
+    assertNull(elementSize(shifted, 2, "note"), shifted);
+    assertEquals("2x16", elementSize(shifted, 3, "note"), shifted);
+    assertEquals("2x16", elementSize(shifted, 4, "note"), shifted);
+    assertNull(elementSize(shifted, 5, "note"), shifted);
+  }
+
+  /** The width of {@code #gutter} from its tree line. */
+  private static String gutterWidth(String tree) {
+    String line = tree.lines()
+        .filter(l -> l.contains("el #gutter "))
+        .findFirst()
+        .orElseThrow(() -> new AssertionError("Missing #gutter:\n" + tree));
+    String size = line.substring(line.lastIndexOf(' ') + 1);
+    return size.substring(0, size.indexOf('x'));
   }
 
   /** The tree dump of the gutter cell of line {@code index}. */

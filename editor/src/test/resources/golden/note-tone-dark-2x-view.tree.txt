@@ -1,0 +1,31 @@
+el 0,0 480x180
+  text #code role=textbox "SELECT o.id, o.total\nFROM orders o\nWHERE o.status = 'paid'\n  AND o.total > 100\nORDER BY o.total DESC;" 12,12 456x130 lines 1-5/5
+    el #rail 13,13 56x128
+    el #gutter 13,17 55x112
+      el #line-0 13,17 55x16
+        el 19,25 12x0
+        text "1" 35,17 7x16
+        el 46,25 2x0
+        el 52,25 12x0
+      el #line-1 13,33 55x16
+        el 19,41 12x0
+        text "2" 35,33 7x16
+        el 46,41 2x0
+        el 52,41 12x0
+      el #line-2 13,49 55x16
+        el 19,57 12x0
+        text "3" 35,49 7x16
+        el 46,57 2x0
+        el 52,57 12x0
+        el #note 66,49 2x16
+      el #line-3 13,65 55x16
+        el 19,73 12x0
+        text "4" 35,65 7x16
+        el 46,73 2x0
+        el 52,73 12x0
+        el #note 66,65 2x16
+      el #line-4 13,81 55x16
+        el 19,89 12x0
+        text "5" 35,81 7x16
+        el 46,89 2x0
+        el 52,89 12x0

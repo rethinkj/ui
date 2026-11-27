@@ -1,0 +1,1 @@
+- `CodeEditor.Highlight` now accepts a `Highlight.Tone` (`OCCURRENCE` by default, or `NOTE`): `Tone.NOTE` paints the new `Theme.Code.note()` violet tint across every whole line the range touches together with a thin stripe at the code edge of the gutter, and keeps its tone across edits.
