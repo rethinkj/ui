@@ -1,0 +1,1 @@
+- `CodeEditor.State.lineAction(symbol, label, onPress)` adds a hover icon button in the gutter's icon lane to the left of each line number and an item in the editor's context menu, reporting an inclusive 0-based `CodeEditor.Lines(first, last)` range for one line, a multi-line selection, or a range dragged across the gutter (Escape cancels).

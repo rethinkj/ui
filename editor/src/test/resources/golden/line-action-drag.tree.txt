@@ -1,0 +1,46 @@
+el 0,0 520x180
+  text #code role=textbox "SELECT id, total\nFROM orders\nJOIN customers ON customers.id = orders.customer_id\nWHERE status = 'paid'\nORDER BY total DESC;" 12,12 496x114 lines 1-5/5 squiggle 0-6 focused caret 0 (1:1)
+    el #rail 13,13 88x112
+    el #gutter 13,17 87x96
+      el #line-0 13,17 87x16
+        el #marker role=img label="Error" 19,19 12x12 error="Bad syntax"
+          text label="dismiss" "\u{F367}" 19,19 12x12
+        el #marker-1 role=img label="Run" 35,19 12x12
+          text label="play" "\u{E98F}" 35,19 12x12
+        el #action-line-0 role=button label="Add comment" 51,19 12x12
+          text label="add" "\u{F107}" 51,19 12x12
+        text "1" 67,17 7x16
+        el 78,25 2x0
+        el 84,25 12x0
+      el #line-1 13,33 87x16
+        el 19,41 12x0
+        el #action-line-1 role=button label="Add comment" 35,35 12x12 hovered
+          text label="add" "\u{F107}" 35,35 12x12
+        el 51,41 12x0
+        text "2" 67,33 7x16
+        el 78,41 2x0
+        el 84,41 12x0
+      el #line-2 13,49 87x16
+        el 19,57 12x0
+        el #action-line-2 role=button label="Add comment" 35,51 12x12
+          text label="add" "\u{F107}" 35,51 12x12
+        el 51,57 12x0
+        text "3" 67,49 7x16
+        el 78,57 2x0
+        el 84,57 12x0
+      el #line-3 13,65 87x16
+        el 19,73 12x0
+        el #action-line-3 role=button label="Add comment" 35,67 12x12
+          text label="add" "\u{F107}" 35,67 12x12
+        el 51,73 12x0
+        text "4" 67,65 7x16
+        el 78,73 2x0
+        el 84,73 12x0
+      el #line-4 13,81 87x16
+        el 19,89 12x0
+        el #action-line-4 role=button label="Add comment" 35,83 12x12
+          text label="add" "\u{F107}" 35,83 12x12
+        el 51,89 12x0
+        text "5" 67,81 7x16
+        el 78,89 2x0
+        el 84,89 12x0

@@ -1,0 +1,8 @@
+# Gutter line action: hovering a line shows its action button left of the line number.
+size 520 122 scale 2
+frame
+move #line-1
+frame
+move #action-line-1
+frame
+snap view

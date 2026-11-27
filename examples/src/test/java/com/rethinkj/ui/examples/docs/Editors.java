@@ -174,6 +174,15 @@ final class Editors {
       ORDER BY o.total DESC
       LIMIT 50;""";
   final CodeEditor.State gutterEditor = new CodeEditor.State();
+  // docs:start code-editor-line-action
+  CodeEditor.Lines commentedLines;
+  final CodeEditor.State lineActionEditor =
+      new CodeEditor.State().lineAction(Symbol.ADD, "Add comment", this::commentOnLines);
+
+  void commentOnLines(CodeEditor.Lines lines) {
+    commentedLines = lines;
+  }
+  // docs:end code-editor-line-action
 
   // docs:start code-editor-gutter
   /** Places an error, two markers on line 1, and VCS changes in the gutter. */
@@ -747,6 +756,16 @@ final class Editors {
         .key("gutterQuery")
         .label("Query")
         .lines(7)
+        .wFull();
+    return Frame.of(editor);
+  }
+
+  static El lineAction(Editors state) {
+    El editor = CodeEditor.codeEditor(
+            state.app, state.gutterSql, state.lineActionEditor, Sql.of(), state::gutterSql)
+        .key("lineActionQuery")
+        .label("Query")
+        .lines(5)
         .wFull();
     return Frame.of(editor);
   }
