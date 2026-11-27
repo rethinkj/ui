@@ -94,11 +94,14 @@ class TabsTest {
     assertTrue(app.tree().dump().contains("text \"products.sql\"")); // in the content too
     assertEquals(
         T.accent().edge(),
-        find(app, "tab-3").children().getFirst().fill(),
-        "the active tab has the line at its bottom");
-    assertEquals(0, find(app, "tab-3").fill(), "and shows the bar");
-    assertEquals(0, find(app, "tab-0").fill(), "as the others");
-    assertNotNull(find(app, "tab-0").children().getFirst().text(), "which have no line");
+        find(app, "indicator").fill(),
+        "the active tab has the accent mark at its top");
+    assertEquals(T.surface().panel(), find(app, "tab-3").fill(), "and joins the panel");
+    assertEquals(T.border().divider(), find(app, "tab-3").borderColor());
+    assertEquals(0, find(app, "tab-0").fill(), "inactive tabs sit on the bar");
+    assertTrue(
+        find(app, "tab-3").children().contains(find(app, "indicator")),
+        "the indicator belongs to the active tab");
     assertTrue(dumpLine(app, "tab-3").endsWith(" selected"));
     assertFalse(dumpLine(app, "tab-0").contains(" selected"));
 
@@ -111,14 +114,26 @@ class TabsTest {
     App<Workbench> app = start();
     Workbench w = app.state();
     assertEquals(1, find(app, "close-0").opacity(), "on the active tab");
-    assertEquals(0, find(app, "close-1").opacity());
+    assertEquals(1, find(app, "close-0").children().getFirst().opacity());
+    assertEquals(
+        T.text().muted(), find(app, "close-0").children().getFirst().text().color());
+    assertEquals(0, find(app, "close-3").opacity(), "hidden on an inactive unmodified tab");
     assertNull(find(app, "close-2"), "Console cannot be closed");
 
     run(app, "move #tab-1\nframe");
-    assertEquals(1, find(app, "close-1").opacity(), "under the pointer");
-    assertEquals(T.surface().hover(), find(app, "tab-1").fill());
+    assertEquals(T.surface().hover(), find(app, "tab-1").children().getFirst().fill());
+    assertEquals(1, find(app, "close-1").children().get(0).opacity(), "dot stays over the title");
+    assertEquals(0, find(app, "close-1").children().get(1).opacity(), "cross waits for right end");
+    run(app, "move #tab-1 at right-2\nframe");
+    assertEquals(0, find(app, "close-1").children().get(0).opacity(), "dot hides over right zone");
+    assertEquals(
+        1, find(app, "close-1").children().get(1).opacity(), "cross shows over right zone");
+    assertEquals(T.text().muted(), find(app, "close-1").children().get(1).text().color());
+    assertEquals(0, find(app, "close-1").fill());
     run(app, "move #close-1\nframe");
     assertEquals(T.surface().hover(), find(app, "close-1").fill());
+    assertEquals(
+        T.text().primary(), find(app, "close-1").children().get(1).text().color());
     run(app, "press #close-1\nframe");
     assertEquals(List.of("close 1"), w.log);
     assertEquals(7, w.queries.size());
@@ -131,32 +146,117 @@ class TabsTest {
   }
 
   @Test
-  void aBusyTabHasASpinnerBeforeItsTitle() throws IOException {
-    App<Workbench> app = start();
-    assertTrue(dumpLine(app, "tab-2").endsWith(" busy"), "Console's query runs");
-    assertEquals("progressbar", find(app, "tab-2").children().getFirst().role());
-    assertFalse(dumpLine(app, "tab-0").contains(" busy"));
-    run(app, "move #tab-2\nframe"); // lit under the pointer, the spinner too
-    assertEquals(T.surface().hover(), find(app, "tab-2").fill());
+  void theCrossAppearsOnlyOverTheTabsRightEnd() throws IOException {
+    class State {
+      final List<Tab> items = new java.util.ArrayList<>(List.of(
+          new Tab("orders", true, true),
+          new Tab("customers", true, false),
+          new Tab("users", true, true)));
+      int active;
+      Tabs.Variant variant = Tabs.Variant.CARD;
+
+      El view() {
+        return col()
+            .wFull()
+            .hFull()
+            .child(tabs(
+                    items,
+                    active,
+                    i -> active = i,
+                    i -> {
+                      items.remove(i);
+                      active = Math.min(active, items.size() - 1);
+                    },
+                    null,
+                    Tabs.options().variant(variant))
+                .grow(1));
+      }
+    }
+    State state = new State();
+    App<State> app = new App<>(state, State::view).provide(Theme.CURRENT, s -> T);
+    run(app, "frame");
+
+    // Active modified tab: dot shows at rest and over the title, swaps to cross over the right end.
+    assertEquals(1, find(app, "close-0").children().get(0).opacity());
+    assertEquals(0, find(app, "close-0").children().get(1).opacity());
+    run(app, "move #tab-0 at left+12\nframe");
+    assertEquals(1, find(app, "close-0").children().get(0).opacity(), "still dot over title");
+    assertEquals(0, find(app, "close-0").children().get(1).opacity());
+    run(app, "move #tab-0 at right-2\nframe");
+    assertEquals(0, find(app, "close-0").children().get(0).opacity());
+    assertEquals(1, find(app, "close-0").children().get(1).opacity());
+    assertEquals(T.text().muted(), find(app, "close-0").children().get(1).text().color());
+    assertEquals(0, find(app, "close-0").fill());
+    run(app, "move #close-0\nframe");
+    assertEquals(T.surface().hover(), find(app, "close-0").fill());
+    assertEquals(
+        T.text().primary(), find(app, "close-0").children().get(1).text().color());
+
+    // Inactive unmodified tab: hover over title lifts ink and fill but keeps cross hidden.
+    run(app, "move #tab-1 at left+12\nframe");
+    assertEquals(T.surface().hover(), find(app, "tab-1").children().getFirst().fill());
+    assertEquals(T.text().primary(), find(app, "tab-1").children().get(1).text().color());
+    assertEquals(0, find(app, "close-1").opacity(), "cross stays hidden over title");
+
+    // Right zone outside the 16px button shows muted cross; directly over button highlights it.
+    run(app, "move #tab-1 at right-2\nframe");
+    assertEquals(1, find(app, "close-1").opacity());
+    assertEquals(
+        T.text().muted(), find(app, "close-1").children().getFirst().text().color());
+    assertEquals(0, find(app, "close-1").fill());
+
+    // Moving straight from outside onto the 16px button reveals and highlights it in one frame.
+    run(app, "move 0,0\nframe");
+    assertEquals(0, find(app, "close-1").opacity());
+    run(app, "move #tab-1 at right-8\nframe");
+    assertEquals(1, find(app, "close-1").opacity());
+    assertEquals(T.surface().hover(), find(app, "close-1").fill());
+    assertEquals(
+        T.text().primary(), find(app, "close-1").children().getFirst().text().color());
+
+    // Same rule in LINE variant.
+    state.variant = Tabs.Variant.LINE;
+    run(app, "move 0,0\nframe\nmove #tab-1 at left+12\nframe");
+    assertEquals(0, find(app, "close-1").opacity(), "LINE keeps cross hidden over title");
+    run(app, "move #tab-1 at right-2\nframe");
+    assertEquals(1, find(app, "close-1").opacity());
+    run(app, "move #tab-1 at right-8\nframe\npress #close-1\nframe");
+    assertEquals(2, state.items.size());
+    assertEquals("users", state.items.get(1).title());
   }
 
   @Test
-  void aModifiedTabHasADotBeforeItsTitle() throws IOException {
+  void aBusyTabHasASpinnerBeforeItsTitle() throws IOException {
     App<Workbench> app = start();
-    List<El> children = find(app, "tab-1").children();
-    El dot = children.get(0);
-    assertEquals(T.size().dot() / 2, dot.radius(), "round");
+    assertTrue(dumpLine(app, "tab-2").endsWith(" busy"), "Console's query runs");
+    assertEquals(
+        "progressbar",
+        find(app, "tab-2").children().get(1).children().getFirst().role());
+    assertFalse(dumpLine(app, "tab-0").contains(" busy"));
+    run(app, "move #tab-2\nframe"); // lit under the pointer, the spinner too
+    assertEquals(T.surface().hover(), find(app, "tab-2").children().getFirst().fill());
+  }
+
+  @Test
+  void aModifiedTabHasADotInTheCloseSlot() throws IOException {
+    App<Workbench> app = start();
+    El close = find(app, "close-1");
+    El dot = close.children().get(0);
+    assertEquals((T.size().dot() + T.space().xs()) / 2, dot.radius(), "round");
     assertEquals(T.text().muted(), dot.fill());
-    assertEquals("orders by month.sql", children.get(1).text().string());
-    // The active tab's line comes first.
-    assertEquals("customers.sql", find(app, "tab-0").children().get(1).text().string());
+    assertEquals(1, dot.opacity());
+    assertEquals(0, close.children().get(1).opacity(), "cross hidden behind dot at rest");
+    assertEquals(
+        "orders by month.sql", find(app, "tab-1").children().get(1).text().string());
+    assertEquals(
+        "customers.sql", find(app, "tab-0").children().getFirst().text().string());
     String dump = app.tree().dump();
     assertTrue(StructureTest.line(dump, "#tab-1").contains(" modified"), dump);
     assertFalse(StructureTest.line(dump, "#tab-0").contains(" modified"), dump);
   }
 
   @Test
-  void aTabWithAHueHasALineInItsColorAndSaysItInTheDump() throws IOException {
+  void aTabWithAHueHasATickInItsColorAndSaysItInTheDump() throws IOException {
     List<Tab> tabs = List.of(new Tab("orders").hue(Theme.Hue.RED), new Tab("users"));
     App<Object> app = new App<>(new Object(), s -> Tabs.tabs(tabs, 1, i -> {}, i -> {}, El.el()));
     run(app, "frame");
@@ -164,10 +264,21 @@ class TabsTest {
     String dump = app.tree().dump();
     assertTrue(StructureTest.line(dump, "#tab-0").contains("value=\"red\""), dump);
     assertFalse(StructureTest.line(dump, "#tab-1").contains("value="), "no hue, no mark: " + dump);
-    El line = find(app, "hue-0");
-    assertEquals(T.withAccent(Theme.Hue.RED).accent().edge(), line.fill());
-    assertEquals(marked.width(), line.width());
-    assertEquals(0, line.y());
+    El tick = find(app, "hue-0");
+    assertEquals(T.withAccent(Theme.Hue.RED).accent().edge(), tick.fill());
+    assertEquals(T.size().indicator(), tick.width());
+    assertEquals(T.size().icon() - T.space().s(), tick.height());
+    assertTrue(x(app, tick) < x(app, marked.children().get(1)), "in the leading padding");
+  }
+
+  @Test
+  void aTabShowsItsTooltipWhileThePointerRestsOnIt() throws IOException {
+    List<Tab> tabs = List.of(new Tab("orders").tooltip("shop/public/orders"), new Tab("users"));
+    App<Object> app = new App<>(new Object(), s -> Tabs.tabs(tabs, 1, i -> {}, i -> {}, El.el()));
+    run(app, "frame\nmove #tab-0\nframe\nadvance 1\nframe");
+    assertTrue(app.tree().dump().contains("role=tooltip label=\"shop/public/orders\""));
+    run(app, "move #tab-1\nframe\nadvance 1\nframe");
+    assertFalse(app.tree().dump().contains("role=tooltip"), "users has none");
   }
 
   // Keys
@@ -348,13 +459,13 @@ class TabsTest {
   void anOverfullBarScrollsUnderTheWheelAndShowsTheActiveTab() throws IOException {
     App<Workbench> app = start();
     El list = find(app, "tablist");
-    assertEquals(394, list.width(), "the bar less its padding and the card's edge");
+    assertEquals(390, list.width(), "the bar less its padding and the card's edge");
     run(app, "wheel #tablist 0 100\nframe");
     assertEquals(100, find(app, "tablist").scrollX(), "a mouse's wheel moves it sideways");
     run(app, "wheel #tablist 0 10000\nframe");
     double end = find(app, "tablist").scrollX();
     El last = find(app, "tab-7");
-    assertEquals(397, x(app, last) + last.width(), "the last tab at the end, inside the edge");
+    assertEquals(395, x(app, last) + last.width(), "the last tab at the end, inside the edge");
 
     run(app, "key Tab\nkey ArrowLeft\nframe");
     assertEquals(end, find(app, "tablist").scrollX(), "the last tab chosen, already in view");
@@ -375,7 +486,7 @@ class TabsTest {
     Workbench w = Workbench.many(T);
     w.variant = Tabs.Variant.LINE;
     App<Workbench> app = w.app(Workbench::tabsView);
-    float inset = T.space().s();
+    float inset = T.space().m();
     run(app, "frame");
     El first = find(app, "tab-0");
     assertEquals(x(app, first) + inset, x(app, find(app, "indicator")), "under the active tab");
@@ -446,7 +557,7 @@ class TabsTest {
     assertEquals("New tab", add.label());
     El first = find(app, "tab-0");
     assertEquals(
-        x(app, first) + first.width() + T.space().xs(),
+        x(app, first) + first.width() + T.space().s(),
         x(app, add),
         "right after the last tab while they fit");
 
@@ -465,7 +576,7 @@ class TabsTest {
     El bar = find(app, "bar");
     El pinned = find(app, "add");
     assertEquals(
-        x(app, bar) + bar.width() - T.space().xs(),
+        x(app, bar) + bar.width() - T.space().s(),
         x(app, pinned) + pinned.width(),
         "pinned at the bar's end once tabs overflow");
 

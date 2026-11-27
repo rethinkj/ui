@@ -4,13 +4,14 @@ el 0,0 480x180
       text role=heading "orders by month" 29,25 111x17 level=3
       el 148,33 303x0
     el 13,53 454x114
-      el #bar 13,53 454x29
-        el #tablist role=tablist 17,53 134x28
-          el #indicator 21,79 46x2
-          el #tab-0 role=tab label="Result" 17,53 54x28 selected
-            text "Result" 25,59 38x16
-          el #tab-1 role=tab label="Messages" 73,53 78x28
-            text "Messages" 81,59 62x16
-      el #panel role=tabpanel label="Result" 13,82 454x85
-        el 13,82 454x85
-          text "6 rows in 18 ms" 25,94 430x16
+      el #bar 13,53 454x25
+        el #tablist role=tablist 17,53 134x24
+          el #indicator 25,75 38x2
+          el #tab-0 role=tab label="Result" 17,53 54x24 selected
+            text "Result" 25,57 38x16
+          el #tab-1 role=tab label="Messages" 73,53 78x24
+            el 73,53 78x24
+            text "Messages" 81,57 62x16
+      el #panel role=tabpanel label="Result" 13,78 454x89
+        el 13,78 454x89
+          text "6 rows in 18 ms" 25,90 430x16

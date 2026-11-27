@@ -25,12 +25,13 @@ import java.util.function.Predicate;
 
 /**
  * A card whose first row is a bar of tabs over the content of the active one, as the open queries
- * of a database tool. The bar is a quiet band ({@link Theme.Surfaces#band}) with a hairline under
- * it; the active tab has primary text and a line in the accent's edge at its bottom, the others
- * muted text. The content fills the rest of the card, edge to edge, as in a {@link Card#flush}
- * card, so a toolbar, a data grid and a footer go there as they go into that. The app keeps the
- * tabs and which one is active, builds the content of that one only, and changes them when the bar
- * reports a choice or a close:
+ * of a database tool. The bar sits on the window's surface ({@link Theme.Surfaces#window}) with a
+ * divider under it; the active tab joins the content below in {@link Theme.Surfaces#panel} with a
+ * divider rim, primary text and an accent mark along its top in the active group, while inactive
+ * tabs have muted text and take a hover fill under the pointer. The content fills the rest of the
+ * card, edge to edge, as in a {@link Card#flush} card, so a toolbar, a data grid and a footer go
+ * there as they go into that. The app keeps the tabs and which one is active, builds the content
+ * of that one only, and changes them when the bar reports a choice or a close:
  *
  * <pre>{@code
  * tabs(
@@ -46,9 +47,11 @@ import java.util.function.Predicate;
  * content of a tab that is not active, such as a query that runs, shows in the bar.
  *
  * <p>A press on a tab chooses it and leaves the focus where it was: in the content it goes on into
- * the new content, as below. A tab that can be closed has a cross after its title, which
- * shows on the active tab and under the pointer; a press on it closes the tab. A modified tab has
- * a dot before its title. Tabs keep the width of their titles; when they are wider than the bar
+ * the new content, as below. A tab that can be closed reserves a close slot after its title; the
+ * cross shows on an active unmodified tab, and on an inactive tab while the pointer is over the
+ * tab's right end; a press on it closes the tab. A modified tab shows a dot in that slot (or after
+ * its title when it cannot be closed) that turns into the cross while the pointer is over the
+ * tab's right end. Tabs keep the width of their titles; when they are wider than the bar
  * together, the bar scrolls sideways under the wheel, and whenever the active tab changes the bar
  * scrolls it into view.
  *
@@ -109,13 +112,15 @@ public final class Tabs {
 
   /** How the tabs look. */
   public enum Variant {
-    /** A card whose first row is the bar, on a band of its own: the default. */
+    /**
+     * A card whose first row is the bar on {@link Theme.Surfaces#window}, whose active tab joins
+     * the content in {@link Theme.Surfaces#panel} with an accent mark at its top: the default.
+     */
     CARD,
     /**
-     * The bar and the content without a card, for tabs inside one: the bar a control and a small
-     * space high, with a hairline under it, and a line under the active tab that moves with
-     * {@link Theme.Motion#move()} to the tab chosen next. The tabs have no fill under the pointer,
-     * only primary text.
+     * The bar and the content without a card, for tabs inside one: a flush bar {@link
+     * Theme.Sizes#control} high with a divider under it, a sliding inset underline ({@link
+     * Theme.Motion#move()}) under the active tab, and a rounded hover fill on inactive tabs.
      */
     LINE
   }
@@ -125,20 +130,36 @@ public final class Tabs {
    *
    * @param title shown in the tab, also its label
    * @param closable whether it has a cross that closes it
-   * @param modified whether a dot before the title says that its content has unsaved changes; a
-   *     tree dump says {@code modified}
+   * @param modified whether a dot in the close slot (or after the title when not closable) says
+   *     that its content has unsaved changes, turning into the cross while the pointer is over the
+   *     tab's right end; a tree dump says {@code modified}
    * @param icon before the title, in the title's color, such as a table's; null for none
    * @param hue a color that marks the tab as one of a group, as the tabs of a connection to
-   *     production: a line along its top in the hue's edge color of the theme; null for none
+   *     production: a vertical tick in the leading padding in the hue's edge color of the theme;
+   *     null for none
    * @param busy whether its content works, as a query that runs: a {@link Progress#spinner} in
    *     place of the icon, or before the title without one, so that it shows while another tab is
    *     active; a tree dump says {@code busy}
+   * @param tooltip shown while the pointer rests on the tab, such as a file's whole path; null for
+   *     none
    */
   public record Tab(
-      String title, boolean closable, boolean modified, Icon icon, Theme.Hue hue, boolean busy) {
+      String title,
+      boolean closable,
+      boolean modified,
+      Icon icon,
+      Theme.Hue hue,
+      boolean busy,
+      String tooltip) {
 
     public Tab {
       Objects.requireNonNull(title, "title");
+    }
+
+    /** A tab without a tooltip. */
+    public Tab(
+        String title, boolean closable, boolean modified, Icon icon, Theme.Hue hue, boolean busy) {
+      this(title, closable, modified, icon, hue, busy, null);
     }
 
     /** A tab that is not busy. */
@@ -163,7 +184,7 @@ public final class Tabs {
 
     /** This tab with an icon before its title. */
     public Tab icon(Icon icon) {
-      return new Tab(title, closable, modified, icon, hue, busy);
+      return new Tab(title, closable, modified, icon, hue, busy, tooltip);
     }
 
     /**
@@ -171,12 +192,17 @@ public final class Tabs {
      * case ({@code value="red"}).
      */
     public Tab hue(Theme.Hue hue) {
-      return new Tab(title, closable, modified, icon, hue, busy);
+      return new Tab(title, closable, modified, icon, hue, busy, tooltip);
     }
 
     /** This tab busy or not, as {@link #busy()} says. */
     public Tab busy(boolean busy) {
-      return new Tab(title, closable, modified, icon, hue, busy);
+      return new Tab(title, closable, modified, icon, hue, busy, tooltip);
+    }
+
+    /** This tab with a tooltip, such as a file's whole path; null for none. */
+    public Tab tooltip(String tooltip) {
+      return new Tab(title, closable, modified, icon, hue, busy, tooltip);
     }
   }
 
@@ -482,8 +508,9 @@ public final class Tabs {
     }
 
     /**
-     * Whether this bar is the active group's, so that its active tab shows the accent line ({@link
-     * Theme.Accent#edge}) instead of the muted one ({@link Theme.Accent#edgeMuted}); true by
+     * Whether this bar is the active group's: in {@link Variant#CARD}, only the active group shows
+     * the accent mark along the top of its active tab; in {@link Variant#LINE}, it draws the
+     * underline in {@link Theme.Accent#edge} instead of {@link Theme.Accent#edgeMuted}; true by
      * default.
      */
     public Options active(boolean on) {
@@ -575,10 +602,12 @@ public final class Tabs {
     return active;
   }
 
-  /** The height of the tabs, which fill the bar. */
+  /** The height of the list and its tabs. */
   private static float height(Theme theme, Options o) {
-    return theme.size().control()
-        + (o.variant == Variant.LINE ? theme.space().s() : theme.space().m());
+    if (o.variant == Variant.LINE) {
+      return theme.size().control();
+    }
+    return theme.size().control() + theme.space().s() + theme.size().stroke();
   }
 
   /** A step of the drag of the tab at {@code index} of the bar whose tabs are {@code built}. */
@@ -781,11 +810,11 @@ public final class Tabs {
     IntConsumer close = onClose;
     boolean line = options.variant == Variant.LINE;
     float height = height(theme, options);
+    float barPadX = theme.space().s();
     // Its top corners follow the card's, inside its border and the bar's padding, so that the
     // focus ring, which the card's clip puts inside the bar, follows them too.
-    float corner = line
-        ? theme.radius().small()
-        : theme.radius().large() - theme.size().stroke() - theme.space().xs();
+    float corner =
+        line ? theme.radius().small() : theme.radius().large() - theme.size().stroke() - barPadX;
     El list = row()
         .key("tablist")
         .role("tablist")
@@ -798,15 +827,16 @@ public final class Tabs {
     list.style().minWidth = Len.ZERO;
     // As high without tabs as with them, so that an empty bar still takes a tab dropped on it.
     list.style().minHeight = Len.px(height);
-    boolean indicator = line && active >= 0 && active < tabs.size();
+    boolean indicator = active >= 0 && active < tabs.size() && line;
     list.revealRow(indicator ? active + 1 : active);
     int indicatorColor = options.active ? theme.accent().edge() : theme.accent().edgeMuted();
     if (indicator) {
       // One element under whichever tab is active, so that it slides there; the first child, so
       // that the tabs lie over it and take the presses, also where it slides across them.
       float stroke = theme.size().indicator();
-      float inset = theme.space().s();
+      float inset = theme.space().m();
       El under = el().key("indicator")
+          .inert()
           .follow("tab-" + active)
           .absolute(inset, height - stroke)
           .h(stroke)
@@ -827,23 +857,43 @@ public final class Tabs {
               i,
               i == active,
               line,
-              indicatorColor,
               height,
               grabbed && !dragging.torn,
               dragging != null && dragging.isActive(),
               select,
               close)
           .grabbed(grabbed);
+      // Not while a tab is dragged: over the bars a tooltip would cover the drop marker.
+      if (tabs.get(i).tooltip() != null && (dragging == null || !dragging.isActive())) {
+        Tooltip.tooltip(tab, tabs.get(i).tooltip());
+      }
       Theme.Hue hue = tabs.get(i).hue();
       if (hue != null) {
-        // Along the top, where the active tab's line and the hover overlay leave it alone; added
-        // last, so that the tab's other parts keep their places.
-        tab.value(hue.name().toLowerCase(java.util.Locale.ROOT))
-            .child(el().key("hue-" + i)
-                .absolute(0, 0)
-                .h(theme.size().indicator())
-                .wFull()
-                .fill(theme.withAccent(hue).accent().edge()));
+        float indicatorWidth = theme.size().indicator();
+        float tickH = theme.size().icon() - theme.space().s();
+        float innerH = line ? height : height - theme.size().stroke();
+        float tickX = (theme.space().m() - indicatorWidth) / 2;
+        float tickY = (innerH - tickH) / 2;
+        El tick = el().key("hue-" + i)
+            .inert()
+            .absolute(tickX, tickY)
+            .size(indicatorWidth, tickH)
+            .radius(indicatorWidth / 2)
+            .fill(theme.withAccent(hue).accent().edge());
+        tab.value(hue.name().toLowerCase(java.util.Locale.ROOT)).child(tick);
+      }
+      if (!line && i == active && options.active) {
+        float indicatorH = theme.size().indicator();
+        float stroke = theme.size().stroke();
+        float inset = theme.radius().medium() - stroke;
+        El mark = el().key("indicator")
+            .inert()
+            .absolute(inset, -stroke)
+            .h(indicatorH)
+            .radius(0, 0, indicatorH, indicatorH)
+            .fill(theme.accent().edge());
+        mark.style().right = Len.px(inset);
+        tab.child(mark);
       }
       if (drags) {
         int index = i;
@@ -866,17 +916,27 @@ public final class Tabs {
     if (options.onTablist != null) {
       options.onTablist.accept(list);
     }
-    float padX = line ? theme.space().s() : theme.space().xs();
-    float gap = theme.space().xs();
+    float tabGap = theme.space().xs();
+    float barGap = line ? theme.space().xs() : theme.space().s();
     El bar = row()
         .key("bar")
-        .fill(line ? 0 : theme.surface().band())
-        .padding(0, padX)
-        .gap(gap)
+        .fill(line ? 0 : theme.surface().window())
+        .gap(barGap)
         .align(Style.Align.CENTER)
-        .shrink(0)
-        .border(0, 0, theme.size().stroke(), 0, theme.border().divider())
-        .child(list);
+        .shrink(0);
+    if (!line) {
+      bar.padding(theme.space().s(), barPadX, 0, barPadX);
+      El divider = el().inert()
+          .absolute(0, 0)
+          .wFull()
+          .hFull()
+          .border(0, 0, theme.size().stroke(), 0, theme.border().divider());
+      bar.child(divider);
+    } else {
+      bar.padding(0, barPadX)
+          .border(0, 0, theme.size().stroke(), 0, theme.border().divider());
+    }
+    bar.child(list);
     if (enabled && overflow != null) {
       bar.onResize((w, h) -> overflow.barWidth = w);
     }
@@ -890,9 +950,7 @@ public final class Tabs {
                   Symbol.ADD,
                   Texts.CURRENT.get().newTab(),
                   options.onAdd,
-                  Button.options()
-                      .size(line ? Button.Size.SMALL : Button.Size.REGULAR)
-                      .shortcut(Key.CONTROL, "T"))
+                  Button.options().size(Button.Size.SMALL).shortcut(Key.CONTROL, "T"))
               .key("add"));
       if (overflow != null) {
         add.onResize((w, h) -> overflow.addWidth = w);
@@ -902,12 +960,12 @@ public final class Tabs {
     if (enabled && overflow != null) {
       // While the tabs fit, an empty room as wide as the button and its gap stands in their place
       // and gives way first, so that the bar asks for the same width with the button and without.
-      float side = line ? theme.size().controlSmall() : theme.size().control();
-      float available = overflow.barWidth - 2 * padX;
+      float side = theme.size().controlSmall();
+      float available = overflow.barWidth - 2 * barPadX;
       if (options.onAdd != null) {
-        available -= overflow.addWidth + gap;
+        available -= overflow.addWidth + barGap;
       }
-      if (overflow.overflows(tabs.size(), available, gap)) {
+      if (overflow.overflows(tabs.size(), available, tabGap)) {
         List<Menu.Item> items = new ArrayList<>(tabs.size());
         for (int i = 0; i < tabs.size(); i++) {
           int index = i;
@@ -925,16 +983,16 @@ public final class Tabs {
                 Symbol.CHEVRON_DOWN,
                 Texts.CURRENT.get().allTabs(),
                 overflow.menu::toggle,
-                Button.options().size(line ? Button.Size.SMALL : Button.Size.REGULAR))
+                Button.options().size(Button.Size.SMALL))
             .key("overflow")
             .expanded(overflow.menu.isOpen());
         bar.child(row().shrink(0).child(Menu.dropdown(button, overflow.menu, items)));
       } else {
         overflow.menu.close();
         list.shrink(0);
-        El room = el().key("room").w(side + gap);
+        El room = el().key("room").w(side + barGap);
         room.style().minWidth = Len.ZERO;
-        room.style().marginLeft = Len.px(-gap); // the bar's gap before it is part of its width
+        room.style().marginLeft = Len.px(-barGap); // the bar's gap before it is part of its width
         bar.child(room);
       }
       if (overflow.revealKey != null) {
@@ -946,8 +1004,9 @@ public final class Tabs {
       bar.onDrop(d -> over(theme, options, list, built, d));
       if (dragging.slot >= 0 && Objects.equals(dragging.overBar, options.id)) {
         float side = theme.size().control();
+        float markerTop = (line ? 0 : theme.space().s()) + (height - side) / 2;
         bar.child(el().key("marker")
-            .absolute(dragging.markerX, (height - side) / 2)
+            .absolute(dragging.markerX, markerTop)
             .size(theme.size().indicator(), side)
             .fill(theme.accent().edge()));
         if (dragging.reveal != null) {
@@ -1079,19 +1138,20 @@ public final class Tabs {
       int index,
       boolean active,
       boolean line,
-      int indicatorColor,
       float height,
       boolean muted,
       boolean quiet,
       IntConsumer onSelect,
       IntConsumer onClose) {
     boolean enabled = onSelect != null;
+    boolean hasClose = enabled && tab.closable() && onClose != null;
     Theme.Surfaces s = theme.surface();
     int ink = !enabled || muted
         ? theme.text().disabled()
         : active ? theme.text().primary() : theme.text().muted();
-    // The tabs fill the bar's height; the active one has a line at its bottom, the others show
-    // the band, with the translucent overlays on it under the pointer.
+    float leadPad = theme.space().m();
+    float trailPad = hasClose ? 0 : theme.space().m();
+    float gap = theme.space().s();
     El el = row()
         .key("tab-" + index)
         .role("tab")
@@ -1101,35 +1161,68 @@ public final class Tabs {
         .modified(tab.modified())
         .disabled(!enabled)
         .h(height)
-        .padding(0, theme.space().m())
-        .gap(theme.space().s())
+        .padding(0, trailPad, 0, leadPad)
+        .gap(gap)
         .align(Style.Align.CENTER)
         .shrink(0);
-    if (active && !line) {
-      float stroke = theme.size().indicator();
-      el.child(el().absolute(0, height - stroke).h(stroke).wFull().fill(indicatorColor));
+    if (!line) {
+      float stroke = theme.size().stroke();
+      el.radius(theme.radius().medium(), theme.radius().medium(), 0, 0)
+          .border(stroke, stroke, 0, stroke, active ? theme.border().divider() : 0);
+      if (active) {
+        el.fill(s.panel());
+      }
     }
-    El dot = null;
-    if (tab.modified()) {
-      float side = theme.size().dot();
-      dot = el().size(side, side).shrink(0).radius(side / 2).fill(ink);
-      el.child(dot);
+    El hoverPill = null;
+    if (enabled && !active && !quiet) {
+      if (!line) {
+        float stroke = theme.size().stroke();
+        hoverPill = el().inert()
+            .absolute(-stroke, -stroke)
+            .radius(theme.radius().medium(), theme.radius().medium(), 0, 0);
+        hoverPill.style().right = Len.px(-stroke);
+        hoverPill.style().bottom = Len.px(stroke);
+      } else {
+        float pillH = theme.size().control();
+        hoverPill = el().inert()
+            .absolute(0, (height - pillH) / 2)
+            .wFull()
+            .h(pillH)
+            .radius(theme.radius().medium());
+      }
+      el.child(hoverPill);
     }
-    El spinner = tab.busy() ? Progress.spinner() : null;
-    if (spinner != null) {
-      el.child(spinner);
+    List<El> litParts = new ArrayList<>();
+    if (tab.busy()) {
+      float iconSide = theme.size().icon();
+      float spinnerSide = iconSide - theme.space().s();
+      el.child(
+          el().size(iconSide, iconSide).shrink(0).center().child(Progress.spinner(spinnerSide)));
     } else if (tab.icon() != null) {
-      el.child(Icon.Picture.color(
-          Icon.icon(tab.icon(), enabled ? Icon.Variant.NORMAL : Icon.Variant.DISABLED), ink));
+      El icon = Icon.Picture.color(
+          Icon.icon(tab.icon(), enabled ? Icon.Variant.NORMAL : Icon.Variant.DISABLED), ink);
+      el.child(icon);
+      litParts.add(icon);
     }
-    el.child(label(tab.title()).color(ink));
+    El title = label(tab.title()).color(ink);
+    el.child(title);
+    litParts.add(title);
+    float dotSide = theme.size().dot() + theme.space().xs();
+    El trailingDot = null;
+    if (tab.modified() && !hasClose) {
+      trailingDot = el().size(dotSide, dotSide).shrink(0).radius(dotSide / 2).fill(ink);
+      el.child(trailingDot);
+    }
     if (!enabled) {
       return el;
     }
-    El close = null;
-    if (tab.closable() && onClose != null) {
+    El slotDot = null;
+    if (hasClose) {
       float side = theme.size().checkbox();
-      close = el().key("close-" + index)
+      float glyphSize = theme.size().icon() - theme.space().s();
+      int dismissInk = muted ? theme.text().disabled() : theme.text().muted();
+      El dismiss = Icon.icon(Symbol.DISMISS, Icon.Variant.NORMAL, glyphSize).color(dismissInk);
+      El close = el().key("close-" + index)
           .role("button")
           .label(Texts.CURRENT.get().closeTab(tab.title()))
           .size(side, side)
@@ -1137,39 +1230,68 @@ public final class Tabs {
           .center()
           .radius(theme.radius().small())
           .cursor(Cursor.POINTER)
-          .opacity(active ? 1 : 0)
-          .onPress(() -> onClose.accept(index))
-          .whenHovered(e -> e.fill(s.hover()))
-          .whenPressed(e -> e.fill(s.pressed()))
-          .child(Icon.icon(Symbol.DISMISS, Icon.Variant.NORMAL, side).color(ink));
-      el.child(close);
+          .onPress(() -> onClose.accept(index));
+      if (tab.modified()) {
+        slotDot = el().inert()
+            .absolute((side - dotSide) / 2, (side - dotSide) / 2)
+            .size(dotSide, dotSide)
+            .radius(dotSide / 2)
+            .fill(ink);
+        dismiss.opacity(0);
+        close.opacity(1).child(slotDot).child(dismiss);
+      } else {
+        close.opacity(active ? 1 : 0).child(dismiss);
+      }
+      // Spans the tab's right end from the title's end (covering the gap before the close slot) to
+      // the tab's right edge, so the cross appears only when the pointer moves toward it.
+      El closer = el().hFull().padding(0, gap, 0, gap).center().shrink(0).child(close);
+      closer.style().marginLeft = Len.px(-gap);
+      if (!quiet) {
+        El closeDot = slotDot;
+        if (closeDot != null) {
+          closer.whenHovered(e -> {
+            closeDot.opacity(0);
+            dismiss.opacity(1);
+          });
+        } else if (!active) {
+          closer.whenHovered(e -> close.opacity(1));
+        }
+        close
+            .whenHovered(e -> {
+              e.fill(s.hover());
+              dismiss.color(theme.text().primary());
+            })
+            .whenPressed(e -> {
+              e.opacity(1);
+              e.fill(s.pressed());
+              dismiss.color(theme.text().primary());
+              if (closeDot != null) {
+                closeDot.opacity(0);
+                dismiss.opacity(1);
+              }
+            });
+      }
+      el.child(closer);
     }
     el.cursor(Cursor.POINTER).onPress(() -> onSelect.accept(index));
-    if (active || quiet) {
+    if (quiet || active) {
       return el;
     }
-    // Under the pointer the text of another tab is primary, and its cross shows.
-    El cross = close;
-    El mark = dot;
-    List<El> parts = new ArrayList<>(el.children());
-    parts.remove(spinner); // in the accent, as on every tab
+    El pill = hoverPill;
+    El closeDot = slotDot;
+    El trailDot = trailingDot;
     Consumer<El> lit = e -> {
-      for (El part : parts) {
-        if (part == mark) {
-          part.fill(theme.text().primary());
-        } else {
-          Icon.Picture.color(
-              part == cross ? part.children().getFirst() : part, theme.text().primary());
-        }
+      for (El part : litParts) {
+        Icon.Picture.color(part, theme.text().primary());
       }
-      if (cross != null) {
-        cross.opacity(1);
+      if (trailDot != null) {
+        trailDot.fill(theme.text().primary());
+      }
+      if (closeDot != null) {
+        closeDot.fill(theme.text().primary());
       }
     };
-    if (line) {
-      return el.whenHovered(lit).whenPressed(lit);
-    }
-    return el.whenHovered(lit.andThen(e -> e.fill(s.hover())))
-        .whenPressed(lit.andThen(e -> e.fill(s.pressed())));
+    return el.whenHovered(lit.andThen(e -> pill.fill(s.hover())))
+        .whenPressed(lit.andThen(e -> pill.fill(s.pressed())));
   }
 }

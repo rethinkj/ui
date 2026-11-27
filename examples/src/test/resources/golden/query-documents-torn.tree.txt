@@ -21,14 +21,16 @@ el 0,0 480x300
   el #tabs 0,32 480x268
     el 8,32 464x260
       el #bar 9,33 462x33
-        el #tablist role=tablist 11,33 94x32
-          el #tab-0 role=tab label="Query" 11,33 94x32 selected grabbed
-            el 11,63 94x2
-            text label="document" "\u{E4D7}" 19,41 16x16
-            text "Query" 39,41 38x16
-            el #close-0 role=button label="Close Query" 81,41 16x16
-              text label="dismiss" "\u{F368}" 81,41 16x16
-        el #room 105,49 26x0
+        el 9,33 462x33
+        el #tablist role=tablist 13,37 92x29
+          el #tab-0 role=tab label="Query" 13,37 92x29 selected grabbed
+            text label="document" "\u{E4D7}" 22,44 16x16
+            text "Query" 42,44 38x16
+            el 80,38 24x28
+              el #close-0 role=button label="Close Query" 84,44 16x16
+                text label="dismiss" "\u{F367}" 86,46 12x12
+            el #indicator 19,37 80x2
+        el #room 105,52 24x0
       el #panel role=tabpanel label="Query" 9,66 462x225
         el #content-1 9,66 462x225
           el 9,66 462x225

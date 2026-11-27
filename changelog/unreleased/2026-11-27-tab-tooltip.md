@@ -1,0 +1,1 @@
+- `Tabs.Tab.tooltip(text)` shows a tooltip while the pointer rests on a tab, such as a file's whole path; it works in `TabGroups` too.

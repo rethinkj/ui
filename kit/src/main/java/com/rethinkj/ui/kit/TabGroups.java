@@ -95,8 +95,8 @@ import java.util.function.Predicate;
  * <p>A frame with one group renders as {@link Tabs#tabs} alone; a split frame renders its tree
  * with {@link Split#cards} (share 0.5 at first, double press resets to half, minimum {@link
  * Theme.Sizes#minTabGroup}) and keys each group's root {@code #group-<id>} from a counter that
- * never repeats. Only the frame's {@link Frame#active() active group} shows the accent line under
- * its active tab; other groups show {@link Theme.Accent#edgeMuted}. A group becomes its frame's
+ * never repeats. Only the frame's {@link Frame#active() active group} shows the accent mark along
+ * the top of its active tab; other groups omit it. A group becomes its frame's
  * active group when the focus moves into it ({@link El#onFocusIn}) or on any press in it,
  * including on its already active tab (which keeps the focus where it is). After a split or a dock
  * with splits, the moved tab is active, its group is the frame's active group, and the focus goes

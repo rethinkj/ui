@@ -9,7 +9,7 @@ For single-window tabs without splitting, tear-off, or multi-group management, u
 
 Javadoc: [`TabGroups`](/api/com/rethinkj/ui/kit/TabGroups.html), [`TabGroups.Frame`](/api/com/rethinkj/ui/kit/TabGroups.Frame.html), [`TabGroups.Group`](/api/com/rethinkj/ui/kit/TabGroups.Group.html).
 
-<Shot src="examples/docs/tab-groups-split/split-{theme}" alt="Two split tab groups side by side: Groceries and Todos on the left, active Ideas group on the right" caption="Split tab groups with the active group's accent line on the right and muted indicator on the left." />
+<Shot src="examples/docs/tab-groups-split/split-{theme}" alt="Two split tab groups side by side: Groceries and Todos on the left, active Ideas group on the right" caption="Split tab groups with the active group's top accent mark on the right and none on the inactive group on the left." />
 
 ## Example
 
@@ -42,7 +42,7 @@ Splits are opt-in: call `.splits(true)` on your `TabGroups` instance to enable t
 - With splits on, a drag tears its tab off into a new window only once the pointer leaves every window of the app (without a window runner, it stays inside). An emptied source group is pruned only when the drag commits, so pressing **Escape** restores the tab to its original group, split, and divider position.
 - Split groups render with `Split.cards` starting at a 0.5 share; double-clicking or pressing Enter on a divider resets it to half.
 - When a group in a split becomes empty, it leaves its frame and its sibling takes the split's place (handing keyboard focus to that sibling if the closed group had focus). A frame with one group renders identically to a plain `Tabs` component; in a split frame, each group's root is keyed `#group-<id>` from a counter that never repeats.
-- `frame.active()` tracks the active group of a window (updated on `onFocusIn` or any press in a group, including pressing its already-active tab without moving focus). Only the active group shows the full accent line under its active tab; inactive groups show `Theme.Accent.edgeMuted`.
+- `frame.active()` tracks the active group of a window (updated on `onFocusIn` or any press in a group, including pressing its already-active tab without moving focus). Only the active group shows the accent mark along the top of its active tab; inactive groups omit it.
 - Programmatically split with `groups.split(from, index, beside, side)` (`Side.LEFT`, `RIGHT`, `TOP`, `BOTTOM`), focus a group with `groups.focusGroup(group)`, inspect `frame.groups()` (top-left first) and `group.frame()`.
 
 ## Opening drags from elsewhere

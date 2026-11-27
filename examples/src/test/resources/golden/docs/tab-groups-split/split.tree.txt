@@ -3,22 +3,25 @@ el 0,0 540x240
     el #first 8,8 258x224
       el #group-0 8,8 258x224
         el #bar 9,9 256x33
-          el #tablist role=tablist 11,9 211x32
-            el #tab-0 role=tab label="Groceries" 11,9 116x32 selected
-              el 11,39 116x2
-              text label="document" "\u{E4D7}" 19,17 16x16
-              text "Groceries" 39,17 60x16
-              el #close-0 role=button label="Close Groceries" 103,17 16x16
-                text label="dismiss" "\u{F368}" 103,17 16x16
-            el #tab-1 role=tab label="Todos" 129,9 93x32
-              text label="document" "\u{E4D7}" 137,17 16x16
-              text "Todos" 157,17 37x16
-              el #close-1 role=button label="Close Todos" 198,17 16x16
-                text label="dismiss" "\u{F368}" 198,17 16x16
-          el 224,13 24x24
-            el #add role=button label="New tab" 224,13 24x24
-              text label="add" "\u{F108}" 228,17 16x16
-          el #room 248,25 15x0
+          el 9,9 256x33
+          el #tablist role=tablist 13,13 207x29
+            el #tab-0 role=tab label="Groceries" 13,13 114x29 selected
+              text label="document" "\u{E4D7}" 22,20 16x16
+              text "Groceries" 42,20 60x16
+              el 102,14 24x28
+                el #close-0 role=button label="Close Groceries" 106,20 16x16
+                  text label="dismiss" "\u{F367}" 108,22 12x12
+            el #tab-1 role=tab label="Todos" 129,13 91x29
+              el 129,13 91x28
+              text label="document" "\u{E4D7}" 138,20 16x16
+              text "Todos" 158,20 37x16
+              el 195,14 24x28
+                el #close-1 role=button label="Close Todos" 199,20 16x16
+                  text label="dismiss" "\u{F367}" 201,22 12x12
+          el 224,18 20x20
+            el #add role=button label="New tab" 224,18 20x20
+              text label="add" "\u{F108}" 226,20 16x16
+          el #room 244,28 17x0
         el #panel role=tabpanel label="Groceries" 9,42 256x189
           el #content-0 9,42 256x189
             el 9,42 256x189
@@ -27,17 +30,19 @@ el 0,0 540x240
       el #second 274,8 258x224
         el #group-1 274,8 258x224
           el #bar 275,9 256x33
-            el #tablist role=tablist 277,9 89x32 focused
-              el #tab-0 role=tab label="Ideas" 277,9 89x32 selected
-                el 277,39 89x2
-                text label="document" "\u{E4D7}" 285,17 16x16
-                text "Ideas" 305,17 33x16
-                el #close-0 role=button label="Close Ideas" 342,17 16x16
-                  text label="dismiss" "\u{F368}" 342,17 16x16
-            el 368,13 24x24
-              el #add role=button label="New tab" 368,13 24x24
-                text label="add" "\u{F108}" 372,17 16x16
-            el #room 392,25 26x0
+            el 275,9 256x33
+            el #tablist role=tablist 279,13 87x29 focused
+              el #tab-0 role=tab label="Ideas" 279,13 87x29 selected
+                text label="document" "\u{E4D7}" 288,20 16x16
+                text "Ideas" 308,20 33x16
+                el 341,14 24x28
+                  el #close-0 role=button label="Close Ideas" 345,20 16x16
+                    text label="dismiss" "\u{F367}" 347,22 12x12
+                el #indicator 285,13 75x2
+            el 370,18 20x20
+              el #add role=button label="New tab" 370,18 20x20
+                text label="add" "\u{F108}" 372,20 16x16
+            el #room 390,28 24x0
           el #panel role=tabpanel label="Ideas" 275,42 256x189
             el #content-1 275,42 256x189
               el 275,42 256x189
