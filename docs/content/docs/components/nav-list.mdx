@@ -35,6 +35,8 @@ Items can carry a quiet second line (`.detail(text)`), a trailing element after 
 
 Headings can carry a passive leading element (`.leading(element)`, such as an [Avatar](/docs/components/avatar)), a quiet count (`.count(text)`), always-visible action buttons at the right end (`.actions(buttons...)`), and an open/close toggle (`.open(open, onToggle)`): the app keeps which groups are open and leaves a closed group's items out of the entries. Use `NavList.group(label)` for a group header on a quiet filled surface with strong text and its chevron at the far right, or `NavList.heading(label)` for a plain caption heading. Heading actions sit as siblings of the toggle button, so pressing one never toggles the group, and a disabled list (`onSelect` is `null`) leaves them disabled and inert.
 
+Heading actions are icon-sized, such as `Button.icon`: a collapsible heading keeps room for each by its set width and height, else that of one control.
+
 All rows share one height, so that the virtual form stays virtual: two lines high when any item has a detail, or in the virtual form when its first item has one.
 
 ```java snippet="nav-list-sessions-types"
