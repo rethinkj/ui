@@ -189,7 +189,7 @@ public final class Completion {
      * and hides the panel. Returning null shows nothing. Pass a null {@code provider} to disable.
      * {@code provider} gets only the entry: what else it reads it takes in its closure, and nothing
      * of the app's state that the app's thread changes. Set it once, as {@link #openAfter}: a
-     * new provider answers from the next entry highlighted.
+     * new provider answers from its next lookup, while a document found before stays.
      *
      * @param name what the work is called, which {@link App#await} names
      */
