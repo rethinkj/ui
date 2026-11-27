@@ -1,27 +1,31 @@
 el 0,0 540x240
   el 8,8 524x224
     el #bar 9,9 522x33
-      el #tablist role=tablist 11,9 302x32
-        el #tab-0 role=tab label="Groceries" 11,9 116x32 selected
-          el 11,39 116x2
-          text label="document" "\u{E4D7}" 19,17 16x16
-          text "Groceries" 39,17 60x16
-          el #close-0 role=button label="Close Groceries" 103,17 16x16
-            text label="dismiss" "\u{F368}" 103,17 16x16
-        el #tab-1 role=tab label="Ideas" 129,9 89x32 grabbed hovered
-          text label="document" "\u{E4D7}" 137,17 16x16
-          text "Ideas" 157,17 33x16
-          el #close-1 role=button label="Close Ideas" 194,17 16x16
-            text label="dismiss" "\u{F368}" 194,17 16x16
-        el #tab-2 role=tab label="Todos" 220,9 93x32
-          text label="document" "\u{E4D7}" 228,17 16x16
-          text "Todos" 248,17 37x16
-          el #close-2 role=button label="Close Todos" 289,17 16x16
-            text label="dismiss" "\u{F368}" 289,17 16x16
-      el 315,13 24x24
-        el #add role=button label="New tab" 315,13 24x24
-          text label="add" "\u{F108}" 319,17 16x16
-      el #room 339,25 26x0
+      el 9,9 522x33
+      el #tablist role=tablist 13,13 296x29
+        el #tab-0 role=tab label="Groceries" 13,13 114x29 selected
+          text label="document" "\u{E4D7}" 22,20 16x16
+          text "Groceries" 42,20 60x16
+          el 102,14 24x28
+            el #close-0 role=button label="Close Groceries" 106,20 16x16
+              text label="dismiss" "\u{F367}" 108,22 12x12
+          el #indicator 19,13 102x2
+        el #tab-1 role=tab label="Ideas" 129,13 87x29 grabbed hovered
+          text label="document" "\u{E4D7}" 138,20 16x16
+          text "Ideas" 158,20 33x16
+          el 191,14 24x28
+            el #close-1 role=button label="Close Ideas" 195,20 16x16
+              text label="dismiss" "\u{F367}" 197,22 12x12
+        el #tab-2 role=tab label="Todos" 218,13 91x29
+          text label="document" "\u{E4D7}" 227,20 16x16
+          text "Todos" 247,20 37x16
+          el 284,14 24x28
+            el #close-2 role=button label="Close Todos" 288,20 16x16
+              text label="dismiss" "\u{F367}" 290,22 12x12
+      el 313,18 20x20
+        el #add role=button label="New tab" 313,18 20x20
+          text label="add" "\u{F108}" 315,20 16x16
+      el #room 333,28 24x0
     el #panel role=tabpanel label="Groceries" 9,42 522x189
       el #content-0 9,42 522x189
         el 9,42 522x189

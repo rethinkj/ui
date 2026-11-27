@@ -1,10 +1,11 @@
 el 0,0 480x220
   el 12,12 456x196
     el #bar 13,13 454x33
-      el #tablist role=tablist 15,13 0x32
-      el 17,17 24x24
-        el #add role=button label="New tab" 17,17 24x24
-          text label="add" "\u{F108}" 21,21 16x16
+      el 13,13 454x33
+      el #tablist role=tablist 17,17 0x29
+      el 21,22 20x20
+        el #add role=button label="New tab" 21,22 20x20
+          text label="add" "\u{F108}" 23,24 16x16
     el #panel role=tabpanel 13,46 454x161
       el role=status label="No open tables" 13,46 454x161
         text label="table" "\u{EBF7}" 216,91 48x48

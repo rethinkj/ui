@@ -24,29 +24,34 @@ el 0,0 640x360
   el #tabs 0,32 640x328
     el 8,32 624x320
       el #bar 9,33 622x33
-        el #tablist role=tablist 11,33 380x32
-          el #tab-0 role=tab label="Notes" 11,33 92x32
-            text label="document" "\u{E4D7}" 19,41 16x16
-            text "Notes" 39,41 36x16
-            el #close-0 role=button label="Close Notes" 79,41 16x16
-              text label="dismiss" "\u{F368}" 79,41 16x16
-          el #tab-1 role=tab label="Todo" 105,33 87x32
-            text label="document" "\u{E4D7}" 113,41 16x16
-            text "Todo" 133,41 31x16
-            el #close-1 role=button label="Close Todo" 168,41 16x16
-              text label="dismiss" "\u{F368}" 168,41 16x16
-          el #tab-2 role=tab label="Readme" 194,33 106x32 selected
-            el 194,63 106x2
-            text label="document" "\u{E4D7}" 202,41 16x16
-            text "Readme" 222,41 50x16
-            el #close-2 role=button label="Close Readme" 276,41 16x16
-              text label="dismiss" "\u{F368}" 276,41 16x16
-          el #tab-3 role=tab label="Ideas" 302,33 89x32 hovered
-            text label="document" "\u{E4D7}" 310,41 16x16
-            text "Ideas" 330,41 33x16
-            el #close-3 role=button label="Close Ideas" 367,41 16x16
-              text label="dismiss" "\u{F368}" 367,41 16x16
-        el #room 391,49 26x0
+        el 9,33 622x33
+        el #tablist role=tablist 13,37 372x29
+          el #tab-0 role=tab label="Notes" 13,37 90x29
+            text label="document" "\u{E4D7}" 22,44 16x16
+            text "Notes" 42,44 36x16
+            el 78,38 24x28
+              el #close-0 role=button label="Close Notes" 82,44 16x16
+                text label="dismiss" "\u{F367}" 84,46 12x12
+          el #tab-1 role=tab label="Todo" 105,37 85x29
+            text label="document" "\u{E4D7}" 114,44 16x16
+            text "Todo" 134,44 31x16
+            el 165,38 24x28
+              el #close-1 role=button label="Close Todo" 169,44 16x16
+                text label="dismiss" "\u{F367}" 171,46 12x12
+          el #tab-2 role=tab label="Readme" 192,37 104x29 selected
+            text label="document" "\u{E4D7}" 201,44 16x16
+            text "Readme" 221,44 50x16
+            el 271,38 24x28
+              el #close-2 role=button label="Close Readme" 275,44 16x16
+                text label="dismiss" "\u{F367}" 277,46 12x12
+            el #indicator 198,37 92x2
+          el #tab-3 role=tab label="Ideas" 298,37 87x29 hovered
+            text label="document" "\u{E4D7}" 307,44 16x16
+            text "Ideas" 327,44 33x16
+            el 360,38 24x28
+              el #close-3 role=button label="Close Ideas" 364,44 16x16
+                text label="dismiss" "\u{F367}" 366,46 12x12
+        el #room 385,52 24x0
       el #panel role=tabpanel label="Readme" 9,66 622x285
         el #content-0 9,66 622x285
           el 9,66 622x285

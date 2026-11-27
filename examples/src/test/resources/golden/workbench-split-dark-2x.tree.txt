@@ -85,19 +85,21 @@ el 0,0 1000x600
             el #first 317,40 334x523
               el #group-0 317,40 334x523
                 el #bar 318,41 332x33
-                  el #tablist role=tablist 320,41 143x32
-                    el #tab-0 role=tab label="Start" 320,41 45x32
-                      text "Start" 328,49 29x16
-                    el #tab-1 role=tab label="orders" 367,41 96x32 selected
-                      el 367,71 96x2
-                      text label="table" "\u{EBF4}" 375,49 16x16
-                      text "orders" 395,49 40x16
-                      el #close-1 role=button label="Close orders" 439,49 16x16
-                        text label="dismiss" "\u{F368}" 439,49 16x16
-                  el 465,45 24x24
-                    el #add role=button label="New tab" 465,45 24x24
-                      text label="add" "\u{F108}" 469,49 16x16
-                  el #room 489,57 26x0
+                  el 318,41 332x33
+                  el #tablist role=tablist 322,45 143x29
+                    el #tab-0 role=tab label="Start" 322,45 47x29
+                      el 322,45 47x28
+                      text "Start" 331,52 29x16
+                    el #tab-1 role=tab label="orders" 371,45 94x29 selected
+                      text label="table" "\u{EBF4}" 380,52 16x16
+                      text "orders" 400,52 40x16
+                      el 440,46 24x28
+                        el #close-1 role=button label="Close orders" 444,52 16x16
+                          text label="dismiss" "\u{F367}" 446,54 12x12
+                  el 469,50 20x20
+                    el #add role=button label="New tab" 469,50 20x20
+                      text label="add" "\u{F108}" 471,52 16x16
+                  el #room 489,60 24x0
                 el #panel role=tabpanel label="orders" 318,74 332x488
                   el #content-1 318,74 332x488
                     el 318,74 332x488
@@ -282,17 +284,19 @@ el 0,0 1000x600
               el #second 659,40 333x523
                 el #group-2 659,40 333x523
                   el #bar 660,41 331x33
-                    el #tablist role=tablist 662,41 120x32 focused
-                      el #tab-0 role=tab label="customers" 662,41 120x32 selected
-                        el 662,71 120x2
-                        text label="table" "\u{EBF4}" 670,49 16x16
-                        text "customers" 690,49 64x16
-                        el #close-0 role=button label="Close customers" 758,49 16x16
-                          text label="dismiss" "\u{F368}" 758,49 16x16
-                    el 784,45 24x24
-                      el #add role=button label="New tab" 784,45 24x24
-                        text label="add" "\u{F108}" 788,49 16x16
-                    el #room 808,57 26x0
+                    el 660,41 331x33
+                    el #tablist role=tablist 664,45 118x29 focused
+                      el #tab-0 role=tab label="customers" 664,45 118x29 selected
+                        text label="table" "\u{EBF4}" 673,52 16x16
+                        text "customers" 693,52 64x16
+                        el 757,46 24x28
+                          el #close-0 role=button label="Close customers" 761,52 16x16
+                            text label="dismiss" "\u{F367}" 763,54 12x12
+                        el #indicator 670,45 106x2
+                    el 786,50 20x20
+                      el #add role=button label="New tab" 786,50 20x20
+                        text label="add" "\u{F108}" 788,52 16x16
+                    el #room 806,60 24x0
                   el #panel role=tabpanel label="customers" 660,74 331x488
                     el #content-3 660,74 331x488
                       el 660,74 331x488

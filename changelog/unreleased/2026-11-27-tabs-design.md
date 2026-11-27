@@ -1,0 +1,1 @@
+- `Tabs` and `TabGroups` have a new look. In `Variant.CARD` the active tab joins its content, with an accent mark on top in the focused group. An inactive tab shows its close button only while the pointer is over its right end, the modified dot sits in the close button's place, a `hue` is a small tick before the icon, and `Variant.LINE` tabs are lower with a rounded hover.

@@ -4,4 +4,4 @@ size 400 160
 frame
 move #tab-1
 frame
-snap first             # the first tab active; the pointer over the second, which shows its cross
+snap first             # the first tab active; the pointer over the second tab's title

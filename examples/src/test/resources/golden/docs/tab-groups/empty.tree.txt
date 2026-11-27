@@ -1,6 +1,7 @@
 el 0,0 420x260
   el 8,8 404x244
     el #bar 9,9 402x33
-      el #tablist role=tablist 11,9 0x32
-      el #room 11,25 26x0
+      el 9,9 402x33
+      el #tablist role=tablist 13,13 0x29
+      el #room 13,28 24x0
     el #panel role=tabpanel 9,42 402x209

@@ -21,10 +21,11 @@ Javadoc: [`Tabs`](/api/com/rethinkj/ui/kit/Tabs.html), [`Tabs.Tab`](/api/com/ret
 
 | `Tabs.Tab` | Description |
 | --- | --- |
-| `new Tabs.Tab(title, closable, modified)` | Title, close button flag, and unsaved dot indicator |
+| `new Tabs.Tab(title, closable, modified)` | Title, close button flag, and unsaved dot (in the close slot, turning into the cross on hover at the tab's right end) |
 | `.icon(Symbol)` | Leading icon |
-| `.hue(Theme.Hue.RED)` | Colored top accent bar (for example, marking production connections; appears as `value="red"` in tree dumps) |
+| `.hue(Theme.Hue.RED)` | Colored leading tick (for example, marking production connections; appears as `value="red"` in tree dumps) |
 | `.busy(true)` | Replaces icon with a loading spinner (visible even on inactive tabs) |
+| `.tooltip(text)` | Tooltip while the pointer rests on the tab, such as a file's whole path |
 
 Passing `null` for `onSelect` disables the bar; `null` for `onClose` hides close buttons.
 
@@ -47,7 +48,7 @@ For nested tabs inside a card or pane (such as Result / Messages below a query),
 | `drag(Tabs.Dragging)`, `onTearOff(...)`, `id(...)`, `onDock(...)` | Low-level drag-and-drop and cross-bar docking (handled automatically by [TabGroups](/docs/components/tab-groups)) |
 | `contextMenu(menuState, items)` | Right-click / Menu-key context menu on tabs |
 | `variant(Tabs.Variant.LINE)` | Compact underline style instead of default `CARD` |
-| `active(false)` | Draws the active tab's line in `Theme.Accent.edgeMuted` instead of `edge` (for inactive split groups) |
+| `active(false)` | Omits the top accent mark in `CARD` and uses `Theme.Accent.edgeMuted` in `LINE` (for inactive split groups) |
 | `switchKeys(false)` | Lets Ctrl+Tab / Ctrl+PageUp/Down bubble to an outer `Tabs` bar when nesting tabs |
 
 To list all tabs when a bar overflows, keep one `Tabs.Overflow` instance per bar in your state and pass it to `Tabs.options().overflow(state.overflow)`. While the tabs do not fit, a button at the bar's end opens a dropdown listing every tab in bar order with its icon and the active tab checked; choosing a tab selects it and scrolls it into view, including when it is already active and scrolled off-screen.
@@ -67,7 +68,7 @@ Give each tab's content a unique `.key(...)` so focus is remembered per tab when
 
 ## In a tree dump
 
-`role=tablist` (`#tablist`), tabs as `role=tab` (`#tab-<index>`, `selected`, `busy`, `modified`, `grabbed`), close buttons as `role=button` (`#close-<index>`, `label="Close <title>"`), new-tab button as `role=button` (`#add`, `label="New tab"`), overflow button as `role=button` (`#overflow`, `label="All tabs"`) while the tabs overflow and its empty room `#room` otherwise, active content as `#panel` (`role=tabpanel`), drag marker `#marker`, and line indicator `#indicator`:
+`role=tablist` (`#tablist`), tabs as `role=tab` (`#tab-<index>`, `selected`, `busy`, `modified`, `grabbed`), close buttons as `role=button` (`#close-<index>`, `label="Close <title>"`), new-tab button as `role=button` (`#add`, `label="New tab"`), overflow button as `role=button` (`#overflow`, `label="All tabs"`) while the tabs overflow and its empty room `#room` otherwise, active content as `#panel` (`role=tabpanel`), drag marker `#marker`, and active indicator `#indicator`:
 
-```text file="examples/src/test/resources/golden/docs/tabs/view.tree.txt" start="#tablist" count="7"
+```text file="examples/src/test/resources/golden/docs/tabs/view.tree.txt" start="#tablist" count="8"
 ```

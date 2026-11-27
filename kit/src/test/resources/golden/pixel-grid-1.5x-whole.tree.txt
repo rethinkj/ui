@@ -12,17 +12,21 @@ el 0,0 520x420
         text "Wrap" 171,52 33x16
     el #tabs 12,84 220x64
       el #bar 13,85 218x33
-        el #tablist role=tablist 15,85 186x32
-          el #tab-0 role=tab label="orders" 15,85 76x32 selected
-            el 15,115 76x2
-            text "orders" 23,93 40x16
-            el #close-0 role=button label="Close orders" 67,93 16x16
-              text label="dismiss" "\u{F368}" 67,93 16x16
-          el #tab-1 role=tab label="customers" 93,85 108x32 modified
-            el 101,99 4x4
-            text "customers" 109,93 64x16
-            el #close-1 role=button label="Close customers" 177,93 16x16
-              text label="dismiss" "\u{F368}" 177,93 16x16
+        el 13,85 218x33
+        el #tablist role=tablist 17,89 174x29
+          el #tab-0 role=tab label="orders" 17,89 74x29 selected
+            text "orders" 26,96 40x16
+            el 66,90 24x28
+              el #close-0 role=button label="Close orders" 70,96 16x16
+                text label="dismiss" "\u{F367}" 72,98 12x12
+            el #indicator 23,89 62x2
+          el #tab-1 role=tab label="customers" 93,89 98x29 modified
+            el 93,89 98x28
+            text "customers" 102,96 64x16
+            el 166,90 24x28
+              el #close-1 role=button label="Close customers" 170,96 16x16
+                el 175,101 6x6
+                text label="dismiss" "\u{F367}" 172,98 12x12
       el #panel role=tabpanel label="orders" 13,118 218x29
         text #tab-content "Rows" 13,118 218x29
     el #card 12,160 220x134

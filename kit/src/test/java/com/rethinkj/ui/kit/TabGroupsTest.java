@@ -44,8 +44,8 @@ import org.junit.jupiter.api.io.TempDir;
  *
  * <p>The main window is 400 by 160 at 100,100 on the script's screen and shows the tabs alone,
  * a, b, c and d; a window torn off is 300 by 160 and shows its frame the same way. In both the
- * bar's tabs are 32 high from y 1, a from x 3, b from 48, c from 94 and d from 139; the scripts
- * press them 5 pixels inside their left edge, since a tab's center is on its cross.
+ * bar's tabs are 29 high from y 5, a from x 5, b from 48, c from 92 and d from 135; the scripts
+ * press them inside their left edge, since a tab's center is on its cross.
  */
 class TabGroupsTest {
 
@@ -121,7 +121,7 @@ class TabGroupsTest {
         up 100,17""");
     String moving = tree("moving");
     assertTrue(line(moving, "#tab-0").endsWith("selected grabbed hovered"), moving);
-    assertTrue(line(moving, "#marker").startsWith("el #marker 92,"), "between b and c: " + moving);
+    assertTrue(line(moving, "#marker").startsWith("el #marker 90,"), "between b and c: " + moving);
     Docs d = app.state();
     assertEquals(List.of(List.of("b", "a", "c", "d")), order(d));
     assertEquals(1, d.groups.main().active().active(), "a stays active");
@@ -164,8 +164,8 @@ class TabGroupsTest {
   // Tearing off and docking
 
   /**
-   * b dragged out of the bar, below it, to the screen at 152,220, where its window opens at 145,203:
-   * held 4,16 from the top left of its tab, which lies at 3,1 in that window.
+   * b dragged out of the bar, below it, to the screen at 152,220, where its window opens at
+   * 143,203: held 4,12 from the top left of its tab, which lies at 5,5 in that window.
    */
   private static final String TEAR_B = """
       down 52,17
@@ -186,7 +186,7 @@ class TabGroupsTest {
     assertEquals(List.of(List.of("a", "c", "d"), List.of("b")), order(d));
     Windows.Handle b = d.groups.groups().get(1).window();
     assertEquals("b", b.title());
-    assertEquals(400 - 7, b.x());
+    assertEquals(400 - 9, b.x());
     assertEquals(400 - 17, b.y());
     assertTrue(line(tree("b-torn"), "#tab-0").contains("selected grabbed"), tree("b-torn"));
     assertFalse(tree("b-s").contains("grabbed"));
@@ -200,7 +200,7 @@ class TabGroupsTest {
         frame
         snap docking
         up screen 200,117""");
-    assertTrue(line(tree("docking"), "#marker").startsWith("el #marker 92,"), tree("docking"));
+    assertTrue(line(tree("docking"), "#marker").startsWith("el #marker 90,"), tree("docking"));
     Docs d = app.state();
     assertEquals(List.of(List.of("a", "c", "b", "d")), order(d));
     assertEquals(2, d.groups.main().active().active(), "the docked tab is active");
@@ -496,12 +496,9 @@ class TabGroupsTest {
     assertSame(find(rightRoot, "tablist"), app.focused(), "focus went to the new group's bar");
     assertEquals(
         Theme.DARK.accent().edge(),
-        find(rightRoot, "tab-0").children().getFirst().fill(),
-        "active group gets the accent line");
-    assertEquals(
-        Theme.DARK.accent().edgeMuted(),
-        find(leftRoot, "tab-" + left.active()).children().getFirst().fill(),
-        "inactive group gets the muted line");
+        find(rightRoot, "indicator").fill(),
+        "active group gets the accent mark");
+    assertNull(find(leftRoot, "indicator"), "inactive group omits the accent mark");
 
     // Closing the right group's last tab removes it, leaves one unsplit group and moves focus back.
     Script.run("size 400 160\nkey W control\nframe", app, out);
@@ -513,8 +510,8 @@ class TabGroupsTest {
     assertSame(find(app.tree(), "tablist"), app.focused(), "focus moved to the staying group");
     assertEquals(
         Theme.DARK.accent().edge(),
-        find(app.tree(), "tab-" + left.active()).children().getFirst().fill(),
-        "the staying group has the accent line again");
+        find(app.tree(), "indicator").fill(),
+        "the staying group has the accent mark again");
   }
 
   @Test
