@@ -3365,7 +3365,7 @@ public final class App<S> {
                 - area.border(Side.BOTTOM)
                 - area.padding(Side.BOTTOM)
                 - area.coverY());
-        double nextX = area.isFieldPart(next)
+        double nextX = area.isFieldPart(next) && !area.isPinnedFieldBlock(next)
             ? area.scrollX() + revealDelta(x, rw, viewX, viewW)
             : area.scrollX();
         float shown = coveredTo > viewY && coveredTo < viewY + viewH ? coveredTo - viewY : 0;

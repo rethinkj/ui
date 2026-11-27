@@ -737,8 +737,8 @@ class CodeEditorMarkupTest {
         /// Line two of doc
         void run() {
           first();
-          second();
-        }""";
+          second(); // %s
+        }""".formatted("x".repeat(80));
     Language docLang = new Language() {
       @Override
       public Object line(String line, Object state, Spans out) {
@@ -823,6 +823,30 @@ class CodeEditorMarkupTest {
     assertTrue(
         secondNoteY < visionY, "mark blocks come before CodeVision of next line:\n" + initial);
 
+    // 1b. Horizontal scroll keeps Block marks at the left edge while doc comments and CodeVision
+    // scroll with the code; focusing a field in a Block mark leaves horizontal scroll unchanged.
+    El codeEl = findByKey(app.tree(), "code");
+    int cardX0 = blockX(initial, "review-card");
+    int docX0 = blockX(initial, "doc-0");
+    int visionX0 = blockX(initial, "vision-4");
+    app.scrollTo(codeEl, 160, 0);
+    app.frame();
+    double scrolledX = findByKey(app.tree(), "code").scrollX();
+    assertTrue(scrolledX > 100, "editor scrolled horizontally: " + scrolledX);
+    Script.run("size 520 360 scale 2\nframe\nsnap scrolled", app, out);
+    String scrolled = Files.readString(out.resolve("scrolled.tree.txt"));
+    assertEquals(cardX0, blockX(scrolled, "review-card"), "Block mark stays at left edge");
+    assertTrue(blockX(scrolled, "doc-0") < docX0 - 80, "rendered doc scrolls with code");
+    assertTrue(blockX(scrolled, "vision-4") < visionX0 - 80, "CodeVision scrolls with code");
+    Script.run("size 520 360 scale 2\nfocus #reply-field\nframe", app, out);
+    assertEquals(
+        scrolledX,
+        findByKey(app.tree(), "code").scrollX(),
+        0.5,
+        "focusing a field inside a Block mark does not scroll code sideways");
+    app.scrollTo(findByKey(app.tree(), "code"), 0, 0);
+    app.frame();
+
     // 2. Kit TextField inside a keyed block keeps focus and text across rebuilds.
     Script.run("""
         size 520 360 scale 2
@@ -904,6 +928,31 @@ class CodeEditorMarkupTest {
     assertTrue(undone.contains("#review-card "), undone);
     assertTrue(undone.contains("#second-note "), undone);
     assertTrue(undone.contains("\"looks good\""), undone);
+  }
+
+  /** The x coordinate of the block element with key {@code key} in {@code tree}. */
+  private static int blockX(String tree, String key) {
+    String line = tree.lines()
+        .filter(l -> l.contains(" #" + key + " "))
+        .findFirst()
+        .orElseThrow(() -> new AssertionError("Missing #" + key + " in:\n" + tree));
+    String[] parts = line.trim().split(" ");
+    String coords = parts[parts.length - 2];
+    return Integer.parseInt(coords.substring(0, coords.indexOf(',')));
+  }
+
+  /** Finds the element with key {@code key} under {@code el}. */
+  private static El findByKey(El el, String key) {
+    if (key.equals(el.key())) {
+      return el;
+    }
+    for (El child : el.children()) {
+      El found = findByKey(child, key);
+      if (found != null) {
+        return found;
+      }
+    }
+    return null;
   }
 
   /** The y coordinate of the block element with key {@code key} in {@code tree}. */

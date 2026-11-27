@@ -800,6 +800,163 @@ class BlockTest {
   }
 
   @Test
+  void pinnedBlockStaysAtLeftEdgeWithContentWidthAndWorksWithFocusAndPairing() {
+    String longLine = " ".repeat(40) + "void deeplyIndented() {}";
+    String[] reply = {""};
+    AtomicInteger builds = new AtomicInteger();
+    State state = new State(
+        longLine + "\nsecond\nthird", El.Block.insert(0), El.Block.insert(1).pinned(true));
+    state.builder = b -> b.pinned()
+        ? El.row()
+            .key("pinned-card")
+            .h(26)
+            .whenHovered(e -> e.w(500).minSize(500, 0).padding(0, 8).style().boxSizing =
+                Style.BoxSizing.CONTENT_BOX) // a look that tries to widen it
+            .child(El.text(reply[0])
+                .editable(v -> reply[0] = v)
+                .key("pin-input")
+                .font(Font.mono())
+                .fontSize(12)
+                .w(80))
+            .child(El.el().grow(1))
+            .child(El.text("btn").key("pin-btn").fontSize(12).onPress(() -> {}))
+        : El.row().key("unpinned-row").h(20).child(El.el().w(300));
+    App<State> app = new App<>(state, s -> {
+      builds.incrementAndGet();
+      return El.col()
+          .wFull()
+          .hFull()
+          .padding(10)
+          .child(El.text(s.value)
+              .editable(v -> s.value = v)
+              .multiline()
+              .font(Font.mono())
+              .fontSize(14)
+              .w(200)
+              .lines(6)
+              .gutter(line -> El.row()
+                  .padding(0, 4, 0, 0)
+                  .child(El.text(String.valueOf(line.index() + 1))
+                      .font(Font.mono())
+                      .fontSize(14)))
+              .blocks(s.blocks, s.builder, s::reveal));
+    });
+    app.textRendering(TextRendering.LINUX);
+    app.resize(300, 260, 1);
+    app.frame();
+
+    El f = field(app);
+    float contentLeft = f.border(Side.LEFT) + f.padding(Side.LEFT);
+    float contentWidth = f.width()
+        - f.border(Side.LEFT)
+        - f.padding(Side.LEFT)
+        - f.border(Side.RIGHT)
+        - f.padding(Side.RIGHT);
+    int buildsBeforeScroll = builds.get();
+    f.setScroll(220, 0); // as a wheel does, before the frame places the blocks again
+    assertEquals(contentLeft, findChild(f, "pinned-card").x(), 0.5f, "pinned before placing");
+    f.setScroll(0, 0);
+
+    // Scroll right without rebuilding the tree: unpinned moves, pinned stays at contentLeft with
+    // contentWidth.
+    app.scrollTo(f, 220, 0);
+    app.frame();
+    assertEquals(buildsBeforeScroll, builds.get(), "horizontal scroll does not rebuild the tree");
+    f = field(app);
+    float scrolledX = (float) f.scrollX();
+    assertTrue(scrolledX > 150, "field scrolled horizontally: " + scrolledX);
+    El unpinned = findChild(f, "unpinned-row");
+    El pinned = findChild(f, "pinned-card");
+    assertEquals(
+        contentLeft - scrolledX, unpinned.x(), 1.0f, "unpinned block scrolls sideways with text");
+    assertEquals(contentLeft, pinned.x(), 0.5f, "pinned block stays at contentLeft");
+    assertEquals(contentWidth, pinned.width(), 0.5f, "pinned block keeps content width");
+
+    // Focusing and typing in a text field inside the pinned block keeps scrollX unchanged.
+    El pinInput = findChild(pinned, "pin-input");
+    float ix = 10 + pinned.x() + pinInput.x() + pinInput.width() / 2;
+    float iy = 10 + pinned.y() + pinInput.y() + pinInput.height() / 2;
+    app.pointerDown(ix, iy);
+    app.pointerUp(ix, iy);
+    app.frame();
+    assertEquals("pin-input", app.focused().key(), "clicking input in pinned block focuses it");
+    assertEquals(
+        scrolledX, (float) field(app).scrollX(), 0.5f, "focusing in pinned block keeps scrollX");
+    type(app, "ok");
+    assertEquals("ok", reply[0], "typing reaches input inside pinned block");
+    assertEquals(
+        scrolledX, (float) field(app).scrollX(), 0.5f, "typing in pinned block keeps scrollX");
+
+    // A look that widens a pinned block keeps it, and the controls laid out in it, in the view.
+    El pinnedNow = findChild(field(app), "pinned-card");
+    El pinBtn = findChild(pinnedNow, "pin-btn");
+    app.pointerMove(
+        10 + pinnedNow.x() + pinBtn.x() + pinBtn.width() / 2,
+        10 + pinnedNow.y() + pinBtn.y() + pinBtn.height() / 2);
+    app.frame();
+    pinnedNow = findChild(field(app), "pinned-card");
+    pinBtn = findChild(pinnedNow, "pin-btn");
+    assertEquals(contentWidth, pinnedNow.width(), 0.5f, "a look keeps it at content width");
+    assertEquals(
+        contentWidth - 8, pinBtn.x() + pinBtn.width(), 0.5f, "its button stays at its end");
+
+    // Pinned and paired together across two coupled non-wrapping fields.
+    ScrollState leftScroll = new ScrollState();
+    ScrollState rightScroll = new ScrollState();
+    leftScroll.scrollWith(rightScroll, List.of());
+    El.Block pairedPinned = El.Block.insert(1).paired("review").pinned(true);
+    App<Void> coupled = new App<>(
+        null,
+        unused -> El.row()
+            .wFull()
+            .hFull()
+            .children(
+                El.text(longLine + "\nline1\nline2")
+                    .editable(v -> {})
+                    .multiline()
+                    .font(Font.mono())
+                    .fontSize(14)
+                    .w(180)
+                    .lines(6)
+                    .scrollState(leftScroll)
+                    .blocks(List.of(pairedPinned), b -> El.el().key("left-pin").h(60), null),
+                El.text(longLine + "\nline1\nline2")
+                    .editable(v -> {})
+                    .multiline()
+                    .font(Font.mono())
+                    .fontSize(14)
+                    .w(180)
+                    .lines(6)
+                    .scrollState(rightScroll)
+                    .blocks(List.of(pairedPinned), b -> El.el().key("right-pin").h(20), null)));
+    coupled.textRendering(TextRendering.LINUX);
+    coupled.resize(400, 220, 1);
+    coupled.frame();
+    El leftField = coupled.tree().children().get(0);
+    El rightField = coupled.tree().children().get(1);
+    coupled.scrollTo(leftField, 180, 0);
+    coupled.scrollTo(rightField, 180, 0);
+    coupled.frame();
+    leftField = coupled.tree().children().get(0);
+    rightField = coupled.tree().children().get(1);
+    assertTrue(leftField.scrollX() > 100 && rightField.scrollX() > 100);
+    El leftPin = findChild(leftField, "left-pin");
+    El rightPin = findChild(rightField, "right-pin");
+    assertEquals(60f, leftPin.height(), 0.5f, "paired pinned left block keeps larger height");
+    assertEquals(60f, rightPin.height(), 0.5f, "paired pinned right block matches partner height");
+    assertEquals(
+        leftField.border(Side.LEFT) + leftField.padding(Side.LEFT),
+        leftPin.x(),
+        0.5f,
+        "paired pinned left block stays at contentLeft");
+    assertEquals(
+        rightField.border(Side.LEFT) + rightField.padding(Side.LEFT),
+        rightPin.x(),
+        0.5f,
+        "paired pinned right block stays at contentLeft");
+  }
+
+  @Test
   void overlaysOnBlockAndLineEndPartsAttachOnFirstFrame() {
     boolean[] menuOpen = {false};
     AtomicInteger menuClicks = new AtomicInteger();

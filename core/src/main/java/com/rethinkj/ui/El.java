@@ -181,6 +181,7 @@ public final class El {
   private List<Text.Box> rangeBoxes; // the rows of the range, from this element's corner
   private FieldPart fieldPartKey; // non-null on a field's post-layout part; see Animator
   private boolean overflowsBlock; // a block its builder did not clip: wider children show
+  private boolean pinnedBlock; // a block pinned to the content's left edge; see Block#pinned
   private float blockMeasuredHeight = Float.NaN; // natural height before pairing stretches its band
 
   /** Which kind of post-layout child of a multi-line field an element is. */
@@ -308,6 +309,11 @@ public final class El {
    * shrinking together; a block that is not yet measured takes its partner's height once measured,
    * or counts as one line of its field until then, the same on both sides of equal line height.
    *
+   * <p>In a field that does not wrap, a block scrolls sideways with the text by default. Setting
+   * {@link #pinned(boolean) pinned} keeps it at the left edge of the content box with the content
+   * box's width while the text scrolls sideways, and focusing an element inside it does not scroll
+   * the field horizontally.
+   *
    * @param placement whether the block inserts space before a line or replaces a whole-line range
    * @param first the line index, from 0 (up to the line count for {@link Placement#INSERT})
    * @param last equal to {@code first} for {@link Placement#INSERT}; the last hidden line, at least
@@ -315,8 +321,11 @@ public final class El {
    * @param lines exact height in text lines, or 0 to measure the block's element
    * @param pair optional key pairing this block's height with a block of an equal key in a {@link
    *     ScrollState#scrollWith coupled} multi-line field, or {@code null} if unpaired
+   * @param pinned whether to keep this block at the content box's left edge with the content box's
+   *     width while a non-wrapping field scrolls sideways
    */
-  public record Block(Placement placement, int first, int last, int lines, Object pair) {
+  public record Block(
+      Placement placement, int first, int last, int lines, Object pair, boolean pinned) {
 
     /** How a {@link Block} relates to the lines of the field's string. */
     public enum Placement {
@@ -344,24 +353,29 @@ public final class El {
       }
     }
 
-    /** Creates an unpaired block with {@code pair} set to {@code null}. */
+    /** Creates an unpaired, unpinned block, with {@code pair} {@code null}. */
     public Block(Placement placement, int first, int last, int lines) {
-      this(placement, first, last, lines, null);
+      this(placement, first, last, lines, null, false);
+    }
+
+    /** Creates an unpinned block with {@code pinned} set to {@code false}. */
+    public Block(Placement placement, int first, int last, int lines, Object pair) {
+      this(placement, first, last, lines, pair, false);
     }
 
     /** A block inserted before line {@code line} (or after the last line when equal to line count). */
     public static Block insert(int line) {
-      return new Block(Placement.INSERT, line, line, 0, null);
+      return new Block(Placement.INSERT, line, line, 0, null, false);
     }
 
     /** A block replacing lines {@code first} through {@code last} inclusive. */
     public static Block replace(int first, int last) {
-      return new Block(Placement.REPLACE, first, last, 0, null);
+      return new Block(Placement.REPLACE, first, last, 0, null, false);
     }
 
     /** A copy of this block with an exact height of {@code lines} text lines, or 0 to measure. */
     public Block lines(int lines) {
-      return new Block(placement, first, last, lines, pair);
+      return new Block(placement, first, last, lines, pair, pinned);
     }
 
     /**
@@ -373,7 +387,17 @@ public final class El {
      * height.
      */
     public Block paired(Object key) {
-      return new Block(placement, first, last, lines, key);
+      return new Block(placement, first, last, lines, key, pinned);
+    }
+
+    /**
+     * A copy of this block with {@link #pinned() pinned} set to {@code pinned}: in a field that
+     * does not wrap, a pinned block stays at the left edge of the content box with the content
+     * box's width while the text scrolls sideways, and focusing an element inside it does not
+     * scroll the field horizontally.
+     */
+    public Block pinned(boolean pinned) {
+      return new Block(placement, first, last, lines, pair, pinned);
     }
   }
 
@@ -2443,6 +2467,9 @@ public final class El {
           exact |= cached.getValue() == part && cached.getKey().block().lines() > 0;
         }
         scaleText(part, scale, systemFonts, resolvedLineHeight);
+        if (part.pinnedBlock) {
+          pinWidth(part, contentWidth); // over a look that changed its width
+        }
         if (exact) {
           part.style.height = Len.px(bh);
           Flex.layout(part, contentWidth, bh);
@@ -2451,7 +2478,8 @@ public final class El {
           part.blockMeasuredHeight = part.height;
         }
         float blockW = contentWidth;
-        if (!text.wraps()) { // as measureBlock: wider children show unless the builder clipped it
+        // As measureBlock: wider children of an unpinned block show unless the builder clipped it.
+        if (!text.wraps() && !part.pinnedBlock) {
           float[] extent = {part.width, 0};
           for (El child : part.overflowsBlock ? part.children : List.<El>of()) {
             if (child.placed && !child.exiting) {
@@ -2794,6 +2822,14 @@ public final class El {
     return field != null && !field.blockElements.isEmpty() && field.blockElements.contains(child);
   }
 
+  /**
+   * For {@link App}: whether {@code child} is a {@link Block#pinned() pinned} line block of this
+   * field.
+   */
+  boolean isPinnedFieldBlock(El child) {
+    return child.pinnedBlock && isFieldBlock(child);
+  }
+
   /** For {@link App}: whether {@code child} is one of this field's placed inline hints. */
   boolean isFieldHint(El child) {
     return field != null && !field.hintElements.isEmpty() && field.hintElements.contains(child);
@@ -2862,7 +2898,9 @@ public final class El {
       built.key(ordinal == 0 ? "block-" + block.first() : "block-" + block.first() + "-" + ordinal);
     }
     built.keepFocus(); // focusing the field would scroll to the caret before the press ends
-    if (text.wraps()) {
+    if (block.pinned()) {
+      pinWidth(built, contentWidth);
+    } else if (text.wraps()) {
       built.style.width = Len.px(contentWidth);
     } else if (built.style.width.kind() == Len.Kind.AUTO
         && built.style.minWidth.pixelsOrZero() < contentWidth) {
@@ -2877,7 +2915,7 @@ public final class El {
       Flex.layout(built, contentWidth, Measure.MAX_CONTENT);
     }
     built.blockMeasuredHeight = built.height;
-    if (!text.wraps()) {
+    if (!text.wraps() && !block.pinned()) {
       // Unclipped children wider than the view (such as deeply indented rows) stay reachable when
       // scrolled sideways; Scene clips the block to the field's content box.
       float[] extent = {built.width, 0};
@@ -2886,11 +2924,20 @@ public final class El {
         built.place(built.x, built.y, extent[0], built.height);
       }
     }
+    built.pinnedBlock = block.pinned();
     built.overflowsBlock = built.style.overflowX == Style.Overflow.VISIBLE
         && built.style.overflowY == Style.Overflow.VISIBLE;
     built.clip(); // a block draws in its band only
     field.blockCache.put(key, built);
     return built;
+  }
+
+  /** Fixes a pinned block to {@code width}, the content width, whatever its builder or look set. */
+  private static void pinWidth(El block, float width) {
+    block.style.boxSizing = Style.BoxSizing.BORDER_BOX; // padding and border inside the width
+    block.style.width = Len.px(width);
+    block.style.minWidth = Len.px(width);
+    block.style.maxWidth = Len.px(width);
   }
 
   /** For {@link Text}: natural measured height of a block element before pairing stretches it. */
@@ -3273,9 +3320,11 @@ public final class El {
       if (blockEl == null) {
         continue;
       }
-      float blockX = contentLeft - viewX / scale + (float) scrollX;
+      boolean pinned = pb.block().pinned();
+      float blockX = pinned ? contentLeft : contentLeft - viewX / scale + (float) scrollX;
       float blockY = (float) ((pb.top() - viewY) / scale);
-      float blockW = text.wraps() ? contentWidth : Math.max(contentWidth, blockEl.laidOutWidth());
+      float blockW =
+          text.wraps() || pinned ? contentWidth : Math.max(contentWidth, blockEl.laidOutWidth());
       float blockH = (float) (pb.height() / scale);
       blockEl.place(blockX, contentTop + blockY + (float) scrollY, blockW, blockH);
       elements.add(blockEl);
@@ -5793,7 +5842,7 @@ public final class El {
     // Rows are placed from the first one that exists, so the offset moves them from there.
     float shiftY = (float) (rows == null ? newY : newY - rowTop(rows.firstRow));
     for (El child : children) {
-      child.shiftX = (float) newX;
+      child.shiftX = child.pinnedBlock ? 0 : (float) newX; // a pinned block stays at the left
       child.shiftY = shiftY;
     }
     return changed;
