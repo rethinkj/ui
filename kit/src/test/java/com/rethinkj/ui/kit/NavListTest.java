@@ -359,6 +359,233 @@ class NavListTest {
   }
 
   @Test
+  void aKeyOpenedRowMenuDoesNotReopenAfterTheAppChangesSelectionWhileTheRowIsOutOfView()
+      throws IOException {
+    Menu.State rowMenu = new Menu.State();
+    selected = 0;
+    App<NavListTest> app = new App<>(
+        this,
+        state -> col()
+            .wFull()
+            .hFull()
+            .child(NavList.navList(
+                    100,
+                    i -> i == 0
+                        ? NavList.item("Row A")
+                            .contextMenu(rowMenu, List.of(Menu.item("Inspect A", () -> {})))
+                        : NavList.item("Row " + i),
+                    state.selected,
+                    i -> state.selected = i)
+                .key("list")
+                .grow(1)));
+    app.textRendering(TextRendering.LINUX);
+
+    // Select A, scroll A out of view, then open A's menu with Shift+F10 on the focused list.
+    Script.run("""
+        size 240 200
+        frame
+        wheel #list 0 1000
+        frame
+        advance 1
+        frame
+        focus #list
+        frame
+        key F10 shift
+        frame
+        advance 1
+        frame
+        """, app, out);
+    String dump = app.tree().dump();
+    assertFalse(dump.contains("label=\"Row A\""), "Row A must be scrolled out of view: " + dump);
+    assertTrue(rowMenu.isOpen(), "Shift+F10 must open Row A's menu");
+    assertTrue(dump.contains("on #list role=listbox"), dump);
+    assertTrue(dump.contains("role=menuitem label=\"Inspect A\""), dump);
+
+    // Rebuilding while Row A stays selected keeps the key-opened menu open.
+    app.invalidate();
+    app.frame();
+    assertTrue(rowMenu.isOpen(), "menu stays open while selection stays on Row A");
+
+    // The app selects Row B (no menu) for one build, then Row A again: the menu that comes back
+    // closes in the next frame instead of staying open.
+    selected = 50;
+    app.invalidate();
+    app.frame();
+    selected = 0;
+    app.invalidate();
+    app.frame();
+    app.frame();
+    assertFalse(rowMenu.isOpen(), "menu must close once selection left Row A for a build");
+    app.advance(1);
+    app.frame();
+    assertFalse(app.tree().dump().contains("role=menu"), app.tree().dump());
+  }
+
+  @Test
+  void groupHeadersShowLeadingAndActionsWithoutToggling() throws IOException {
+    boolean[] openApi = {true};
+    boolean[] openDocs = {false};
+    int[] toggles = {0, 0};
+    int[] added = {0, 0};
+    int[] selectedRow = {1};
+    App<NavListTest> app = new App<>(this, state -> {
+      Theme theme = Theme.CURRENT.get();
+      Button.Options small = Button.options().size(Button.Size.SMALL);
+      List<NavList.Entry> entries = new ArrayList<>();
+      entries.add(NavList.group("api")
+          .leading(Avatar.avatar("api", null, theme.size().controlSmall()))
+          .count("2")
+          .open(openApi[0], () -> {
+            toggles[0]++;
+            openApi[0] = !openApi[0];
+          })
+          .actions(Button.icon(
+              Button.Variant.GHOST, Symbol.ADD, "New session in api", () -> added[0]++, small)));
+      if (openApi[0]) {
+        entries.add(NavList.item("Fix login redirect")
+            .detail("feat/auth")
+            .trailing(trailing(theme, "2m", Symbol.CHECKMARK_CIRCLE, Icon.Variant.SUCCESS)));
+        entries.add(NavList.item("Rate limits")
+            .detail("main")
+            .trailing(trailing(theme, "7h", Symbol.CLOCK, Icon.Variant.MUTED)));
+      }
+      entries.add(NavList.group("docs")
+          .leading(Avatar.avatar("docs", null, theme.size().controlSmall()))
+          .count("3")
+          .open(openDocs[0], () -> {
+            toggles[1]++;
+            openDocs[0] = !openDocs[0];
+          })
+          .actions(Button.icon(
+              Button.Variant.GHOST, Symbol.ADD, "New session in docs", () -> added[1]++, small)));
+      if (openDocs[0]) {
+        entries.add(NavList.item("Getting started").detail("main"));
+      }
+      El list =
+          NavList.navList(entries, selectedRow[0], i -> selectedRow[0] = i).key("groups");
+      return col()
+          .wFull()
+          .hFull()
+          .padding(theme.space().l())
+          .fill(theme.surface().window())
+          .child(Card.flush(Card.inset(list)).grow(1));
+    });
+    app.textRendering(TextRendering.LINUX);
+
+    List<Path> files =
+        Script.run("size 320 212 scale 2\nframe\nsnap groups\n", app, out.resolve("groups-dark2"));
+    Golden.assertSnaps("nav-list-dark-2x-", files, "groups");
+
+    // The tree dump shows the toggle button and the actions container as siblings, not nested.
+    String dump = app.tree().dump();
+    List<String> lines = dump.lines().toList();
+    int toggleIndex = -1;
+    int actionIndex = -1;
+    for (int i = 0; i < lines.size(); i++) {
+      if (lines.get(i).contains("role=button label=\"api\"")) {
+        toggleIndex = i;
+      } else if (lines.get(i).contains("role=button label=\"New session in api\"")) {
+        actionIndex = i;
+      }
+    }
+    assertTrue(toggleIndex >= 0 && actionIndex > toggleIndex, dump);
+    assertEquals(
+        indent(lines.get(toggleIndex)),
+        indent(lines.get(actionIndex)),
+        "the action must be a sibling of the toggle button:\n" + dump);
+    assertTrue(StructureTest.line(dump, "label=\"api\"").contains(" expanded"), dump);
+    assertTrue(StructureTest.line(dump, "label=\"docs\"").contains(" expanded=false"), dump);
+
+    // Pressing the action runs its handler while leaving the group state untouched.
+    Script.run("press label=\"New session in api\"\nframe\n", app, out);
+    assertEquals(1, added[0]);
+    assertEquals(0, toggles[0], "pressing an action must not toggle the group");
+    assertTrue(openApi[0]);
+
+    // Pressing on the leading avatar (inert) toggles the group; pressing again restores it.
+    Script.run("press role=button label=\"docs\"\nframe\n", app, out);
+    assertEquals(1, toggles[1]);
+    assertTrue(openDocs[0]);
+    Script.run("press role=button label=\"docs\"\nframe\n", app, out);
+    assertEquals(2, toggles[1]);
+    assertFalse(openDocs[0]);
+
+    // Tab moves from the toggle button to its action, and Enter runs the action without toggling.
+    Script.run("focus role=button label=\"api\"\nframe\nkey Tab\nframe\n", app, out);
+    String afterTab = app.tree().dump();
+    assertTrue(
+        StructureTest.line(afterTab, "label=\"New session in api\"").contains(" focused"),
+        afterTab);
+    Script.run("key Enter\nframe\n", app, out);
+    assertEquals(2, added[0]);
+    assertEquals(0, toggles[0]);
+
+    // A disabled list leaves the toggle and heading actions disabled and inert, and a plain
+    // heading also supports leading and actions.
+    int[] disabledToggles = {0};
+    int[] disabledAdded = {0};
+    App<NavListTest> disabled = new App<>(
+        this,
+        s -> col()
+            .wFull()
+            .hFull()
+            .child(NavList.navList(
+                    List.of(
+                        NavList.group("api")
+                            .leading(Avatar.avatar("api", null, 16))
+                            .open(true, () -> disabledToggles[0]++)
+                            .actions(Button.icon(
+                                Button.Variant.GHOST,
+                                Symbol.ADD,
+                                "New in disabled",
+                                () -> disabledAdded[0]++,
+                                Button.options().size(Button.Size.SMALL))),
+                        NavList.heading("Plain")
+                            .leading(Icon.icon(Symbol.FOLDER, Icon.Variant.MUTED))
+                            .open(true, () -> disabledToggles[0]++)
+                            .actions(Button.icon(
+                                Button.Variant.GHOST,
+                                Symbol.ADD,
+                                "Plain action",
+                                () -> disabledAdded[0]++,
+                                Button.options().size(Button.Size.SMALL)))),
+                    -1,
+                    null)
+                .key("disabled-list")));
+    disabled.textRendering(TextRendering.LINUX);
+    Script.run("size 240 120 scale 2\nframe\n", disabled, out.resolve("disabled"));
+    String disabledDump = disabled.tree().dump();
+    assertTrue(
+        StructureTest.line(disabledDump, "label=\"api\"").contains(" disabled"), disabledDump);
+    assertTrue(
+        StructureTest.line(disabledDump, "label=\"New in disabled\"").contains(" disabled"),
+        disabledDump);
+    assertTrue(
+        StructureTest.line(disabledDump, "label=\"Plain action\"").contains(" disabled"),
+        disabledDump);
+    // A press where the disabled action shows and Tab do nothing; a script refuses to press an
+    // inert element by name, so this presses its position.
+    String[] box =
+        StructureTest.line(disabledDump, "label=\"New in disabled\"").trim().split(" ");
+    String[] xy = box[box.length - 3].split(",");
+    String[] wh = box[box.length - 2].split("x");
+    int x = Integer.parseInt(xy[0]) + Integer.parseInt(wh[0]) / 2;
+    int y = Integer.parseInt(xy[1]) + Integer.parseInt(wh[1]) / 2;
+    Script.run("press " + x + "," + y + "\nframe\nkey Tab\nframe\n", disabled, out);
+    assertEquals(0, disabledAdded[0], "disabled list must leave heading actions inert");
+    assertEquals(0, disabledToggles[0], "disabled list must leave heading toggle inert");
+    assertFalse(disabled.tree().dump().contains(" focused"), disabled.tree().dump());
+  }
+
+  private static int indent(String line) {
+    int i = 0;
+    while (i < line.length() && line.charAt(i) == ' ') {
+      i++;
+    }
+    return i;
+  }
+
+  @Test
   void metaAndDetailEndKeepTheRightEdgeAndAPressOnThemSelectsTheRow() throws IOException {
     selected = 0;
     App<NavListTest> app = new App<>(this, state -> {

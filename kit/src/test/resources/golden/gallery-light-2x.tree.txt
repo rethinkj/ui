@@ -1319,6 +1319,66 @@ el 0,0 140x40
             text "logs" 38,12 26x16
             text "2m" 68,13 18x14
         text "12" 110,13 12x14
+# nav group, rest
+el 0,0 140x40
+  el #c role=listbox label="Projects" 10,6 120x28
+    el 10,6 120x28
+      el #item-0 role=button label="api" 12,8 116x24 expanded
+        el role=img label="api" 19,12 16x16
+          text "A" 24,16 6x8
+        text "api" 39,12 31x16
+        text "2" 74,13 7x14
+        text label="chevron_down" "\u{F2A1}" 109,14 12x12
+      el role=button label="New" 85,10 20x20
+        text label="add" "\u{F108}" 87,12 16x16
+# nav group, hover
+el 0,0 140x40
+  el #c role=listbox label="Projects" 10,6 120x28
+    el 10,6 120x28
+      el #item-0 role=button label="api" 12,8 116x24 expanded hovered
+        el role=img label="api" 19,12 16x16
+          text "A" 24,16 6x8
+        text "api" 39,12 31x16
+        text "2" 74,13 7x14
+        text label="chevron_down" "\u{F2A1}" 109,14 12x12
+      el role=button label="New" 85,10 20x20
+        text label="add" "\u{F108}" 87,12 16x16
+# nav group, pressed
+el 0,0 140x40
+  el #c role=listbox label="Projects" 10,6 120x28
+    el 10,6 120x28
+      el #item-0 role=button label="api" 12,8 116x24 expanded hovered
+        el role=img label="api" 19,12 16x16
+          text "A" 24,16 6x8
+        text "api" 39,12 31x16
+        text "2" 74,13 7x14
+        text label="chevron_down" "\u{F2A1}" 109,14 12x12
+      el role=button label="New" 85,10 20x20
+        text label="add" "\u{F108}" 87,12 16x16
+# nav group, focused
+el 0,0 140x40
+  el #c role=listbox label="Projects" 10,6 120x28
+    el 10,6 120x28
+      el #item-0 role=button label="api" 12,8 116x24 expanded focused
+        el role=img label="api" 19,12 16x16
+          text "A" 24,16 6x8
+        text "api" 39,12 31x16
+        text "2" 74,13 7x14
+        text label="chevron_down" "\u{F2A1}" 109,14 12x12
+      el role=button label="New" 85,10 20x20
+        text label="add" "\u{F108}" 87,12 16x16
+# nav group, disabled
+el 0,0 140x40
+  el #c role=listbox label="Projects" 10,6 120x28 disabled
+    el 10,6 120x28
+      el #item-0 role=button label="api" 12,8 116x24 disabled expanded
+        el role=img label="api" 19,12 16x16
+          text "A" 24,16 6x8
+        text "api" 39,12 31x16
+        text "2" 74,13 7x14
+        text label="chevron_down" "\u{F2A1}" 109,14 12x12
+      el role=button label="New" 85,10 20x20 disabled
+        text label="add" "\u{F108}" 87,12 16x16
 # status item, rest
 el 0,0 140x40
   el #c role=button label="localhost" 30,8 80x24 value="ok"

@@ -9,7 +9,7 @@ For hierarchical expandable data, use [Tree](/docs/components/tree). For horizon
 
 Javadoc: [`NavList`](/api/com/rethinkj/ui/kit/NavList.html).
 
-<Shot src="kit/gallery-{theme}-2x" rows="nav list" alt="A nav list item in each state" />
+<Shot src="kit/gallery-{theme}-2x" rows="nav list,nav group" alt="A nav list item and a group header in each state" />
 
 ## Example
 
@@ -24,13 +24,18 @@ Javadoc: [`NavList`](/api/com/rethinkj/ui/kit/NavList.html).
 | `navList(count, index -> entry, selected, onSelect)` | Virtualized list for large navigation lists |
 | `outline(entries, current, onPress)` | Table of contents that marks the `current` heading and tells every press, also one on the current item or Enter or Space on it, so a press goes back to its heading |
 | `NavList.item([icon,] label)` | Navigation item with optional `.meta(element)`, `.detail(text)` or `.detail(start, end)`, `.count(text)`, `.trailing(element)`, `.actions(buttons...)`, `.contextMenu(state, items)`, `.indent(levels)`, `.key(name)`, and `.disabled(true)` |
-| `NavList.heading(label)` | Non-selectable section heading with optional `.count(text)` and `.open(open, onToggle)` |
+| `NavList.heading(label)` | Non-selectable section heading with optional `.leading(element)`, `.count(text)`, `.actions(buttons...)`, and `.open(open, onToggle)` |
+| `NavList.group(label)` | Group header on a quiet filled surface with strong text, optional `.leading(element)`, `.count(text)`, `.actions(buttons...)`, and a far-right chevron with `.open(open, onToggle)` |
 
 Inside a card, wrap the list with `Card.inset(list)`.
 
-## Second line, trailing elements, and collapsible groups
+## Second line, trailing elements, and group headers
 
-Items can carry a quiet second line (`.detail(text)`), a trailing element after the count (`.trailing(element)`, such as a time the app formats and a status icon), and action buttons at the far right (`.actions(buttons...)`) that show only while the item is selected or under the pointer; pressing one does not select the item. Headings can show a quiet count (`.count(text)`) and open and close the group below them (`.open(open, onToggle)`): the app keeps which groups are open and leaves a closed group's items out of the entries.
+Items can carry a quiet second line (`.detail(text)`), a trailing element after the count (`.trailing(element)`, such as a time the app formats and a status icon), and action buttons at the far right (`.actions(buttons...)`) that show only while the item is selected or under the pointer; pressing one does not select the item.
+
+Headings can carry a passive leading element (`.leading(element)`, such as an [Avatar](/docs/components/avatar)), a quiet count (`.count(text)`), always-visible action buttons at the right end (`.actions(buttons...)`), and an open/close toggle (`.open(open, onToggle)`): the app keeps which groups are open and leaves a closed group's items out of the entries. Use `NavList.group(label)` for a group header on a quiet filled surface with strong text and its chevron at the far right, or `NavList.heading(label)` for a plain caption heading. Heading actions sit as siblings of the toggle button, so pressing one never toggles the group, and a disabled list (`onSelect` is `null`) leaves them disabled and inert.
+
+Heading actions are icon-sized, such as `Button.icon`: a collapsible heading keeps room for each by its set width and height, else that of one control.
 
 All rows share one height, so that the virtual form stays virtual: two lines high when any item has a detail, or in the virtual form when its first item has one.
 
@@ -40,7 +45,7 @@ All rows share one height, so that the virtual form stays virtual: two lines hig
 ```java snippet="nav-list-sessions"
 ```
 
-<Shot src="examples/docs/navigation-sessions/view-{theme}" alt="Sessions grouped by project: the open project api with two sessions, each with a branch under its title and an age at the right, the selected one with a pin button, and the closed project docs with its count 2" />
+<Shot src="examples/docs/navigation-sessions/view-{theme}" alt="Sessions grouped by project: the open group header api with an avatar, count 2, and a New session button above two sessions with branches and ages, and the closed group header docs with an avatar, count 2, and a New session button" />
 
 ## A right side for each line
 
@@ -73,11 +78,11 @@ Items can carry a per-row context menu with `.contextMenu(state, items)`. One `M
 
 ## Keyboard
 
-The list is one Tab stop: **Up**, **Down**, **Home**, **End**, **Page Up**, and **Page Down** move selection, skipping headings and disabled items, and **Shift+F10** or the **Menu** key opens the selected row's context menu. Collapsible headings are focusable buttons; **Enter** or **Space** while focused runs `onToggle`.
+The list is one Tab stop: **Up**, **Down**, **Home**, **End**, **Page Up**, and **Page Down** move selection, skipping headings and disabled items, and **Shift+F10** or the **Menu** key opens the selected row's context menu. Collapsible headings are focusable buttons; **Enter** or **Space** while focused runs `onToggle`, and **Tab** moves from the toggle to its heading actions.
 
 ## In a tree dump
 
-`role=listbox` (`disabled` if `onSelect` is `null`). Items are `role=option` with `selected`/`disabled`, `pos`, and key `#item-<index>` (unless `.key(...)` is set), with any `meta`, detail text or `detail(start, end)` slots in reading order, trailing element, and action buttons as children, and an open row context menu attached as an overlay on that row (so scripts can open it with `press <row> right`), or on the list when a key opened it. Plain headings have no role; collapsible headings are `role=button` with `expanded` or `expanded=false`:
+`role=listbox` (`disabled` if `onSelect` is `null`). Items are `role=option` with `selected`/`disabled`, `pos`, and key `#item-<index>` (unless `.key(...)` is set), with any `meta`, detail text or `detail(start, end)` slots in reading order, trailing element, and action buttons as children, and an open row context menu attached as an overlay on that row (so scripts can open it with `press <row> right`), or on the list when a key opened it. Plain headings have no role; collapsible headings are `role=button` with `expanded` or `expanded=false`, with any heading actions as siblings after the toggle:
 
 ```text file="examples/src/test/resources/golden/docs/navigation/view.tree.txt" start="role=listbox" count="5"
 ```

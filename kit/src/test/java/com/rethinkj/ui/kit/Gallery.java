@@ -246,6 +246,24 @@ final class Gallery {
                   choose(h))
               .w(WIDTH - 20)
               .label("Tables")),
+      new Row(
+          "nav group",
+          h -> NavList.navList(
+                  List.of(NavList.group("api")
+                      .leading(
+                          Avatar.avatar("api", null, Theme.CURRENT.get().size().icon()))
+                      .count("2")
+                      .open(true, () -> {})
+                      .actions(Button.icon(
+                          Variant.GHOST,
+                          Symbol.ADD,
+                          "New",
+                          h,
+                          Button.options().size(Button.Size.SMALL)))),
+                  -1,
+                  choose(h))
+              .w(WIDTH - 20)
+              .label("Projects")),
       new Row("status item", h -> StatusBar.status(StatusBar.State.OK, "localhost", h)),
       new Row(
           "badge",

@@ -18,6 +18,7 @@ import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
 import com.rethinkj.ui.kit.AppIcon;
+import com.rethinkj.ui.kit.Avatar;
 import com.rethinkj.ui.kit.Badge;
 import com.rethinkj.ui.kit.Breadcrumb;
 import com.rethinkj.ui.kit.Button;
@@ -438,6 +439,10 @@ final class Layouts {
     said = "pin " + value.title();
   }
 
+  void newSession(Project project) {
+    said = "new " + project.name();
+  }
+
   void openInNewTab(Session value) {
     said = "tab " + value.title();
   }
@@ -464,11 +469,15 @@ final class Layouts {
     List<NavList.Entry> entries = new ArrayList<>();
     List<Session> rows = new ArrayList<>(); // the session of each row, null for a heading
     int selected = -1;
+    Button.Options small = Button.options().size(Button.Size.SMALL);
     for (Project project : state.projects) {
       boolean open = !state.closed.contains(project.name());
-      entries.add(NavList.heading(project.name())
+      entries.add(NavList.group(project.name())
+          .leading(Avatar.avatar(project.name(), null, 20))
           .count(String.valueOf(project.sessions().size()))
-          .open(open, () -> state.toggle(project.name())));
+          .open(open, () -> state.toggle(project.name()))
+          .actions(Button.icon(
+              GHOST, Symbol.ADD, "New session", () -> state.newSession(project), small)));
       rows.add(null);
       for (Session session : open ? project.sessions() : List.<Session>of()) {
         if (session == state.session) {

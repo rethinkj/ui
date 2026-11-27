@@ -3,10 +3,14 @@ el 0,0 304x212
     el 13,13 278x186
       el role=listbox label="Sessions" 17,17 270x178
         el 17,17 270x44
-          el #item-0 role=button label="api" 19,35 266x24 expanded
-            text label="chevron_down" "\u{F2A1}" 25,41 12x12
-            text "api" 41,40 227x15
-            text "2" 272,40 7x15
+          el #item-0 role=button label="api" 19,27 266x32 expanded
+            el role=img label="api" 26,33 20x20
+              text "A" 33,38 6x10
+            text "api" 50,35 177x16
+            text "2" 231,36 7x15
+            text label="chevron_down" "\u{F2A1}" 266,37 12x12
+          el role=button label="New session" 242,33 20x20
+            text label="add" "\u{F108}" 244,35 16x16
         el #item-1 role=option label="Fix login redirect" 17,61 270x44 selected pos=2/4
           el 17,63 270x40
             el 19,75 2x16
@@ -28,7 +32,11 @@ el 0,0 304x212
               el role=button label="Pin"
                 text label="pin" "\u{F600}"
         el 17,149 270x44
-          el #item-3 role=button label="docs" 19,167 266x24 expanded=false
-            text label="chevron_right" "\u{F2AE}" 25,173 12x12
-            text "docs" 41,172 227x15
-            text "2" 272,172 7x15
+          el #item-3 role=button label="docs" 19,159 266x32 expanded=false
+            el role=img label="docs" 26,165 20x20
+              text "D" 33,170 6x10
+            text "docs" 50,167 177x16
+            text "2" 231,168 7x15
+            text label="chevron_right" "\u{F2AE}" 266,169 12x12
+          el role=button label="New session" 242,165 20x20
+            text label="add" "\u{F108}" 244,167 16x16
