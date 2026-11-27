@@ -1,0 +1,33 @@
+el 0,0 540x202
+  text #review role=textbox label="Query" "SELECT id, total\nFROM orders\nWHERE status = 'paid'\nORDER BY placed_at DESC;" 12,12 516x178 lines 1-4/4
+    el #rail 13,13 56x176
+    el #gutter 13,17 55x160
+      el #line-0 13,17 55x16
+        el 19,25 12x0
+        text "1" 35,17 7x16
+        el 46,25 2x0
+        el 52,25 12x0
+      el #line-1 13,33 55x16
+        el 19,41 12x0
+        text "2" 35,33 7x16
+        el 46,41 2x0
+        el 52,41 12x0
+      el #line-2 13,49 55x16
+        el 19,57 12x0
+        text "3" 35,49 7x16
+        el 46,57 2x0
+        el 52,57 12x0
+      el #line-3 13,159 55x16
+        el 19,167 12x0
+        text "4" 35,159 7x16
+        el 46,167 2x0
+        el 52,167 12x0
+    el #review-1 77,65 442x94
+      el 77,69 420x86
+        el 86,78 402x20
+          el role=img label="Ada Lovelace" 86,78 20x20
+            text "AL" 91,83 10x10
+          text "Ada Lovelace" 110,80 83x16
+          text "2m ago" 197,81 43x14
+        text "Should this also exclude refunded orders?" 86,102 402x16
+        text #reply role=textbox label="Write a reply" "" 86,122 402x24

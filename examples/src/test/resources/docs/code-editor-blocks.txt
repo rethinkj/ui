@@ -1,0 +1,4 @@
+# SQL query in the code editor with a framed review card attached below the WHERE line.
+size 540 202 scale 2
+frame
+snap view
