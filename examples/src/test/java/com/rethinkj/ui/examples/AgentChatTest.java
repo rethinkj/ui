@@ -147,4 +147,38 @@ class AgentChatTest {
     assertTrue(state.app.tree().dump().contains("invalid"));
     assertEquals(initialMessages + 2, state.session.messages.size());
   }
+
+  /** Pressing a closed project's new-session action opens the group and selects the new session. */
+  @Test
+  void projectActionCreatesAndSelectsASessionInAClosedProject(@TempDir Path out)
+      throws IOException {
+    Snaps.assumeText();
+    AgentChat state = new AgentChat(CLOCK);
+    state.app = new App<>(state, AgentChat::view).provide(Theme.CURRENT, AgentChat::theme);
+    assertTrue(state.closedProjects.contains("infra"));
+    Script.run("""
+        size 1280 800 scale 2
+        frame
+        press role=button label="New session in infra"
+        frame
+        """, state.app, out);
+
+    assertFalse(state.closedProjects.contains("infra"));
+    assertEquals("infra", state.session.project);
+    AgentChat.Project infra = state.projects.stream()
+        .filter(project -> "infra".equals(project.name()))
+        .findFirst()
+        .orElseThrow();
+    assertEquals(state.session, infra.sessions().getFirst());
+    String row = state
+        .app
+        .tree()
+        .dump()
+        .lines()
+        .filter(line -> line.contains("#session-" + state.session.id + " "))
+        .findFirst()
+        .orElseThrow();
+    assertTrue(row.contains("role=option label=\"New session\""), row);
+    assertTrue(row.contains("selected"), row);
+  }
 }

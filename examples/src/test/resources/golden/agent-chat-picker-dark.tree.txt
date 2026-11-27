@@ -32,53 +32,101 @@ el 0,0 1280x800
         el 9,74 242x717
           el role=listbox label="Sessions" 13,78 234x709
             el 13,78 234x44
-              el #item-0 role=button label="storefront" 15,96 230x24 expanded
-                text label="chevron_down" "\u{F2A1}" 21,102 12x12
-                text "storefront" 37,101 191x14
-                text "2" 232,101 7x14
+              el #item-0 role=button label="storefront" 15,88 230x32 expanded
+                el role=img label="storefront" 22,94 20x20
+                  text "S" 29,99 6x10
+                text "storefront" 46,96 141x16
+                text "2" 191,97 7x14
+                text label="chevron_down" "\u{F2A1}" 226,98 12x12
+              el role=button label="New session in storefront" 202,94 20x20
+                text label="add" "\u{F108}" 204,96 16x16
             el #session-orders role=option label="Slow orders query" 13,122 234x44 selected pos=2/6
               el 13,124 234x40
                 el 15,136 2x16
-                el 21,128 162x32
-                  text "Slow orders query" 21,128 162x16
-                  text "perf/orders-index" 21,146 162x14
-                el 187,137 24x14
-                  text "now" 187,137 24x14
-                el 215,132 24x24
-                  el role=button label="Unpin" 215,132 24x24 checked
-                    text label="pin" "\u{F600}" 219,136 16x16
+                el 37,124 178x40
+                  el 37,126 178x36
+                    el 37,126 178x16
+                      text "Slow orders query" 37,126 150x16
+                      text "now" 191,127 24x14
+                    el 37,144 178x18
+                      el 37,146 83x14
+                        el 37,146 83x14
+                          text label="server" "\u{F0360}" 37,147 12x12
+                          text "local" 51,146 27x14
+                      el 124,144 91x18
+                        el label="+2" 124,144 41x18
+                          text label="branch" "\u{F0A6}" 130,147 12x12
+                          text "+2" 144,146 15x14
+                        el label="9" 167,144 34x18
+                          text label="checkmark" "\u{F293}" 173,147 12x12
+                          text "9" 187,146 8x14
+                        text label="Northstar" "\u{F70D}" 203,147 12x12
+                el 219,134 20x20
+                  el role=button label="Unpin" 219,134 20x20 checked
+                    text label="pin" "\u{F600}" 221,136 16x16
             el #session-webhooks role=option label="Retry failed webhooks" 13,166 234x44 pos=3/6
               el 13,168 234x40
                 el 15,180 2x16
-                el 21,172 199x32
-                  text "Retry failed webhooks" 21,172 199x16
-                  text "feat/webhook-backoff" 21,190 199x14
-                el 224,181 15x14
-                  text "7h" 224,181 15x14
-                el
-                  el role=button label="Pin" checked=false
-                    text label="pin" "\u{F600}"
+                el 37,168 178x40
+                  el 37,170 178x36
+                    el 37,170 178x16
+                      text "Retry failed webhooks" 37,170 159x16
+                      text "7h" 200,171 15x14
+                    el 37,188 178x18
+                      el 37,190 81x14
+                        el 37,190 81x14
+                          text label="server" "\u{F0360}" 37,191 12x12
+                          text "dev-eu" 51,190 40x14
+                      el 122,188 93x18
+                        el label="+1" 122,188 39x18
+                          text label="branch" "\u{F0A6}" 128,191 12x12
+                          text "+1" 142,190 13x14
+                        el label="12" 163,188 38x18
+                          text label="checkmark" "\u{F293}" 169,191 12x12
+                          text "12" 183,190 12x14
+                        text label="Solstice" "\u{F4D5}" 203,191 12x12
+                el 219,178 20x20
+                  el role=button label="Pin" 219,178 20x20 checked=false
+                    text label="pin" "\u{F600}" 221,180 16x16
             el 13,210 234x44
-              el #item-3 role=button label="analytics" 15,228 230x24 expanded
-                text label="chevron_down" "\u{F2A1}" 21,234 12x12
-                text "analytics" 37,233 193x14
-                text "1" 234,233 5x14
+              el #item-3 role=button label="analytics" 15,220 230x32 expanded
+                el role=img label="analytics" 22,226 20x20
+                  text "A" 29,231 6x10
+                text "analytics" 46,228 143x16
+                text "1" 193,229 5x14
+                text label="chevron_down" "\u{F2A1}" 226,230 12x12
+              el role=button label="New session in analytics" 202,226 20x20
+                text label="add" "\u{F108}" 204,228 16x16
             el #session-rollup role=option label="Daily revenue rollup" 13,254 234x44 pos=5/6
               el 13,256 234x40
                 el 15,268 2x16
-                el 21,260 199x32
-                  text "Daily revenue rollup" 21,260 199x16
-                  text "main" 21,278 199x14
-                el 224,269 15x14
-                  text "1d" 224,269 15x14
-                el
-                  el role=button label="Pin" checked=false
-                    text label="pin" "\u{F600}"
+                el 37,256 178x40
+                  el 37,258 178x36
+                    el 37,258 178x16
+                      text "Daily revenue rollup" 37,258 159x16
+                      text "1d" 200,259 15x14
+                    el 37,276 178x18
+                      el 37,278 126x14
+                        el 37,278 126x14
+                          text label="server" "\u{F0360}" 37,279 12x12
+                          text "build-01" 51,278 46x14
+                      el 167,276 48x18
+                        el label="4" 167,276 34x18
+                          text label="checkmark" "\u{F293}" 173,279 12x12
+                          text "4" 187,278 8x14
+                        text label="Timber" "\u{E42E}" 203,279 12x12
+                el 219,266 20x20
+                  el role=button label="Pin" 219,266 20x20 checked=false
+                    text label="pin" "\u{F600}" 221,268 16x16
             el 13,298 234x44
-              el #item-5 role=button label="infra" 15,316 230x24 expanded=false
-                text label="chevron_right" "\u{F2AE}" 21,322 12x12
-                text "infra" 37,321 191x14
-                text "2" 232,321 7x14
+              el #item-5 role=button label="infra" 15,308 230x32 expanded=false
+                el role=img label="infra" 22,314 20x20
+                  text "I" 31,319 2x10
+                text "infra" 46,316 141x16
+                text "2" 191,317 7x14
+                text label="chevron_right" "\u{F2AE}" 226,318 12x12
+              el role=button label="New session in infra" 202,314 20x20
+                text label="add" "\u{F108}" 204,316 16x16
     el #rest 252,32 1020x760
       el #second 260,32 1012x760
         el 260,32 1012x760

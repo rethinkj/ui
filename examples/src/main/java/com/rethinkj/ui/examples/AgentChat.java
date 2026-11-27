@@ -19,6 +19,7 @@ import com.rethinkj.ui.editor.DiffView;
 import com.rethinkj.ui.java.Java;
 import com.rethinkj.ui.json.Json;
 import com.rethinkj.ui.kit.AppIcon;
+import com.rethinkj.ui.kit.Avatar;
 import com.rethinkj.ui.kit.Badge;
 import com.rethinkj.ui.kit.Button;
 import com.rethinkj.ui.kit.Card;
@@ -167,6 +168,10 @@ public final class AgentChat {
     final String project;
     String title;
     final String branch;
+    final String machine;
+    final int changes;
+    final int checks;
+    final Provider provider;
     Instant updatedAt;
     boolean pinned;
     final List<Message> messages = new ArrayList<>();
@@ -181,11 +186,24 @@ public final class AgentChat {
     boolean streaming;
     int streamRun;
 
-    Session(String id, String project, String title, String branch, Instant updatedAt) {
+    Session(
+        String id,
+        String project,
+        String title,
+        String branch,
+        String machine,
+        int changes,
+        int checks,
+        Provider provider,
+        Instant updatedAt) {
       this.id = id;
       this.project = project;
       this.title = title;
       this.branch = branch;
+      this.machine = machine;
+      this.changes = changes;
+      this.checks = checks;
+      this.provider = provider;
       this.updatedAt = updatedAt;
     }
   }
@@ -231,6 +249,10 @@ public final class AgentChat {
         "storefront",
         "Slow orders query",
         "perf/orders-index",
+        "local",
+        2,
+        9,
+        NORTHSTAR,
         now.minus(Duration.ofMinutes(4)));
     orders.pinned = true;
     orders.messages.add(Message.user(
@@ -272,6 +294,10 @@ public final class AgentChat {
         "storefront",
         "Retry failed webhooks",
         "feat/webhook-backoff",
+        "dev-eu",
+        1,
+        12,
+        SOLSTICE,
         now.minus(Duration.ofHours(7)));
     webhooks.messages.add(Message.user(
         nextId(),
@@ -309,7 +335,15 @@ public final class AgentChat {
         }"""));
 
     Session rollup = new Session(
-        "rollup", "analytics", "Daily revenue rollup", "main", now.minus(Duration.ofDays(1)));
+        "rollup",
+        "analytics",
+        "Daily revenue rollup",
+        "main",
+        "build-01",
+        0,
+        4,
+        TIMBER,
+        now.minus(Duration.ofDays(1)));
     rollup.messages.add(Message.user(
         nextId(),
         formatTime(now.minus(Duration.ofDays(1))),
@@ -326,9 +360,21 @@ public final class AgentChat {
         "infra",
         "Zero-downtime blue/green",
         "ops/blue-green",
+        "ops-eu",
+        3,
+        6,
+        NORTHSTAR,
         now.minus(Duration.ofDays(2)));
-    Session alerts =
-        new Session("alerts", "infra", "Tune disk alerts", "main", now.minus(Duration.ofDays(4)));
+    Session alerts = new Session(
+        "alerts",
+        "infra",
+        "Tune disk alerts",
+        "main",
+        "ops-eu",
+        0,
+        2,
+        TIMBER,
+        now.minus(Duration.ofDays(4)));
 
     projects.add(new Project("storefront", new ArrayList<>(List.of(orders, webhooks))));
     projects.add(new Project("analytics", new ArrayList<>(List.of(rollup))));
@@ -383,11 +429,22 @@ public final class AgentChat {
   }
 
   void newSession() {
-    Project project = projects.getFirst();
+    newSession(projects.getFirst());
+  }
+
+  void newSession(Project project) {
     closedProjects.remove(project.name());
     int number = nextSessionNumber++;
-    Session created =
-        new Session("new-" + number, project.name(), "New session", "main", clock.instant());
+    Session created = new Session(
+        "new-" + number,
+        project.name(),
+        "New session",
+        "main",
+        "local",
+        0,
+        0,
+        model.provider(),
+        clock.instant());
     project.sessions().addFirst(created);
     session = created;
   }
@@ -685,13 +742,23 @@ public final class AgentChat {
   // docs:start agent-chat-sidebar
   static El sidebar(AgentChat state) {
     Theme theme = Theme.CURRENT.get();
+    float smallIcon = theme.type().small().size();
+    Button.Options small = Button.options().size(Button.Size.SMALL);
     List<NavList.Entry> entries = new ArrayList<>();
     List<Session> rows = new ArrayList<>();
     int selected = -1;
     for (Project project : state.projects) {
       boolean open = !state.closedProjects.contains(project.name());
-      entries.add(NavList.heading(project.name())
+      entries.add(NavList.group(project.name())
+          .leading(Avatar.avatar(project.name(), null, theme.size().controlSmall())
+              .radius(theme.radius().small()))
           .count(String.valueOf(project.sessions().size()))
+          .actions(Button.icon(
+              GHOST,
+              Symbol.ADD,
+              "New session in " + project.name(),
+              () -> state.newSession(project),
+              small))
           .open(open, () -> state.toggleProject(project.name())));
       rows.add(null);
       for (Session item : open ? project.sessions() : List.<Session>of()) {
@@ -699,18 +766,44 @@ public final class AgentChat {
           selected = entries.size();
         }
         String age = relativeTime(item.updatedAt, state.clock);
-        El trailing = row()
+        El ageLabel = Label.label(Label.Variant.SMALL, age).fontFeatures("+tnum");
+        El meta = item.streaming
+            ? row()
+                .gap(theme.space().xs())
+                .align(Style.Align.CENTER)
+                .children(Progress.spinner().label("Streaming"), ageLabel)
+            : ageLabel;
+        El machine = row()
             .gap(theme.space().xs())
             .align(Style.Align.CENTER)
             .children(
-                item.streaming ? Progress.spinner().label("Streaming") : null,
-                Label.label(Label.Variant.SMALL, age).fontFeatures("+tnum"));
+                Icon.icon(Symbol.SERVER, Icon.Variant.MUTED, smallIcon),
+                Label.label(Label.Variant.SMALL, item.machine).ellipsis().minSize(0, 0));
+        El status = row()
+            .gap(theme.space().xs())
+            .align(Style.Align.CENTER)
+            .children(
+                item.changes > 0
+                    ? Badge.badge("+" + item.changes, Badge.options().icon(Symbol.BRANCH))
+                    : null,
+                item.checks > 0
+                    ? Badge.badge(
+                        String.valueOf(item.checks),
+                        Badge.options().kind(Badge.Kind.SUCCESS).icon(Symbol.CHECKMARK))
+                    : null,
+                Icon.icon(item.provider.symbol(), Icon.Variant.MUTED, smallIcon)
+                    .label(item.provider.name()));
         entries.add(NavList.item(item.title)
             .key("session-" + item.id)
-            .detail(item.branch)
-            .trailing(trailing)
+            .indent(1)
+            .meta(meta)
+            .detail(machine, status)
             .actions(Button.icon(
-                    GHOST, Symbol.PIN, item.pinned ? "Unpin" : "Pin", () -> state.togglePin(item))
+                    GHOST,
+                    Symbol.PIN,
+                    item.pinned ? "Unpin" : "Pin",
+                    () -> state.togglePin(item),
+                    small)
                 .checked(item.pinned)));
         rows.add(item);
       }

@@ -5,9 +5,9 @@ description: An agent chat app with a grouped session sidebar, streaming Markdow
 
 AgentChat puts the kit's chat building blocks together in a three-pane layout: collapsible project groups of sessions on the left, a virtual transcript that streams Markdown and collapsible tool calls above a growing composer in the middle, and a toggleable changes panel with unified diffs on the right. No network is used; a simulated agent drives replies deterministically on the app's clock.
 
-**Demonstrates:** [Chat](/docs/components/chat), [NavList](/docs/components/nav-list), [Markdown](/docs/components/markdown), [Split](/docs/components/split), [DiffView](/docs/components/diff-view), [Popover](/docs/components/popover), [FilterList](/docs/components/filter-list), [Rail](/docs/components/rail), and [Segmented](/docs/components/segmented).
+**Demonstrates:** [Chat](/docs/components/chat), [NavList](/docs/components/nav-list), [Avatar](/docs/components/avatar), [Markdown](/docs/components/markdown), [Split](/docs/components/split), [DiffView](/docs/components/diff-view), [Popover](/docs/components/popover), [FilterList](/docs/components/filter-list), [Rail](/docs/components/rail), and [Segmented](/docs/components/segmented).
 
-<Shot src="examples/agent-chat-{theme}" alt="AgentChat showing a sidebar of sessions grouped by project on the left, a chat transcript with an expanded tool call and a streamed Markdown answer with a list and SQL code block above a composer with the closed model picker button in the middle, and a changes panel with a unified SQL diff on the right" />
+<Shot src="examples/agent-chat-{theme}" alt="AgentChat showing a sidebar of sessions under project group headers with avatars and status chips on the left, a chat transcript with an expanded tool call and a streamed Markdown answer with a list and SQL code block above a composer with the closed model picker button in the middle, and a changes panel with a unified SQL diff on the right" />
 
 ## Run it
 
@@ -29,7 +29,7 @@ mvn -q -pl examples -am compile exec:exec -Dexample=AgentChat
 
 ### Sessions grouped by project
 
-The sidebar builds a [NavList](/docs/components/nav-list) from project headings with counts and collapse handlers, leaving closed projects' sessions out of the list. Each session row carries its branch on a second line, a relative age formatted from the app's clock (or a spinner while streaming), and a hover pin action:
+The sidebar builds a [NavList](/docs/components/nav-list) from `NavList.group` project headers with rounded-square [Avatar](/docs/components/avatar) marks, counts, per-project **New session** actions, and collapse toggles, leaving closed projects' sessions out of the list. Each indented session row puts its relative age (and a spinner while streaming) in `.meta(...)`, pairs its machine on the left with change, check, and provider status chips on the right in `.detail(start, end)`, and keeps a hover pin action:
 
 ```java snippet="agent-chat-sidebar"
 ```
