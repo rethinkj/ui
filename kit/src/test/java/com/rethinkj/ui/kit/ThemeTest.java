@@ -186,17 +186,24 @@ class ThemeTest {
     });
     check(failures, "bracket", code.operator(), Map.of("bracket", over(line, code.bracket())), 4.5);
     // The matches of a find, the current one, and the occurrences of the word at the caret, also
-    // on the caret's line; under the selection 3:1, as all code.
+    // on the caret's line and on noted lines; under the selection 3:1, as all code.
     Map<String, Integer> marked = new java.util.HashMap<>();
     Map<String, Integer> selectedMatch = new java.util.HashMap<>();
-    Map.of("", s.raised(), " on the caret line", line).forEach((where, under) -> {
-      marked.put("match" + where, over(under, code.match()));
-      marked.put("current match" + where, over(under, code.current()));
-      marked.put("occurrence" + where, over(under, code.occurrence()));
-      selectedMatch.put(
-          "selected current match" + where,
-          over(over(under, code.current()), t.accent().selection()));
-    });
+    Map.of(
+            "",
+            s.raised(),
+            " on the caret line",
+            line,
+            " on a noted line",
+            over(s.raised(), code.note()))
+        .forEach((where, under) -> {
+          marked.put("match" + where, over(under, code.match()));
+          marked.put("current match" + where, over(under, code.current()));
+          marked.put("occurrence" + where, over(under, code.occurrence()));
+          selectedMatch.put(
+              "selected current match" + where,
+              over(over(under, code.current()), t.accent().selection()));
+        });
     Map<String, Integer> text = new java.util.HashMap<>(codeColors);
     text.put("text", t.text().primary());
     text.forEach((token, color) -> {
@@ -808,6 +815,23 @@ class ThemeTest {
         c.block(),
         c.guide());
     assertEquals(c.string(), older.property());
+    assertEquals(c.note(), older.note());
+    Theme.Code light = Theme.Code.LIGHT;
+    Theme.Code lightWithoutNote = new Theme.Code(
+        light.keyword(),
+        light.string(),
+        light.number(),
+        light.comment(),
+        light.operator(),
+        light.line(),
+        light.bracket(),
+        light.match(),
+        light.current(),
+        light.occurrence(),
+        light.block(),
+        light.guide(),
+        light.property());
+    assertEquals(light.note(), lightWithoutNote.note());
   }
 
   /** A theme made without danger colors takes those of its lightness. */
