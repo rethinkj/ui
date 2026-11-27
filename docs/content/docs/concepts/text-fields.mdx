@@ -33,7 +33,7 @@ From a handler (such as a button that inserts a snippet), call `fieldState.repla
 
 To show one text in several fields, such as a split editor, keep a `TextDocument` in your app state and give each field a `new FieldState(shared)`, or each `CodeEditor` a `new CodeEditor.State(shared)`. Every field still gets your string and your `onEdit` handler. The fields share one undo history; each keeps its own caret, selection, scroll, folds and blocks. An edit in one field moves the caret of the others by where the edit was.
 
-To let two multi-line fields scroll together, give each a `ScrollState` and call `scrollWith` on one of them. Its `ScrollState.Anchor(line, otherLine)` pairs say which lines show the same place; between two anchors the lines are matched proportionally, and without anchors line n stays beside line n. Sideways both keep the same offset.
+To let two multi-line fields scroll together, give each a `ScrollState` and call `scrollWith` on one of them. Its `ScrollState.Anchor(line, otherLine)` pairs say which lines show the same place; between two anchors the lines are matched proportionally, and without anchors line n stays beside line n. While either field has blocks paired with `El.Block.paired(key)`, the offsets between two anchors are matched proportionally instead, so paired blocks stay beside each other. Sideways both keep the same offset.
 
 ```java snippet="shared-document"
 ```

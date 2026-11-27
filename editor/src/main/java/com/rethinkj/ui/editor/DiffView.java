@@ -17,6 +17,7 @@ import com.rethinkj.ui.kit.Texts;
 import com.rethinkj.ui.kit.Theme;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -125,7 +126,7 @@ public final class DiffView {
     }
 
     private final ScrollState newScroll = new ScrollState();
-    // Kept by range: a region that marks split or merge stays open where it overlaps one of them.
+    // Kept by range: when marks split or merge regions, the lines expanded stay open.
     private final List<Region> expanded = new ArrayList<>();
     private int currentChange = -1;
     private boolean sideBySide = true;
@@ -1149,18 +1150,33 @@ public final class DiffView {
     }
   }
 
+  /** The regions to collapse: each region without the lines the app's user expanded. */
   private static List<Region> activeCollapsed(State state) {
     if (state.regions.isEmpty()) {
       return List.of();
     }
+    List<Region> expanded =
+        state.expanded.stream().sorted(Comparator.comparingInt(Region::newFrom)).toList();
     List<Region> active = new ArrayList<>();
     for (Region r : state.regions) {
-      if (state.expanded.stream()
-          .noneMatch(e -> e.newFrom() < r.newTo() && r.newFrom() < e.newTo())) {
-        active.add(r);
+      int from = r.newFrom();
+      for (Region e : expanded) {
+        if (e.newFrom() < r.newTo() && from < e.newTo()) {
+          addCollapsed(active, r, from, e.newFrom());
+          from = e.newTo();
+        }
       }
+      addCollapsed(active, r, from, r.newTo());
     }
     return active;
+  }
+
+  /** Adds new lines {@code from} to {@code to} of {@code region} if they are worth collapsing. */
+  private static void addCollapsed(List<Region> out, Region region, int from, int to) {
+    if (to - from >= MIN_COLLAPSE) {
+      int shift = region.oldFrom() - region.newFrom();
+      out.add(new Region(from + shift, to + shift, from, to));
+    }
   }
 
   /**

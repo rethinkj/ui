@@ -229,8 +229,8 @@ public final class ScrollState {
    * anchors}, shifted by the first or last anchor's difference outside them (or line {@code n} to
    * line {@code n} when {@code anchors} is empty), and converts back to the follower's pixel offset
    * by its own line tops. While either field has {@link El.Block#paired paired} blocks, it maps by
-   * pixels instead, from the fields' tops to the first anchor and between anchors' line tops, so
-   * that paired blocks stay beside each other. Horizontally both keep the same offset. Paired
+   * pixels instead, linearly between the anchors' line tops, so that paired blocks stay beside
+   * each other. Horizontally both keep the same offset. Paired
    * blocks with equal pair keys take the larger of their heights in both fields in the same frame,
    * growing and shrinking together; a block that is not yet measured takes its partner's height
    * once measured, or counts as one line of its field until then, the same on both sides of equal
@@ -369,10 +369,10 @@ public final class ScrollState {
   }
 
   /**
-   * Maps the leader's offset {@code y} to the follower's. While either field has paired blocks,
-   * from the fields' tops to the first anchor and between anchors it maps linearly by pixels
-   * between the anchors' line tops, so that paired blocks stay beside each other; otherwise, and
-   * after the last anchor, by {@link #mapLine}.
+   * Maps the leader's offset {@code y} to the follower's. While either field has paired blocks, it
+   * maps by pixels, so that paired blocks stay beside each other: linearly between the anchors'
+   * line tops, and before the first anchor back from it by line heights; otherwise, and after the
+   * last anchor, by {@link #mapLine}.
    */
   static double mapOffset(Text from, Text to, double y, List<Anchor> anchors) {
     double line = from.offsetToLine(y);
@@ -381,17 +381,16 @@ public final class ScrollState {
         || line >= anchors.getLast().line()) {
       return to.lineToOffset(mapLine(line, anchors));
     }
-    double fromTop = 0;
-    double toTop = 0;
-    Anchor next = anchors.getFirst();
-    if (line > next.line()) {
-      int lo = segment(line, anchors);
-      fromTop = from.lineToOffset(anchors.get(lo).line());
-      toTop = to.lineToOffset(anchors.get(lo).otherLine());
-      next = anchors.get(lo + 1);
+    Anchor first = anchors.getFirst();
+    if (line <= first.line()) { // back from the first anchor, by lines of each field's height
+      double back = from.lineToOffset(first.line()) - y;
+      return to.lineToOffset(first.otherLine()) - back * to.lineHeight() / from.lineHeight();
     }
-    double fromSpan = from.lineToOffset(next.line()) - fromTop;
-    double toSpan = to.lineToOffset(next.otherLine()) - toTop;
+    int lo = segment(line, anchors);
+    double fromTop = from.lineToOffset(anchors.get(lo).line());
+    double toTop = to.lineToOffset(anchors.get(lo).otherLine());
+    double fromSpan = from.lineToOffset(anchors.get(lo + 1).line()) - fromTop;
+    double toSpan = to.lineToOffset(anchors.get(lo + 1).otherLine()) - toTop;
     return fromSpan > 0 ? toTop + (y - fromTop) / fromSpan * toSpan : toTop;
   }
 
