@@ -756,6 +756,59 @@ final class Grids {
     };
   }
 
+  enum FileStatus {
+    CLEAN,
+    MODIFIED,
+    ADDED,
+    UNTRACKED,
+    CONFLICTED,
+    IGNORED
+  }
+
+  record FileNode(String name, FileStatus status, List<FileNode> children) {}
+
+  /** What a model overrides to color file names by VCS status. */
+  static Tree.Model<FileNode> modelWithTones(List<FileNode> files) {
+    return new Tree.Model<>() {
+      @Override
+      public List<FileNode> roots() {
+        return files;
+      }
+
+      @Override
+      public Tree.Children<FileNode> children(FileNode node) {
+        return Tree.ready(node.children());
+      }
+
+      @Override
+      public boolean isLeaf(FileNode node) {
+        return node.children() == null;
+      }
+
+      @Override
+      public String label(FileNode node) {
+        return node.name();
+      }
+
+      // docs:start tree-tone
+      @Override
+      public Tree.Tone tone(FileNode node) {
+        return switch (node.status()) {
+          case MODIFIED -> Tree.Tone.ACCENT;
+          case ADDED -> Tree.Tone.SUCCESS;
+          case UNTRACKED, CONFLICTED -> Tree.Tone.DANGER;
+          case CLEAN, IGNORED -> null;
+        };
+      }
+
+      @Override
+      public boolean muted(FileNode node) {
+        return node.status() == FileStatus.IGNORED;
+      }
+      // docs:end tree-tone
+    };
+  }
+
   // docs:start tree-handlers
   void selected(Node value) {
     selected = value;

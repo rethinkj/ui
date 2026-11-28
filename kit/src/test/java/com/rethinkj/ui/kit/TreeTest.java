@@ -594,6 +594,198 @@ class TreeTest {
 
   // Muted rows
 
+  // Label tones
+
+  @Test
+  void toneColorsOnlyTheLabelBeatsMutedAndYieldsToGrabbed() throws IOException {
+    Tree.Dragging dragging = new Tree.Dragging();
+    Tree.Model<String> model = new Tree.Model<>() {
+      @Override
+      public List<String> roots() {
+        return List.of("modified", "both", "detailed", "plain", "ignored");
+      }
+
+      @Override
+      public Tree.Children<String> children(String node) {
+        return Tree.ready(List.of());
+      }
+
+      @Override
+      public boolean isLeaf(String node) {
+        return true;
+      }
+
+      @Override
+      public String label(String node) {
+        return node;
+      }
+
+      @Override
+      public El icon(String node) {
+        return Icon.icon(Symbol.DOCUMENT, Icon.Variant.MUTED);
+      }
+
+      @Override
+      public String detail(String node) {
+        return node.equals("detailed") ? "new" : null;
+      }
+
+      @Override
+      public boolean muted(String node) {
+        return node.equals("ignored") || node.equals("both");
+      }
+
+      @Override
+      public Tree.Tone tone(String node) {
+        return switch (node) {
+          case "modified", "both" -> Tree.Tone.ACCENT;
+          case "detailed" -> Tree.Tone.SUCCESS;
+          default -> null;
+        };
+      }
+
+      @Override
+      public String key(String node) {
+        return node;
+      }
+    };
+    App<Tree.Model<String>> app = new App<>(
+            model,
+            m -> col()
+                .wFull()
+                .hFull()
+                .child(Tree.tree(
+                        m,
+                        new Tree.Options<String>()
+                            .drag(dragging, n -> true, move -> true, move -> {}))
+                    .key("files")
+                    .grow(1)))
+        .provide(Theme.CURRENT, m -> T);
+    run(app, "frame");
+
+    assertTrue(dumpLine(app, "row-both").endsWith(" tone=accent"), dumpLine(app, "row-both"));
+    assertFalse(dumpLine(app, "row-plain").contains("tone="), dumpLine(app, "row-plain"));
+
+    assertEquals(
+        T.prose().link(), textOf(find(app, "row-modified"), "modified").text().color());
+    assertEquals(
+        T.prose().link(),
+        textOf(find(app, "row-both"), "both").text().color(),
+        "tone wins over muted");
+    assertEquals(
+        T.status().success(),
+        textOf(find(app, "row-detailed"), "detailed").text().color(),
+        "detail path uses the tone");
+    assertEquals(
+        T.text().primary(), textOf(find(app, "row-plain"), "plain").text().color());
+    assertEquals(
+        T.text().muted(), textOf(find(app, "row-ignored"), "ignored").text().color());
+
+    // Icon and detail keep their own colors.
+    assertEquals(
+        T.text().muted(),
+        find(app, "row-modified").children().get(1).text().color(),
+        "icon keeps its own color");
+    assertEquals(
+        T.text().muted(),
+        textOf(find(app, "row-detailed"), "new").text().color(),
+        "detail stays muted");
+
+    // Dragging a toned row mutes its label while grabbed.
+    run(app, "down #row-modified\nmove #row-plain\nframe");
+    assertTrue(dumpLine(app, "row-modified").contains(" grabbed "), dumpLine(app, "row-modified"));
+    assertEquals(
+        T.text().muted(),
+        textOf(find(app, "row-modified"), "modified").text().color(),
+        "grabbed row stays muted");
+    run(app, "key Escape\nup #row-plain\nframe");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"dark", "light"})
+  void tonesLookAsStored(String name) throws IOException {
+    Theme theme = name.equals("dark") ? Theme.DARK : Theme.LIGHT;
+    String[] selected = {null};
+    Tree.Model<String> model = new Tree.Model<>() {
+      @Override
+      public List<String> roots() {
+        return List.of("src", "README.md", "target");
+      }
+
+      @Override
+      public Tree.Children<String> children(String node) {
+        return node.equals("src")
+            ? Tree.ready(
+                List.of("App.java", "Tree.java", "Config.java", "Draft.java", "Merge.java"))
+            : Tree.ready(List.of());
+      }
+
+      @Override
+      public boolean isLeaf(String node) {
+        return !node.equals("src") && !node.equals("target");
+      }
+
+      @Override
+      public String label(String node) {
+        return node;
+      }
+
+      @Override
+      public El icon(String node) {
+        return Icon.icon(isLeaf(node) ? Symbol.DOCUMENT : Symbol.FOLDER, Icon.Variant.MUTED);
+      }
+
+      @Override
+      public String detail(String node) {
+        return node.equals("Merge.java") ? "conflict" : null;
+      }
+
+      @Override
+      public boolean muted(String node) {
+        return node.equals("target");
+      }
+
+      @Override
+      public Tree.Tone tone(String node) {
+        return switch (node) {
+          case "src", "App.java" -> Tree.Tone.ACCENT;
+          case "Tree.java" -> Tree.Tone.SUCCESS;
+          case "Config.java" -> Tree.Tone.WARNING;
+          case "Draft.java", "Merge.java" -> Tree.Tone.DANGER;
+          default -> null;
+        };
+      }
+
+      @Override
+      public String key(String node) {
+        return node;
+      }
+    };
+    App<String[]> app = new App<>(
+            selected,
+            s -> col()
+                .wFull()
+                .hFull()
+                .padding(theme.space().m())
+                .fill(theme.surface().panel())
+                .child(Tree.tree(
+                        model,
+                        new Tree.Options<String>()
+                            .open("src"::equals, null)
+                            .select(s[0], n -> s[0] = n))
+                    .key("files")
+                    .label("Files")
+                    .grow(1)))
+        .provide(Theme.CURRENT, s -> theme);
+    app.textRendering(TextRendering.LINUX);
+
+    List<Path> files = Script.run(
+        "size 260 216 scale 2\nframe\npress #row-App.java\nframe\nsnap tones\n",
+        app,
+        out.resolve("tones-" + name));
+    Golden.assertSnaps("tree-" + name + "-", files, "tones");
+  }
+
   // Long labels
 
   private static final String LONG = "a_name_far_too_long_for_a_narrow_tree_of_a_database_tool";

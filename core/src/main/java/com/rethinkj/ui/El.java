@@ -61,6 +61,7 @@ public final class El {
   int position; // in its set, from 1; 0 when not set
   int setSize;
   private String value;
+  private String tone;
   private String errorMessage;
   private String warningMessage;
   private int fill;
@@ -950,6 +951,21 @@ public final class El {
   public El value(String value) {
     this.value = value;
     return this;
+  }
+
+  /**
+   * The semantic color tone of this element, such as {@code accent}, {@code success}, {@code
+   * warning} or {@code danger} on a tree row. A tree dump writes it after the value, as {@code
+   * tone=accent}; null for none. It changes nothing about how the element looks or takes input.
+   */
+  public El tone(String tone) {
+    this.tone = tone;
+    return this;
+  }
+
+  /** What {@link #tone(String)} set, or null. */
+  public String tone() {
+    return tone;
   }
 
   // Size
@@ -6851,7 +6867,8 @@ public final class El {
    * {@code selected},
    * {@code current}, {@code grabbed}, {@code modified} (not a WAI-ARIA state), {@code checked}, {@code checked=false} or {@code checked=mixed}, {@code expanded} or {@code
    * expanded=false}, {@code level=2}, {@code pos=3/10} (the position in the set and its size),
-   * {@code sort=ascending} or {@code sort=descending}, {@code value="..."} and the {@link
+   * {@code sort=ascending} or {@code sort=descending}, {@code value="..."}, the {@link #tone} as
+   * {@code tone=...}, the {@link
    * #errorMessage} as {@code error="..."} and the {@link #warningMessage} as {@code
    * warning="..."}, as in {@code el
    * #row-3 role=treeitem label="public" 0,66 400x22 selected expanded level=3 pos=1/2}. A scroll

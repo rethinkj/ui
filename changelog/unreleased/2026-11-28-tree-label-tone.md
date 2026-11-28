@@ -1,0 +1,1 @@
+- `Tree.Model` adds optional `tone(node)` returning a `Tree.Tone` (`ACCENT`, `SUCCESS`, `WARNING`, `DANGER`) to color a row's label text with the theme's link and status colors (for example, VCS file status in file explorers); a tone wins over `muted(node)` while grabbed rows stay muted, and `El.tone(String)` records `tone=<name>` in tree dumps.

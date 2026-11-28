@@ -113,6 +113,9 @@ final class TreeDumper {
     if (el.value() != null) {
       out.append(" value=").append(quote(el.value()));
     }
+    if (el.tone() != null) {
+      out.append(" tone=").append(el.tone());
+    }
     if (el.errorMessage() != null) {
       out.append(" error=").append(quote(el.errorMessage()));
     }

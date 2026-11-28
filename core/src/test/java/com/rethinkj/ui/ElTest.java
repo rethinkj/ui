@@ -61,6 +61,7 @@ class ElTest {
         .role("treeitem")
         .label("public")
         .value("2 tables")
+        .tone("accent")
         .sortDescending()
         .position(1, 2)
         .level(3)
@@ -72,7 +73,7 @@ class ElTest {
     node.place(0, 66, 400, 22);
     assertEquals(
         "el #node role=treeitem label=\"public\" 0,66 400x22 disabled busy selected checked=mixed"
-            + " expanded level=3 pos=1/2 sort=descending value=\"2 tables\"\n",
+            + " expanded level=3 pos=1/2 sort=descending value=\"2 tables\" tone=accent\n",
         node.dump());
     assertEquals(
         "el checked=false expanded=false sort=ascending\n",
