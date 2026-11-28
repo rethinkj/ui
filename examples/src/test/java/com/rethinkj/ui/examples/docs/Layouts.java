@@ -78,6 +78,11 @@ final class Layouts {
   Split.Position toolPane = Split.Position.first(180);
   final Menu.State runMenu = new Menu.State();
   final Menu.State encodings = new Menu.State();
+  final Menu.State mainMenu = new Menu.State();
+  final Menu.State projectMenu = new Menu.State();
+  final Menu.State branchMenu = new Menu.State();
+  String project = "hooricode";
+  String branch = "feat/compact-header";
   boolean wrapped;
   boolean dark = true;
   String said = "";
@@ -150,6 +155,22 @@ final class Layouts {
 
   void search() {
     said = "search";
+  }
+
+  void newFile() {
+    said = "new file";
+  }
+
+  void undo() {
+    said = "undo";
+  }
+
+  void openProject(String name) {
+    project = name;
+  }
+
+  void switchBranch(String name) {
+    branch = name;
   }
 
   void host(String value) {
@@ -837,6 +858,57 @@ final class Layouts {
             pane,
             120,
             editor,
+            200)
+        .grow(1)
+        .margin(0, gap, gap, gap);
+    return col().wFull().hFull().fill(theme.surface().window()).children(bar, cards);
+  }
+
+  static El titleBarCompact(Layouts state) {
+    Theme theme = Theme.CURRENT.get();
+    // docs:start title-bar-compact
+    El mainMenu = Menu.dropdown(
+        Button.icon(GHOST, Symbol.NAVIGATION, "Main menu", state.mainMenu::toggle),
+        state.mainMenu,
+        List.of(
+            Menu.submenu("File", List.of(Menu.item("New file", state::newFile))),
+            Menu.submenu("Edit", List.of(Menu.item("Undo", state::undo)))));
+    El badge = Avatar.avatar(state.project, null, theme.size().icon())
+        .radius(theme.radius().small());
+    El project = Button.menu(
+        GHOST,
+        state.project,
+        state.projectMenu,
+        List.of(
+            Menu.item("hooricode", () -> state.openProject("hooricode")).icon(Symbol.FOLDER),
+            Menu.item("rethinkj-ui", () -> state.openProject("rethinkj-ui")).icon(Symbol.FOLDER)),
+        Button.options().mark(badge));
+    El branch = Button.menu(
+        GHOST,
+        state.branch,
+        state.branchMenu,
+        List.of(
+            Menu.item("main", () -> state.switchBranch("main")).icon(Symbol.BRANCH),
+            Menu.item("feat/compact-header", () -> state.switchBranch("feat/compact-header"))
+                .icon(Symbol.BRANCH)),
+        Button.options().icon(Symbol.BRANCH));
+    El bar = TitleBar.titleBar(
+        null,
+        null,
+        List.of(mainMenu, project, branch),
+        TitleBar.search("Search commands", "Ctrl+Shift+P", state::search),
+        List.of(Button.icon(GHOST, Symbol.WEATHER_MOON, "Dark theme", state::toggleDark)
+            .checked(state.dark)));
+    // docs:end title-bar-compact
+    float gap = theme.space().m();
+    El cards = Split.cards(
+            Split.Direction.ROW,
+            state.sidebar,
+            Split.Position.first(160),
+            state::sidebar,
+            Card.card(Label.label("Files")).grow(1),
+            120,
+            Card.card(Label.label("Editor")).grow(1),
             200)
         .grow(1)
         .margin(0, gap, gap, gap);

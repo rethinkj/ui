@@ -9,6 +9,7 @@ import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Len;
 import com.rethinkj.ui.Side;
 import com.rethinkj.ui.Style;
+import com.rethinkj.ui.text.Font;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -235,15 +236,23 @@ public final class ComboBox {
   }
 
   /**
-   * A choice with more than its text: what stands before it and a muted text at its right.
+   * A choice with more than its text: what stands before it, a muted text at its right and an
+   * optional font of its own.
    *
    * @param text what the choice shows, and what a typed text is matched against
    * @param leading builds what stands before the text, or null; see {@link #icon}, {@link #image}
    * @param detail a muted text at the right of the row, such as a version, or null
+   * @param font builds the font the choice's text is drawn in, or null for the theme's; see
+   *     {@link #font(Supplier)}
    */
-  public record Item(String text, Supplier<El> leading, String detail) {
+  public record Item(String text, Supplier<El> leading, String detail, Supplier<Font> font) {
     public Item {
       Objects.requireNonNull(text, "text");
+    }
+
+    /** A choice drawn in the theme's body font. */
+    public Item(String text, Supplier<El> leading, String detail) {
+      this(text, leading, detail, null);
     }
 
     /** An icon before the text. */
@@ -262,11 +271,25 @@ public final class ComboBox {
      * control.
      */
     public Item leading(Supplier<El> leading) {
-      return new Item(text, leading, detail);
+      return new Item(text, leading, detail, font);
     }
 
     public Item detail(String detail) {
-      return new Item(text, leading, detail);
+      return new Item(text, leading, detail, font);
+    }
+
+    /**
+     * The font this item's text is drawn in, built only for the rows the list builds, those in
+     * view and a few beyond, and for the current choice in the closed box, so that a list of
+     * hundreds of installed families stays fast; null, or a supplier that returns null, uses the
+     * theme's body font.
+     * Characters the font lacks fall back to the theme's body font ({@link Font#withFallback}).
+     * The open search field stays in the theme's font, and matches while typing are marked behind
+     * the text with {@link Theme.Code#match} instead of switching to the theme's heading font, so
+     * the text stays in its typeface.
+     */
+    public Item font(Supplier<Font> font) {
+      return new Item(text, leading, detail, font);
     }
   }
 
@@ -280,14 +303,15 @@ public final class ComboBox {
 
   /** A choice of {@link #items} with this text, to which the other parts chain. */
   public static Item item(String text) {
-    return new Item(text, null, null);
+    return new Item(text, null, null, null);
   }
 
   /**
    * A combo box of {@link Item}s, of which the user chooses one, as {@link #comboBox} is of
-   * texts: each row shows the item's icon, image or own element before its text and its detail
-   * at the right, the current choice with a check mark at the end, and the box shows the current
-   * choice with what stands before it. A typed text is matched against the items' texts.
+   * texts: each row shows the item's icon, image or own element before its text (in its own
+   * {@linkplain Item#font font}, if given) and its detail at the right, the current choice with a
+   * check mark at the end, and the closed box shows the current choice with what stands before it
+   * and in its font. A typed text is matched against the items' texts.
    *
    * @param items the choices
    * @param selected the index of the current choice, -1 for none
@@ -314,7 +338,8 @@ public final class ComboBox {
       if (state.open) {
         state.close();
       }
-      return closed(theme, text, lead, enabled, state);
+      Font font = current == null ? null : FilterList.font(theme, current.font());
+      return closed(theme, text, font, lead, enabled, state, null);
     }
     state.free = false;
     state.list.current = selected; // highlighted while nothing is typed
@@ -331,6 +356,7 @@ public final class ComboBox {
         entries.add(FilterList.entry(item.text(), () -> state.choose.accept(at))
             .leading(item.leading())
             .detail(item.detail())
+            .font(item.font())
             .checked(i == selected));
       }
       state.choices = items;
@@ -354,8 +380,8 @@ public final class ComboBox {
    *
    * <p>The items are made in every build, one call of {@code item} per value, and while the values
    * are equal to the last build's and so are the items' texts and details, the items of the last
-   * build go on, so that the list keeps what it filtered; what stands before a text is taken to
-   * follow from the value.
+   * build go on, so that the list keeps what it filtered; what stands before a text and its font
+   * are taken to follow from the value.
    *
    * @param selected the current value, found by {@code equals}; null, or a value not among them,
    *     for none
@@ -392,7 +418,10 @@ public final class ComboBox {
         theme, items(values, selected.get(), item, state, selected.onChange()), selected);
   }
 
-  /** Whether the items have the same texts and details, and leading elements in the same places. */
+  /**
+   * Whether the items have the same texts and details, and leading elements and fonts in the same
+   * places.
+   */
   private static boolean same(List<Item> a, List<Item> b) {
     if (b == null || a.size() != b.size()) {
       return false;
@@ -402,7 +431,8 @@ public final class ComboBox {
       Item y = b.get(i);
       if (!x.text().equals(y.text())
           || !Objects.equals(x.detail(), y.detail())
-          || (x.leading() == null) != (y.leading() == null)) {
+          || (x.leading() == null) != (y.leading() == null)
+          || (x.font() == null) != (y.font() == null)) {
         return false;
       }
     }
@@ -482,11 +512,22 @@ public final class ComboBox {
 
   /** The closed look of {@link #comboBox}: the current choice and a chevron, as a select's. */
   private static El closed(Theme theme, String text, El lead, boolean enabled, State state) {
-    return closed(theme, text, lead, enabled, state, null);
+    return closed(theme, text, null, lead, enabled, state, null);
   }
 
   private static El closed(
       Theme theme, String text, El lead, boolean enabled, State state, Runnable onClear) {
+    return closed(theme, text, null, lead, enabled, state, onClear);
+  }
+
+  private static El closed(
+      Theme theme,
+      String text,
+      Font font,
+      El lead,
+      boolean enabled,
+      State state,
+      Runnable onClear) {
     Button.Look look = Select.look(theme, enabled);
     El clear = enabled && onClear != null && !text.isEmpty()
         ? FieldActions.button(theme, Symbol.DISMISS, Texts.CURRENT.get().clear(), onClear)
@@ -495,7 +536,7 @@ public final class ComboBox {
             .focusable()
             .focusRing(theme.accent().edge())
         : null;
-    El box = Select.box(theme, look, text, lead, clear, enabled).expanded(false);
+    El box = Select.box(theme, look, text, font, lead, clear, enabled).expanded(false);
     if (!enabled) {
       return box;
     }

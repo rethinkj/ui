@@ -1,0 +1,4 @@
+el 0,0 300x260
+  el #font role=combobox label="JetBrains Mono" 12,12 240x24 expanded=false
+    text "JetBrains Mono" 21,16 202x17
+    text label="chevron_down" "\u{F2A2}" 227,16 16x16

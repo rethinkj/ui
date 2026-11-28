@@ -754,7 +754,7 @@ public final class FilterTree {
 
     El name = label(row.text()).color(textColor).ellipsis().minSize(0, 0);
     if (!shown.query().isEmpty()) {
-      FilterList.highlightMatches(name, shown.query(), row.text(), strong);
+      FilterList.highlightMatches(name, shown.query(), row.text(), strong, 0);
     }
     El meta = row.meta() != null ? row.meta().get() : null;
     El more = null;

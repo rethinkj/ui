@@ -1,6 +1,9 @@
 package com.rethinkj.ui.kit;
 
 import static com.rethinkj.ui.El.col;
+import static com.rethinkj.ui.kit.Button.Variant.GHOST;
+import static com.rethinkj.ui.kit.Workbench.dumpLine;
+import static com.rethinkj.ui.kit.Workbench.find;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -16,6 +19,7 @@ import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -134,6 +138,92 @@ class TitleBarTest {
     app.windowActive(false);
     Script.run("frame\nsnap inactive", app, out);
     assertEquals(topActive, pixel("inactive", 16, 1), "glow stays while inactive");
+  }
+
+  @Test
+  void aCompactHeaderHasNoTitleAndItsSwitchersShortenAfterTheMiddle() throws IOException {
+    Theme theme = Theme.DARK;
+    Menu.State mainMenu = new Menu.State();
+    Menu.State projectMenu = new Menu.State();
+    Menu.State branchMenu = new Menu.State();
+    String project = "hooricode";
+    String branch = "feat/title-bar-switchers";
+    App<Object> app = new App<>(new Object(), s -> {
+      El burger = Menu.dropdown(
+          Button.icon(GHOST, Symbol.NAVIGATION, "Main menu", mainMenu::toggle).key("main"),
+          mainMenu,
+          List.of(Menu.submenu("File", List.of(Menu.item("New file", () -> {})))));
+      El badge = Avatar.avatar(project, null, theme.size().icon())
+          .radius(theme.radius().small());
+      El projectButton = Button.menu(
+              GHOST,
+              project,
+              projectMenu,
+              List.of(Menu.item(project, () -> {}), Menu.item("rethinkj-ui", () -> {})),
+              Button.options().mark(badge))
+          .key("project");
+      El branchButton = Button.menu(
+              GHOST,
+              branch,
+              branchMenu,
+              List.of(Menu.item("main", () -> {}), Menu.item(branch, () -> {})),
+              Button.options().icon(Symbol.BRANCH))
+          .key("branch");
+      El search = TitleBar.search("Search commands", "Ctrl+Shift+P", () -> {}).key("search");
+      El bar = TitleBar.titleBar(
+          null,
+          null,
+          List.of(burger, projectButton, branchButton),
+          search,
+          List.of(Button.icon(GHOST, Symbol.WEATHER_MOON, "Dark theme", () -> {})));
+      return col().wFull().hFull().fill(theme.surface().window()).child(bar);
+    });
+    app.textRendering(TextRendering.LINUX);
+
+    Script.run("size 900 200\nframe", app, out);
+    El lead = app.tree().children().getFirst().children().getFirst();
+    assertTrue(
+        lead.children().stream().noneMatch(child -> child.text() != null),
+        "no static title label in a bar with a null title");
+    El mainEl = find(app, "main");
+    El projectEl = find(app, "project");
+    El branchEl = find(app, "branch");
+    assertEquals(theme.space().m(), mainEl.x(), "first start part keeps the usual inset");
+    assertEquals(
+        theme.space().s(),
+        projectEl.x() - (mainEl.x() + mainEl.width()),
+        "start parts sit space().s() apart");
+    assertEquals(
+        theme.space().s(),
+        branchEl.x() - (projectEl.x() + projectEl.width()),
+        "start parts sit space().s() apart");
+    assertEquals(
+        WindowPart.CONTROL,
+        app.windowPart(
+            projectEl.x() + projectEl.width() / 2, projectEl.y() + projectEl.height() / 2));
+    assertEquals(
+        WindowPart.DRAG,
+        app.windowPart(
+            projectEl.x() + projectEl.width() + theme.space().s() / 2,
+            projectEl.y() + projectEl.height() / 2),
+        "the gap between switchers still moves the window");
+
+    Script.run("press #project\nframe\nadvance 1\nframe", app, out);
+    assertTrue(projectMenu.isOpen());
+    assertTrue(dumpLine(app, "project").contains(" expanded"), dumpLine(app, "project"));
+    assertTrue(app.tree().dump().contains("role=menu"), app.tree().dump());
+
+    Script.run("key Escape\nframe\nsize 540 120\nframe", app, out);
+    El narrowLead = app.tree().children().getFirst().children().getFirst();
+    El middle = narrowLead.children().getLast();
+    assertEquals(0f, middle.width(), "the middle gives way to nothing first");
+    assertTrue(title(app.tree(), branch).shortened(), "a switcher shortens its text");
+    assertEquals(
+        WindowPart.DRAG,
+        app.windowPart(narrowLead.x() + narrowLead.width() + theme.space().m(), 20),
+        "the drag gap before actions keeps its width");
+    assertEquals(WindowPart.MINIMIZE, app.windowPart(540 - 46 * 3 + 10, 20));
+    assertEquals(WindowPart.CLOSE, app.windowPart(540 - 10, 20));
   }
 
   /** The text {@code string} in the tree under {@code el}, or null. */

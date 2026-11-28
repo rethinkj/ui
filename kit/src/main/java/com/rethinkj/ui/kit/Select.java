@@ -6,6 +6,7 @@ import static com.rethinkj.ui.kit.Label.label;
 import com.rethinkj.ui.El;
 import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Style;
+import com.rethinkj.ui.text.Font;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -188,6 +189,21 @@ public final class Select {
    * as a clear button before the chevron.
    */
   static El box(Theme theme, Button.Look look, String text, El lead, El trailing, boolean enabled) {
+    return box(theme, look, text, null, lead, trailing, enabled);
+  }
+
+  /**
+   * The box of a closed select or combo box in this look, with an optional font for the choice's
+   * text and an optional trailing element such as a clear button before the chevron.
+   */
+  static El box(
+      Theme theme,
+      Button.Look look,
+      String text,
+      Font font,
+      El lead,
+      El trailing,
+      boolean enabled) {
     El box = row()
         .role("combobox")
         .label(text)
@@ -206,7 +222,11 @@ public final class Select {
     if (lead != null) {
       box.child(ComboBox.leading(theme, lead));
     }
-    box.child(label(text).color(look.text()).grow(1).minSize(0, 0).ellipsis());
+    El chosen = label(text).color(look.text()).grow(1).minSize(0, 0).ellipsis();
+    if (font != null) {
+      chosen.font(font);
+    }
+    box.child(chosen);
     if (trailing != null) {
       box.child(trailing);
     }

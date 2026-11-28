@@ -16,12 +16,21 @@ Javadoc: [`TitleBar`](/api/com/rethinkj/ui/kit/TitleBar.html).
 
 | Method | Description |
 | --- | --- |
-| `titleBar(icon, title, end...)` | Icon, title, and right-side actions |
-| `titleBar(icon, title, start, center, end)` | Full layout with left slot (e.g. `MenuBar`), centered slot (`null` if none), and right slot |
+| `titleBar(icon, title, end...)` | Optional icon (`null` for none), title (`null` or blank for none), and right-side actions |
+| `titleBar(icon, title, start, center, end)` | Full layout with optional icon and title (`null` or blank for none), leading controls (`start`), centered slot (`null` if none), and right-side actions (`end`) |
 | `search(placeholder, shortcut, onPress)` | Centered search button (e.g., to open a [CommandPalette](/docs/components/command-palette)) |
 | `glow(color)` | Soft radial project color wash for `.background(...)`, centered above the app icon |
 
 Use `AppIcon.appIcon(16, color, symbol)` to match your window icon. `TitleBar` reads `WindowState.CURRENT` automatically to toggle Maximize/Restore and dim when inactive. For custom title bar layouts, see `El.windowPart` in [Windows, icons and dialogs](/docs/concepts/platform).
+
+## Compact header
+
+Pass `null` for `icon` and `title` to start the bar with the app's own controls, such as a main menu button and project and branch switchers. `Button.options().mark(...)` puts the project's initials before its name. The controls sit `theme.space().s()` apart, and the gaps between them still move the window. In a narrow window the search gives way first, then the switchers shorten their text with an ellipsis; the drag gap and the window buttons keep their width.
+
+<Shot src="examples/docs/title-bar-compact/view-{theme}" alt="A frameless window with a compact header showing a menu icon button, a project switcher with an initials avatar, a branch switcher, a centered search button, a theme action, and window buttons above two cards" />
+
+```java snippet="title-bar-compact"
+```
 
 ## Glow
 

@@ -4,6 +4,9 @@ import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.kit.Label.label;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
@@ -11,11 +14,15 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.render.Pixels;
 import com.rethinkj.ui.render.Png;
+import com.rethinkj.ui.text.Font;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -171,5 +178,125 @@ class ComboBoxItemsTest {
         "combobox-items-" + theme + "-" + scale + "x-open",
         Png.decode(Files.readAllBytes(files.get(0))),
         Files.readString(files.get(1)));
+  }
+
+  @Test
+  void itemsWithOwnFontsDrawInThemWithFallbackAndHighlightMatches() throws IOException {
+    Theme t = Theme.DARK;
+    ComboBox.State state = new ComboBox.State();
+    AtomicInteger chosen = new AtomicInteger(0);
+    List<ComboBox.Item> items = List.of(
+        ComboBox.item("JetBrains Mono").font(Font::mono),
+        ComboBox.item("Inter Italic").font(Font::sansItalic),
+        ComboBox.item("Icons Fallback").font(Font::icons),
+        ComboBox.item("Null Supplier").font(() -> null),
+        ComboBox.item("Plain"));
+    App<ComboBox.State> a = new App<>(
+            state,
+            s -> col()
+                .wFull()
+                .hFull()
+                .padding(t.space().l())
+                .fill(t.surface().window())
+                .child(ComboBox.items(items, chosen.get(), s, chosen::set)
+                    .key("font")
+                    .w(240)))
+        .provide(Theme.CURRENT, _ -> t);
+    a.focusRing(t.accent().edge());
+    a.textRendering(TextRendering.LINUX);
+
+    Path folder = out.resolve("fonts");
+    List<Path> closed = Script.run("size 300 260 scale 2\nframe\nsnap closed", a, folder);
+    Golden.assertMatches(
+        "combobox-items-font-dark-2x-closed",
+        Png.decode(Files.readAllBytes(closed.get(0))),
+        Files.readString(closed.get(1)));
+
+    List<Path> open = Script.run("press #font\nframe\nadvance 0.25\nframe\nsnap open", a, folder);
+    Golden.assertMatches(
+        "combobox-items-font-dark-2x-open",
+        Png.decode(Files.readAllBytes(open.get(0))),
+        Files.readString(open.get(1)));
+
+    List<Path> typed = Script.run("type \"in\"\nframe\nsnap typed", a, folder);
+    String typedTree = Files.readString(typed.get(1));
+    assertEquals(
+        List.of("Inter Italic", "Icons Fallback", "Plain", "JetBrains Mono"),
+        ComboBoxTest.options(typedTree));
+    Golden.assertMatches(
+        "combobox-items-font-dark-2x-typed",
+        Png.decode(Files.readAllBytes(typed.get(0))),
+        typedTree);
+  }
+
+  @Test
+  void itemFontsAreBuiltOnlyForShownRowsAndTheClosedChoice() throws IOException {
+    Theme t = Theme.DARK;
+    ComboBox.State state = new ComboBox.State();
+    int total = 40;
+    boolean[] built = new boolean[total];
+    List<ComboBox.Item> items = new ArrayList<>(total);
+    for (int i = 0; i < total; i++) {
+      int at = i;
+      items.add(ComboBox.item("Family " + i).font(() -> {
+        built[at] = true;
+        return Font.mono();
+      }));
+    }
+    App<ComboBox.State> a = new App<>(
+            state,
+            s -> col()
+                .wFull()
+                .hFull()
+                .padding(t.space().l())
+                .fill(t.surface().window())
+                .child(ComboBox.items(items, 0, s, _ -> {}).key("font").w(240)))
+        .provide(Theme.CURRENT, _ -> t);
+
+    Script.run("size 300 280\nframe", a, out.resolve("lazy-closed"));
+    assertTrue(built[0], "closed box builds the selected item's font");
+    for (int i = 1; i < total; i++) {
+      assertFalse(built[i], "closed box must not build unselected item " + i);
+    }
+
+    Script.run("press #font\nframe", a, out.resolve("lazy-open"));
+    int count = 0;
+    for (boolean b : built) {
+      if (b) {
+        count++;
+      }
+    }
+    assertTrue(count >= ComboBox.ROWS, "visible rows were built: " + count);
+    assertFalse(built[total - 1], "off-screen tail row must not be built");
+
+    // Typed ComboBox.items reuses entries when font presence matches and rebuilds when it changes.
+    ComboBox.State typedState = new ComboBox.State();
+    typedState.open();
+    List<String> families = List.of("Mono", "Sans");
+    AtomicBoolean withFont = new AtomicBoolean(false);
+    App<ComboBox.State> typedApp = new App<>(
+            typedState,
+            s -> col()
+                .wFull()
+                .hFull()
+                .child(ComboBox.items(
+                    families,
+                    "Mono",
+                    name -> withFont.get() && name.equals("Mono")
+                        ? ComboBox.item(name).font(Font::mono)
+                        : ComboBox.item(name),
+                    s,
+                    _ -> {})))
+        .provide(Theme.CURRENT, _ -> t);
+    Script.run("size 300 200\nframe", typedApp, out.resolve("same-1"));
+    List<FilterList.Entry> first = typedState.entries;
+    typedApp.invalidate();
+    Script.run("frame", typedApp, out.resolve("same-2"));
+    assertSame(first, typedState.entries, "unchanged items keep entries");
+    withFont.set(true);
+    typedApp.invalidate();
+    Script.run("frame", typedApp, out.resolve("same-3"));
+    assertNotSame(first, typedState.entries, "adding a font rebuilds entries");
+    assertNotNull(typedState.entries.get(0).font());
   }
 }

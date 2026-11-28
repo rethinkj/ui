@@ -1,0 +1,29 @@
+el 0,0 300x260
+  el #font role=combobox label="JetBrains Mono" 12,12 240x24 expanded
+    text role=textbox label="JetBrains Mono" "" 12,12 240x24 focused caret 0
+    el role=button label="Close" 223,12 29x24
+      text label="chevron_down" "\u{F2A2}" 227,16 16x16
+overlay bottom stretch gap 4 on #font role=combobox label="JetBrains Mono" 12,12 240x24
+  el #choices 12,40 240x130
+    el #options role=listbox label="JetBrains Mono" 17,45 230x120 rows 0-4/5
+      el #option-0 role=option label="JetBrains Mono" 17,45 230x24 selected pos=1/5
+        el 17,45 230x24
+          el 25,57 16x0
+          text "JetBrains Mono" 49,49 166x17
+          text label="checkmark" "\u{E305}" 223,49 16x16
+      el #option-1 role=option label="Inter Italic" 17,69 230x24 pos=2/5
+        el 17,69 230x24
+          el 25,81 16x0
+          text "Inter Italic" 49,73 190x16
+      el #option-2 role=option label="Icons Fallback" 17,93 230x24 pos=3/5
+        el 17,93 230x24
+          el 25,105 16x0
+          text "Icons Fallback" 49,99 190x13
+      el #option-3 role=option label="Null Supplier" 17,117 230x24 pos=4/5
+        el 17,117 230x24
+          el 25,129 16x0
+          text "Null Supplier" 49,121 190x16
+      el #option-4 role=option label="Plain" 17,141 230x24 pos=5/5
+        el 17,141 230x24
+          el 25,153 16x0
+          text "Plain" 49,145 190x16

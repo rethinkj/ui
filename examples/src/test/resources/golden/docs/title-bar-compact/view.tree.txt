@@ -1,0 +1,44 @@
+el 0,0 880x200
+  el window=drag 0,0 880x40
+    el 0,0 678x40
+      el role=button label="Main menu" 8,8 24x24
+        text label="navigation" "\u{E85F}" 12,12 16x16
+      el role=button label="hooricode" 36,8 128x24 expanded=false
+        el role=img label="hooricode" 49,12 16x16
+          text "H" 54,16 6x8
+        text "hooricode" 69,12 62x16
+        text label="chevron_down" "\u{F2A2}" 135,12 16x16
+      el role=button label="feat/compact-header" 168,8 198x24 expanded=false
+        text label="branch" "\u{F0A6}" 181,12 16x16
+        text "feat/compact-header" 201,12 132x16
+        text label="chevron_down" "\u{F2A2}" 337,12 16x16
+      el 366,0 312x40
+        el role=button label="Search commands" 393,8 258x24
+          text label="search" "\u{EA7C}" 402,12 16x16
+          text "Search commands" 426,12 114x16
+          el 548,8 94x24
+            el 548,8 0x24
+            text "Ctrl+Shift+P" 572,13 70x15
+    el 678,20 24x0
+    el 702,0 40x40
+      el 702,8 24x24
+        el role=button label="Dark theme" 702,8 24x24 checked
+          text label="weather_moon" "\u{EE44}" 706,12 16x16
+      el 726,20 16x0
+    el role=button label="Minimize" window=minimize 742,0 46x40
+      text label="subtract" "\u{EBCE}" 759,14 12x12
+    el role=button label="Maximize" window=maximize 788,0 46x40
+      text label="maximize" "\u{F533}" 805,14 12x12
+    el role=button label="Close" window=close 834,0 46x40
+      text label="dismiss" "\u{F367}" 851,14 12x12
+  el 8,40 864x152
+    el #first 8,40 160x152
+      el 8,40 160x152
+        text "Files" 25,57 126x16
+    el #rest 168,40 704x152
+      el #second 176,40 696x152
+        el 176,40 696x152
+          text "Editor" 193,57 662x16
+      el #divider role=separator label="Resize" 168,40 8x152 value="first 160"
+        el 168,40 8x152
+          el 172,40 1x152

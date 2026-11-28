@@ -36,12 +36,13 @@ import java.util.Objects;
  * red while pressed ({@link Theme.Caption}). Minimize and close say what they do in a tooltip;
  * maximize has none, since Windows 11 shows its snap layouts there.
  *
- * <p>In a narrow window the middle gives way first, then the title shortens, and what does not fit
- * of the start is cut, then of the actions; a gap that moves the window and the buttons keep their
- * width. With a middle, the title is cut rather than shortened. The bar is {@link Theme.Caption#height} high,
- * or {@link Theme.Caption#tall} with a field in the middle, and each button {@link
- * Theme.Caption#button} wide. In a tree dump the buttons are {@code role=button} with the labels
- * {@code Minimize}, {@code Maximize} (or {@code Restore} while maximized) and {@code Close}.
+ * <p>In a narrow window the middle gives way first, then the title and the start parts whose text
+ * ends in an ellipsis, such as a {@link Button#menu}, shorten together, and what still does not fit
+ * of the start is cut, then of the actions; a gap that moves the window and the buttons keep their width. The
+ * bar is {@link Theme.Caption#height} high, or {@link Theme.Caption#tall} with a field in the
+ * middle, and each button {@link Theme.Caption#button} wide. In a tree dump the buttons are {@code
+ * role=button} with the labels {@code Minimize}, {@code Maximize} (or {@code Restore} while
+ * maximized) and {@code Close}.
  */
 public final class TitleBar {
 
@@ -52,6 +53,7 @@ public final class TitleBar {
    *
    * @param icon before the title, in a square of the theme's icon size, such as {@link
    *     AppIcon#appIcon}; null for none
+   * @param title the window's title; null or blank for none
    * @param end the app's actions, such as icon buttons ({@link Button#icon}), before the window's
    *     buttons
    */
@@ -64,8 +66,10 @@ public final class TitleBar {
    *
    * @param icon before the title, in a square of the theme's icon size, such as {@link
    *     AppIcon#appIcon}; null for none
-   * @param start after the title, such as a menu bar, or {@code List.of()}; the gaps between its
-   *     parts move the window
+   * @param title the window's title; null or blank for none
+   * @param start after the title (or at the bar's leading edge with neither icon nor title), such
+   *     as a menu bar or compact header switchers, or {@code List.of()}; its parts sit {@link
+   *     Theme.Spacing#s} apart and the gaps between them move the window
    * @param center in the middle of the space between the start and the end, such as {@link
    *     #search}, which makes the bar {@link Theme.Caption#tall} and gives way first in a narrow
    *     window; null for none
@@ -86,22 +90,44 @@ public final class TitleBar {
         .fill(theme.surface().window())
         .windowPart(WindowPart.DRAG);
     float inset = theme.space().m();
-    // In a narrow window what the app gives at the start gives way first, then its actions; a gap
-    // to drag and the window's buttons keep their width. The start takes only the room left over.
+    float gap = theme.space().s();
+    // In a narrow window the middle gives way first, then the title and the start parts shorten
+    // their text, and what still does not fit is cut, then the actions; a gap to drag and the
+    // window's buttons keep their width.
     El lead =
         row().grow(1).basis(0).hFull().minSize(0, 0).align(Style.Align.CENTER).clip();
     if (icon != null) {
       float side = theme.size().icon();
       lead.child(el().size(side, side).shrink(0).margin(0, 0, 0, inset).child(icon));
     }
-    El name = label(Label.Variant.STRONG, title).color(glyph).ellipsis().margin(0, 0, 0, inset);
-    // With a middle, only the middle gives way; the title keeps its width and is cut last.
-    lead.child(center == null ? name.minSize(0, 0) : name);
+    if (title != null && !title.isBlank()) {
+      lead.child(label(Label.Variant.STRONG, title)
+          .color(glyph)
+          .ellipsis()
+          .minSize(0, 0)
+          .margin(0, 0, 0, inset));
+    }
+    float before = inset;
     for (El part : start) {
-      lead.child(part == null ? null : part.margin(0, 0, 0, inset));
+      if (part != null) {
+        if (hasEllipsis(part)) { // as a button's text: it shortens, and below that it is cut
+          part.shrink(1).minSize(0, 0).clip();
+        }
+        lead.child(part.margin(0, 0, 0, before));
+        before = gap;
+      }
     }
     if (center != null) {
-      lead.child(el().grow(1)).child(center).child(el().grow(1));
+      // Basis 0 lets the middle shrink away to nothing before any start part or the title yields.
+      lead.child(row()
+          .grow(1)
+          .basis(0)
+          .hFull()
+          .minSize(0, 0)
+          .align(Style.Align.CENTER)
+          .justify(Style.Content.CENTER)
+          .clip()
+          .child(center));
     }
     bar.child(lead).child(el().w(theme.space().xxl()).shrink(0));
     List<El> actions = end.stream().filter(Objects::nonNull).toList();
@@ -225,6 +251,13 @@ public final class TitleBar {
               label(Label.Variant.SMALL, shortcut).margin(0, 0, 0, theme.space().xxl())));
     }
     return field;
+  }
+
+  private static boolean hasEllipsis(El el) {
+    if (el.text() != null && el.text().ellipsis()) {
+      return true;
+    }
+    return el.children().stream().anyMatch(TitleBar::hasEllipsis);
   }
 
   private static El glyph(Theme theme, Symbol symbol, int color) {

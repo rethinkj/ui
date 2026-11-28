@@ -75,6 +75,8 @@ public final class FilterList {
    *     the text, group and detail tell it
    * @param keepsOpen whether choosing it leaves a {@link CommandPalette} open, for an entry whose
    *     handler changes the entries the palette shows; a {@link ComboBox} closes anyway
+   * @param font builds the font the entry's text is drawn in, or null for the theme's; see {@link
+   *     #font(Supplier)}
    */
   public record Entry(
       String text,
@@ -86,9 +88,25 @@ public final class FilterList {
       Supplier<El> leading,
       boolean checked,
       String key,
-      boolean keepsOpen) {
+      boolean keepsOpen,
+      Supplier<Font> font) {
     public Entry {
       Objects.requireNonNull(text, "text");
+    }
+
+    /** An entry drawn in the theme's body font. */
+    public Entry(
+        String text,
+        Icon symbol,
+        String detail,
+        String shortcut,
+        String group,
+        Runnable onChoose,
+        Supplier<El> leading,
+        boolean checked,
+        String key,
+        boolean keepsOpen) {
+      this(text, symbol, detail, shortcut, group, onChoose, leading, checked, key, keepsOpen, null);
     }
 
     /** An entry without a key that closes the palette it is chosen in. */
@@ -101,33 +119,33 @@ public final class FilterList {
         Runnable onChoose,
         Supplier<El> leading,
         boolean checked) {
-      this(text, symbol, detail, shortcut, group, onChoose, leading, checked, null, false);
+      this(text, symbol, detail, shortcut, group, onChoose, leading, checked, null, false, null);
     }
 
     /** An entry with an icon or nothing before its text, and no check mark. */
     public Entry(
         String text, Icon symbol, String detail, String shortcut, String group, Runnable onChoose) {
-      this(text, symbol, detail, shortcut, group, onChoose, null, false, null, false);
+      this(text, symbol, detail, shortcut, group, onChoose, null, false, null, false, null);
     }
 
     public Entry symbol(Icon symbol) {
       return new Entry(
-          text, symbol, detail, shortcut, group, onChoose, leading, checked, key, keepsOpen);
+          text, symbol, detail, shortcut, group, onChoose, leading, checked, key, keepsOpen, font);
     }
 
     public Entry detail(String detail) {
       return new Entry(
-          text, symbol, detail, shortcut, group, onChoose, leading, checked, key, keepsOpen);
+          text, symbol, detail, shortcut, group, onChoose, leading, checked, key, keepsOpen, font);
     }
 
     public Entry shortcut(String shortcut) {
       return new Entry(
-          text, symbol, detail, shortcut, group, onChoose, leading, checked, key, keepsOpen);
+          text, symbol, detail, shortcut, group, onChoose, leading, checked, key, keepsOpen, font);
     }
 
     public Entry group(String group) {
       return new Entry(
-          text, symbol, detail, shortcut, group, onChoose, leading, checked, key, keepsOpen);
+          text, symbol, detail, shortcut, group, onChoose, leading, checked, key, keepsOpen, font);
     }
 
     /**
@@ -137,7 +155,7 @@ public final class FilterList {
      */
     public Entry leading(Supplier<El> leading) {
       return new Entry(
-          text, symbol, detail, shortcut, group, onChoose, leading, checked, key, keepsOpen);
+          text, symbol, detail, shortcut, group, onChoose, leading, checked, key, keepsOpen, font);
     }
 
     /** An image before the text, fitted into an icon's square, such as a product's logo. */
@@ -148,19 +166,31 @@ public final class FilterList {
     /** A check mark at the right end of the row, as the current choice of a list has. */
     public Entry checked(boolean checked) {
       return new Entry(
-          text, symbol, detail, shortcut, group, onChoose, leading, checked, key, keepsOpen);
+          text, symbol, detail, shortcut, group, onChoose, leading, checked, key, keepsOpen, font);
     }
 
     /** This entry with a key, which tells it from others with the same text. */
     public Entry key(String key) {
       return new Entry(
-          text, symbol, detail, shortcut, group, onChoose, leading, checked, key, keepsOpen);
+          text, symbol, detail, shortcut, group, onChoose, leading, checked, key, keepsOpen, font);
     }
 
     /** This entry, leaving a {@link CommandPalette} open when it is chosen, or not. */
     public Entry keepsOpen(boolean keepsOpen) {
       return new Entry(
-          text, symbol, detail, shortcut, group, onChoose, leading, checked, key, keepsOpen);
+          text, symbol, detail, shortcut, group, onChoose, leading, checked, key, keepsOpen, font);
+    }
+
+    /**
+     * The font this entry's text is drawn in, built only for the rows the list builds, those in
+     * view and a few beyond; null, or a supplier that returns null, uses the theme's body font. Characters the font lacks fall back to the
+     * theme's body font ({@link Font#withFallback}). While filtering, matches on an entry with its
+     * own font are marked behind the text with {@link Theme.Code#match} instead of switching to the
+     * theme's heading font, so the text stays in its typeface.
+     */
+    public Entry font(Supplier<Font> font) {
+      return new Entry(
+          text, symbol, detail, shortcut, group, onChoose, leading, checked, key, keepsOpen, font);
     }
 
     public boolean isEnabled() {
@@ -772,6 +802,18 @@ public final class FilterList {
         .minSize(0, rowHeight); // a short window's panel takes rows off, and the rest scroll
   }
 
+  /**
+   * The font supplied for an entry or item, falling back to the theme's body font for characters it
+   * lacks, or null when no supplier is set or it returns null.
+   */
+  static Font font(Theme theme, Supplier<Font> supplier) {
+    if (supplier == null) {
+      return null;
+    }
+    Font own = supplier.get();
+    return own == null ? null : own.withFallback(theme.type().body().font().get());
+  }
+
   private static El option(
       Theme theme, State s, Shown shown, int i, Font strong, Consumer<Entry> choose) {
     Entry entry = shown.entry(i);
@@ -795,10 +837,20 @@ public final class FilterList {
       leading = Icon.Picture.color(
           icon(entry.symbol(), enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED), quiet);
     }
+    Font custom = font(theme, entry.font());
     // The name keeps its width as the detail gives way, and yields only where it alone overflows.
     El name = label(entry.text()).color(text).ellipsis();
+    if (custom != null) {
+      name.font(custom);
+    }
     name.style().minYields = true;
-    highlightMatches(name, shown.query(), entry.text(), strong);
+    // A name in its own typeface keeps it: the matches get a background instead of a weight.
+    highlightMatches(
+        name,
+        shown.query(),
+        entry.text(),
+        custom == null ? strong : null,
+        theme.code().match());
     El content = PassiveContent.row(
         theme,
         PassiveContent.flexibleLeading(theme, leading),
@@ -821,8 +873,11 @@ public final class FilterList {
         option, entry.detail() == null ? entry.text() : entry.text() + " — " + entry.detail());
   }
 
-  /** Draws the characters of {@code text} that match {@code query} in {@code strong}. */
-  static void highlightMatches(El name, String query, String text, Font strong) {
+  /**
+   * Marks the characters of {@code text} that match {@code query}: in {@code strong}, or where it is
+   * null, on {@code background}.
+   */
+  static void highlightMatches(El name, String query, String text, Font strong, int background) {
     int[] at = query.isEmpty() ? null : Fuzzy.positions(query, text);
     if (at != null && at.length > 0) {
       name.highlight(query, (line, before, spans) -> {
@@ -831,7 +886,11 @@ public final class FilterList {
           while (end + 1 < at.length && at[end + 1] == at[end] + 1) {
             end++;
           }
-          spans.font(at[k], at[end] + 1, strong);
+          if (strong == null) {
+            spans.background(at[k], at[end] + 1, background);
+          } else {
+            spans.font(at[k], at[end] + 1, strong);
+          }
           k = end;
         }
         return null;
