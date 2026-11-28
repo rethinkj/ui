@@ -11,6 +11,7 @@ import com.rethinkj.ui.El;
 import com.rethinkj.ui.RowHeights;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.ScrollState;
+import com.rethinkj.ui.Style;
 import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -165,6 +166,49 @@ class ChatTest {
     Script.run("focus role=button label=\"Read orders.sql\"\nkey Enter\nframe", app, out);
     assertFalse(open[0]);
     assertFalse(app.tree().dump().contains("SELECT * FROM orders;"));
+  }
+
+  @Test
+  void toolRowsSpanTheirColumnAndStackWithoutAGap() throws IOException {
+    Theme theme = Theme.DARK;
+    App<Object> app = new App<>(
+            new Object(),
+            s -> col()
+                .wFull()
+                .padding(theme.space().xl())
+                .align(Style.Align.START)
+                .child(Chat.tool(Symbol.PLAY, "Alone", Chat.ToolState.DONE, false, () -> {})
+                    .key("alone"))
+                .child(Chat.agent(
+                    // An app's own key, role and label do not change how the part stacks.
+                    Chat.tool(Symbol.CODE, "Read orders.sql", Chat.ToolState.DONE, false, () -> {})
+                        .key("tool")
+                        .role("region")
+                        .label("Custom tool"),
+                    Chat.toolGroup(
+                            "Investigating",
+                            null,
+                            false,
+                            () -> {},
+                            0,
+                            Chat.step(Symbol.SEARCH, "Find", Chat.ToolState.DONE, false, null))
+                        .key("group"),
+                    Markdown.fragment(Markdown.parse("Summary."), Markdown.options())
+                        .key("prose"))))
+        .provide(Theme.CURRENT, s -> theme);
+    app.textRendering(TextRendering.LINUX);
+
+    Script.run("size 500 300\nframe", app, out);
+    El tool = findByKey(app.tree(), "tool");
+    El group = findByKey(app.tree(), "group");
+    El prose = findByKey(app.tree(), "prose");
+    assertEquals(tool.y() + tool.height(), group.y(), 0.5f);
+    assertEquals(group.y() + group.height() + theme.space().m(), prose.y(), 0.5f);
+    // Outside a message too, a tool row spans its column and reaches s past it on each side.
+    assertEquals(
+        500 - 2 * theme.space().xl() + 2 * theme.space().s(),
+        findByKey(app.tree(), "alone").width(),
+        0.5f);
   }
 
   @Test

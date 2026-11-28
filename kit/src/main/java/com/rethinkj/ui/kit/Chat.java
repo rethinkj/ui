@@ -341,8 +341,9 @@ public final class Chat {
 
   /**
    * An agent message composed of full-width parts stacked in order, such as {@link #tool} calls,
-   * {@link #toolGroup}s, {@link Markdown#fragment} blocks and {@link #working}. Null parts are
-   * skipped.
+   * {@link #toolGroup}s, {@link Markdown#fragment} blocks and {@link #working}. Consecutive {@link
+   * #tool} and {@link #toolGroup} parts stack without a gap; other boundaries keep {@link
+   * Theme.Spacing#m}. Null parts are skipped.
    */
   public static El agent(El... parts) {
     return agent(options(), parts);
@@ -350,7 +351,8 @@ public final class Chat {
 
   /**
    * An agent message composed of full-width parts stacked in order, with optional quiet actions and
-   * muted time below them. Null parts are skipped.
+   * muted time below them. Consecutive {@link #tool} and {@link #toolGroup} parts stack without a
+   * gap; other boundaries keep {@link Theme.Spacing#m}. Null parts are skipped.
    */
   public static El agent(Options options, El... parts) {
     Objects.requireNonNull(options, "options");
@@ -358,11 +360,11 @@ public final class Chat {
   }
 
   /**
-   * A one-line tool call row with an optional icon, a title, a state indicator (spinner while
-   * running, check mark when done, error icon when failed) and a chevron that opens to show {@code
-   * details} (any elements: text, code, a diff). Controlled: {@code open} decides whether the
-   * details show and {@code onToggle} runs when pressed; null {@code onToggle} disables toggling.
-   * Null detail elements are skipped.
+   * A quiet, borderless one-line tool call row with an optional icon, a title, a state indicator
+   * (spinner while running, check mark when done, error icon when failed) and a chevron that opens
+   * to show {@code details} (any elements: text, code, a diff) in a borderless inset aligned to the
+   * title. Controlled: {@code open} decides whether the details show and {@code onToggle} runs when
+   * pressed; null {@code onToggle} disables toggling. Null detail elements are skipped.
    */
   public static El tool(
       Icon icon, String title, ToolState state, boolean open, Runnable onToggle, El... details) {
@@ -370,20 +372,26 @@ public final class Chat {
     Objects.requireNonNull(state, "state");
     Theme theme = Theme.CURRENT.get();
     Texts texts = Texts.CURRENT.get();
-    boolean enabled = onToggle != null;
-    String stateText = texts.toolState(state);
-    return disclosure(
+    // The row's side padding, taken back by the margin, so the icon sits on the prose edge and
+    // the hover fill reaches space().s() past the text on both sides.
+    // Stretched rather than full width, so the margins widen it in any column.
+    El box = col()
+        .alignSelf(Style.Align.STRETCH)
+        .margin(0, -theme.space().s(), 0, -theme.space().s());
+    box.style().minWidth = Len.ZERO;
+    appendToolRow(
+        box,
         theme,
+        texts,
         icon,
         title,
-        toolIndicator(state, stateText),
+        state,
         open,
         onToggle,
-        !enabled,
-        true,
-        theme.border().subtle(),
         Section.present(details),
-        head -> configureToolHead(head, title, stateText, state, open, enabled));
+        null,
+        null);
+    return box;
   }
 
   /**
@@ -459,7 +467,7 @@ public final class Chat {
             theme,
             resolvedTitle,
             theme.space().s(),
-            theme.space().m(),
+            theme.space().s(),
             theme.size().control() + theme.space().s(),
             onToggle)
         .radius(theme.radius().medium());
@@ -497,7 +505,14 @@ public final class Chat {
         open ? Symbol.CHEVRON_UP : Symbol.CHEVRON_DOWN,
         enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
 
-    El group = col().wFull().role("group").label(resolvedTitle).child(head);
+    // The header's side padding, taken back by the margin, so its mark sits on the prose edge and
+    // the hover fill reaches space().s() past the text on both sides.
+    El group = col()
+        .alignSelf(Style.Align.STRETCH)
+        .margin(0, -theme.space().s(), 0, -theme.space().s())
+        .role("group")
+        .label(resolvedTitle)
+        .child(head);
     group.style().minWidth = Len.ZERO;
 
     int shown = open ? total : Math.min(latest, total);
@@ -535,51 +550,22 @@ public final class Chat {
     int start = total - shown;
     for (int i = start; i < total; i++) {
       Step step = present.get(i);
-      boolean stepEnabled = step.onToggle() != null;
-      String stepStateText = texts.toolState(step.state());
-      El stepRow = disclosureHead(
-              theme,
-              step.title(),
-              theme.space().xs(),
-              theme.space().s(),
-              theme.size().control() + theme.space().xs(),
-              step.onToggle())
-          .radius(theme.radius().small());
-      configureToolHead(
-          stepRow, step.title(), stepStateText, step.state(), step.open(), stepEnabled);
-      if (step.icon() != null) {
-        stepRow.child(icon(step.icon(), stepEnabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
-      }
-      stepRow.child(label(step.title())
-          .color(stepEnabled ? theme.text().primary() : theme.text().disabled())
-          .maxLines(1)
-          .ellipsis()
-          .grow(1)
-          .minSize(0, 0));
-      stepRow.child(toolIndicator(step.state(), stepStateText));
-      stepRow.child(icon(
-          step.open() ? Symbol.CHEVRON_UP : Symbol.CHEVRON_DOWN,
-          stepEnabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
       // Keyed by position in the whole group, so focus stays on its step as the window slides.
-      list.child(stepRow.key("step-" + i));
-      if (step.open() && !step.details().isEmpty()) {
-        float insetStart = step.icon() != null
-            ? theme.size().icon() + theme.space().s() + theme.space().s()
-            : theme.space().s();
-        El inset = col()
-            .fill(theme.surface().band())
-            .radius(theme.radius().small())
-            .padding(theme.space().s(), theme.space().m())
-            .gap(theme.space().s())
-            .margin(0, 0, theme.space().xs(), insetStart)
-            .clip()
-            .children(step.details().toArray(El[]::new));
-        inset.style().minWidth = Len.ZERO;
-        list.child(inset.key("details-" + i));
-      }
+      appendToolRow(
+          list,
+          theme,
+          texts,
+          step.icon(),
+          step.title(),
+          step.state(),
+          step.open(),
+          step.onToggle(),
+          step.details().toArray(El[]::new),
+          "step-" + i,
+          "details-" + i);
     }
 
-    float lineStart = theme.space().m() + (theme.size().icon() - theme.size().stroke()) / 2;
+    float lineStart = theme.space().s() + (theme.size().icon() - theme.size().stroke()) / 2;
     float listStart = Math.max(
         0, (theme.size().icon() - theme.size().stroke()) / 2 - theme.space().xs());
     El line =
@@ -600,42 +586,8 @@ public final class Chat {
   public static El context(
       Icon icon, String title, String meta, boolean open, Runnable onToggle, El... details) {
     Objects.requireNonNull(title, "title");
-    Theme theme = Theme.CURRENT.get();
-    boolean hasMeta = meta != null && !meta.isEmpty();
-    // The metadata takes only the room the title leaves, so the title is cut short last.
-    El metaLabel = hasMeta
-        ? label(Label.Variant.SMALL, meta)
-            .fontFeatures("+tnum")
-            .maxLines(1)
-            .ellipsis()
-            .textAlign(Style.Align.END)
-            .basis(0)
-            .grow(1)
-            .minSize(0, 0)
-        : null;
     return disclosure(
-        theme,
-        icon,
-        title,
-        metaLabel,
-        open,
-        onToggle,
-        false,
-        onToggle != null,
-        theme.border().divider(),
-        Section.present(details),
-        head -> {
-          // The whole text of what may be cut short: the title, and the metadata after it.
-          Tooltip.whenShortened(head, hasMeta ? title + " " + meta : title);
-          if (onToggle != null) {
-            head.role("button").expanded(open);
-            if (hasMeta) {
-              head.value(meta);
-            }
-          } else {
-            head.role("group");
-          }
-        });
+        Theme.CURRENT.get(), icon, title, meta, open, onToggle, Section.present(details));
   }
 
   /** A quiet line with a spinner and {@link Texts#working()} to place under the last message. */
@@ -965,18 +917,75 @@ public final class Chat {
     return head;
   }
 
+  private static void appendToolRow(
+      El parent,
+      Theme theme,
+      Texts texts,
+      Icon icon,
+      String title,
+      ToolState state,
+      boolean open,
+      Runnable onToggle,
+      El[] details,
+      String headKey,
+      String detailsKey) {
+    boolean enabled = onToggle != null;
+    String stateText = texts.toolState(state);
+    El head = disclosureHead(
+            theme,
+            title,
+            theme.space().xs(),
+            theme.space().s(),
+            theme.size().control() + theme.space().xs(),
+            onToggle)
+        .radius(theme.radius().small());
+    configureToolHead(head, title, stateText, state, open, enabled);
+    if (icon != null) {
+      head.child(icon(icon, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
+    }
+    head.child(label(title)
+        .color(enabled ? theme.text().primary() : theme.text().disabled())
+        .maxLines(1)
+        .ellipsis()
+        .grow(1)
+        .minSize(0, 0));
+    head.child(toolIndicator(state, stateText));
+    head.child(icon(
+        open ? Symbol.CHEVRON_UP : Symbol.CHEVRON_DOWN,
+        enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
+    if (headKey != null) {
+      head.key(headKey);
+    }
+    parent.child(head);
+    if (open && details.length > 0) {
+      float insetStart = icon != null
+          ? theme.size().icon() + theme.space().s() + theme.space().s()
+          : theme.space().s();
+      El inset = col()
+          .fill(theme.surface().band())
+          .radius(theme.radius().small())
+          .padding(theme.space().s(), theme.space().m())
+          .gap(theme.space().s())
+          .margin(0, theme.space().s(), theme.space().xs(), insetStart)
+          .clip()
+          .children(details);
+      inset.style().minWidth = Len.ZERO;
+      if (detailsKey != null) {
+        inset.key(detailsKey);
+      }
+      parent.child(inset);
+    }
+  }
+
   private static El disclosure(
       Theme theme,
       Icon icon,
       String title,
-      El trailing,
+      String meta,
       boolean open,
       Runnable onToggle,
-      boolean disabled,
-      boolean showChevron,
-      int borderColor,
-      El[] details,
-      Consumer<El> configureHead) {
+      El[] details) {
+    boolean hasMeta = meta != null && !meta.isEmpty();
     boolean showDetails = open && details.length > 0;
     float innerRadius = Math.max(0, theme.radius().medium() - theme.size().stroke());
 
@@ -992,30 +1001,44 @@ public final class Chat {
     } else {
       head.radius(innerRadius);
     }
-    configureHead.accept(head);
+    // The whole text of what may be cut short: the title, and the metadata after it.
+    Tooltip.whenShortened(head, hasMeta ? title + " " + meta : title);
+    if (onToggle != null) {
+      head.role("button").expanded(open);
+      if (hasMeta) {
+        head.value(meta);
+      }
+    } else {
+      head.role("group");
+    }
     if (icon != null) {
-      head.child(icon(icon, disabled ? Icon.Variant.DISABLED : Icon.Variant.MUTED));
+      head.child(icon(icon, Icon.Variant.MUTED));
     }
     head.child(label(title)
-        .color(disabled ? theme.text().disabled() : theme.text().primary())
+        .color(theme.text().primary())
         .maxLines(1)
         .ellipsis()
-        // A trailing element that grows, as a context's metadata, gets only the room left over.
-        .grow(trailing != null && trailing.style().grow > 0 ? 0 : 1)
+        // Metadata takes only the room the title leaves, so the title is cut short last.
+        .grow(hasMeta ? 0 : 1)
         .minSize(0, 0));
-    if (trailing != null) {
-      head.child(trailing);
+    if (hasMeta) {
+      head.child(label(Label.Variant.SMALL, meta)
+          .fontFeatures("+tnum")
+          .maxLines(1)
+          .ellipsis()
+          .textAlign(Style.Align.END)
+          .basis(0)
+          .grow(1)
+          .minSize(0, 0));
     }
-    if (showChevron) {
-      head.child(icon(
-          open ? Symbol.CHEVRON_UP : Symbol.CHEVRON_DOWN,
-          disabled ? Icon.Variant.DISABLED : Icon.Variant.MUTED));
+    if (onToggle != null) {
+      head.child(icon(open ? Symbol.CHEVRON_UP : Symbol.CHEVRON_DOWN, Icon.Variant.MUTED));
     }
 
     El box = col()
         .wFull()
         .radius(theme.radius().medium())
-        .border(theme.size().stroke(), borderColor)
+        .border(theme.size().stroke(), theme.border().divider())
         .fill(theme.surface().band())
         .child(head);
     if (showDetails) {
@@ -1033,6 +1056,24 @@ public final class Chat {
     return box;
   }
 
+  /**
+   * Recognizes {@link #tool} and {@link #toolGroup} parts without reading the returned element's
+   * {@code key}, {@code role}, or {@code label} (which an app may overwrite): both return a
+   * transparent, borderless column with {@code -space().s()} horizontal bleed whose first child is
+   * its private {@code role=button} disclosure header.
+   */
+  private static boolean isToolPart(El part, Theme theme) {
+    Style style = part.style();
+    Len bleed = Len.px(-theme.space().s());
+    return style.direction == Style.Direction.COLUMN
+        && part.fill() == 0
+        && part.borderColor() == 0
+        && bleed.equals(style.marginLeft)
+        && bleed.equals(style.marginRight)
+        && !part.children().isEmpty()
+        && "button".equals(part.children().getFirst().role());
+  }
+
   private static El agentMessage(Options options, String copyText, El[] parts) {
     Theme theme = Theme.CURRENT.get();
     Texts texts = Texts.CURRENT.get();
@@ -1042,8 +1083,15 @@ public final class Chat {
         .label(texts.agentMessage())
         .gap(theme.space().m());
     message.style().minWidth = Len.ZERO;
+    boolean previousTool = false;
     for (El part : parts) {
+      boolean tool = isToolPart(part, theme);
+      if (previousTool && tool) {
+        // Cancel the message column's gap so consecutive tool rows and groups stack tightly.
+        part.style().marginTop = Len.px(-theme.space().m());
+      }
       message.child(part);
+      previousTool = tool;
     }
     El footer = footer(theme, texts, options, copyText);
     if (footer != null) {

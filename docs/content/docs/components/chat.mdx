@@ -7,7 +7,7 @@ description: Plain and composed user message bubbles, collapsible context blocks
 
 Javadoc: [`Chat`](/api/com/rethinkj/ui/kit/Chat.html), [`Chat.Options`](/api/com/rethinkj/ui/kit/Chat.Options.html), [`Chat.ComposerOptions`](/api/com/rethinkj/ui/kit/Chat.ComposerOptions.html), [`Chat.ToolState`](/api/com/rethinkj/ui/kit/Chat.ToolState.html), [`Chat.Step`](/api/com/rethinkj/ui/kit/Chat.Step.html).
 
-<Shot src="examples/docs/chat/view-{theme}" alt="A chat card showing a right-aligned user bubble, an agent answer with an open tool call, a failed tool call, Markdown prose with SQL, and a running tool call above a working spinner" />
+<Shot src="examples/docs/chat/view-{theme}" alt="A chat card showing a right-aligned user bubble, an agent answer with quiet tool calls (one open with its details inset and one failed), Markdown prose with SQL, and a running tool call above a working spinner" />
 
 ## Example
 
@@ -22,7 +22,7 @@ Javadoc: [`Chat`](/api/com/rethinkj/ui/kit/Chat.html), [`Chat.Options`](/api/com
 | `context(icon, title, meta, open, onToggle, details…)` | Collapsible (or static when `onToggle` is `null`) context block with optional icon, title, right-aligned metadata, and detail elements when open |
 | `agent(document)` / `agent(document, options)` | Full-width agent answer rendered via `Markdown.fragment` |
 | `agent(parts…)` / `agent(options, parts…)` | Full-width agent answer composed of arbitrary parts (`Chat.tool`, `Chat.toolGroup`, `Markdown.fragment`, `Chat.working`); `null` parts are skipped |
-| `tool(icon, title, state, open, onToggle, details…)` | One-line collapsible tool call row with icon, title, state (`RUNNING`, `DONE`, `FAILED`), and any detail elements when open |
+| `tool(icon, title, state, open, onToggle, details…)` | Quiet one-line collapsible tool call row with icon, title, state (`RUNNING`, `DONE`, `FAILED`), and any detail elements in an inset when open |
 | `step(icon, title, state, open, onToggle, details…)` | Value describing one tool call step inside a `Chat.toolGroup` |
 | `toolGroup(title, meta, open, onToggle, latest, steps…)` | Quiet collapsible group of `Chat.Step` rows along a vertical track line, folding into a summary row or showing the last `latest` steps behind a toggle |
 | `working()` / `working(text)` | Quiet status row with a spinner and `Texts.working()` (or custom text) for the bottom of an active message |
@@ -44,11 +44,11 @@ Configure message footers and Markdown rendering with `Chat.options()`:
 
 ## Tool calls
 
-`Chat.tool` is controlled: keep each tool call's `open` boolean in your app state and pass a toggle handler in `onToggle` (or `null` to disable expanding). While `open` is `false`, the row stays on one line with an optional leading icon, an ellipsized title, a state mark (`Progress.spinner()` while `RUNNING`, check mark when `DONE`, error icon when `FAILED`), and a chevron. When `open` is `true`, its detail elements—plain text, monospace output, a `CodeEditor`, or a `DiffView`—render in a panel below a divider.
+`Chat.tool` renders as a quiet, borderless single-line row—the same row `Chat.toolGroup` uses for each step—aligned with the surrounding prose, with hover and focus feedback. It is controlled: keep each tool call's `open` boolean in your app state and pass a toggle handler in `onToggle` (or `null` to disable expanding). While `open` is `false`, the row shows an optional leading icon, an ellipsized title, a state mark (`Progress.spinner()` while `RUNNING`, check mark when `DONE`, error icon when `FAILED`), and a chevron. When `open` is `true`, its detail elements—plain text, monospace output, a `CodeEditor`, or a `DiffView`—render in a borderless inset aligned to the title. Inside `Chat.agent`, consecutive `Chat.tool` and `Chat.toolGroup` parts stack with no gap between them while prose, code, `Chat.working()`, and the footer keep the regular spacing.
 
 ## Tool call groups
 
-When a turn runs many tool calls, pass `Chat.Step` values built with `Chat.step(...)` to `Chat.toolGroup(...)` instead of stacking individual `Chat.tool` cards. Like `Chat.tool`, both the group and each step are controlled by the app (`open` and `onToggle`, or `null` to disable toggling).
+When a turn runs many tool calls, pass `Chat.Step` values built with `Chat.step(...)` to `Chat.toolGroup(...)` instead of stacking individual `Chat.tool` rows. Like `Chat.tool`, both the group and each step are controlled by the app (`open` and `onToggle`, or `null` to disable toggling).
 
 While `open` is `false`, `latest` decides how many trailing steps stay visible along the vertical track line below the header: pass `0` once a turn finishes to fold the sequence into a single borderless summary row, or `1` (for example `working ? 1 : 0`) while the turn runs so the newest step stays in view behind a quiet `Show N earlier steps` row that runs the group's `onToggle`. When `open` is `true`, all steps show as flat rows and each step can expand its own details inset.
 

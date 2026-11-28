@@ -1,0 +1,1 @@
+- `Chat.tool` now renders as a quiet, borderless single-line row with its expanded details in an inset aligned to the title (matching `Chat.toolGroup` steps); standalone tool rows and `Chat.toolGroup` headers align their leading icon to the prose edge, and consecutive `Chat.tool` and `Chat.toolGroup` parts in `Chat.agent` stack without a gap.
