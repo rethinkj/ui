@@ -608,4 +608,109 @@ class PartsTest {
     assertEquals(
         image.argb(left + 30, divider), image.argb(left + 1, divider), "the divider meets it");
   }
+
+  @Test
+  void aMenuInAPopoverClosesFirstAndCanCloseItsPopover() throws IOException {
+    final class Switcher {
+      final Popover.State popover = new Popover.State();
+      final Menu.State menu = new Menu.State();
+      final List<String> branches = List.of("main", "release");
+      String chosen;
+      int outsidePresses;
+
+      void rebase(String branch) {
+        chosen = branch;
+        popover.close();
+      }
+
+      El view() {
+        El list = NavList.navList(
+                branches.size(),
+                index -> NavList.item(branches.get(index))
+                    .key("row-" + index)
+                    .contextMenu(
+                        menu,
+                        List.of(Menu.submenu(
+                            "More",
+                            List.of(
+                                Menu.item("Rebase", () -> rebase(branches.get(index))),
+                                Menu.item("Delete", null))))),
+                0,
+                index -> {})
+            .key("list")
+            .w(180)
+            .h(120);
+        return col()
+            .wFull()
+            .hFull()
+            .padding(16)
+            .children(
+                Popover.popover(
+                    Button.button(Button.Variant.SECONDARY, "Branches", popover::toggle)
+                        .key("branches"),
+                    popover,
+                    "Branches",
+                    list),
+                Button.button(Button.Variant.SECONDARY, "Outside", () -> outsidePresses++)
+                    .key("outside")
+                    .absolute(400, 270)); // away from the popover and its menus
+      }
+    }
+    Switcher state = new Switcher();
+    App<Switcher> app = new App<>(state, Switcher::view);
+    String openMenu = """
+        press #row-1 right
+        frame
+        advance 0.25
+        frame
+        press role=menuitem label="More"
+        frame
+        advance 0.25
+        frame
+        """;
+    Script.run(
+        "size 500 320\nframe\nfocus #branches\nkey Enter\nframe\nadvance 0.25\nframe\n"
+            + openMenu
+            + "press role=menuitem label=\"Delete\"\nframe\n",
+        app,
+        out);
+    assertTrue(state.popover.isOpen(), "a press in the submenu keeps the popover");
+    assertEquals(0, state.menu.submenu());
+    assertEquals("submenu", app.focused().key());
+
+    Script.run("key Escape\nframe\nadvance 0.25\nframe\n", app, out);
+    assertEquals(-1, state.menu.submenu(), "Escape closes the submenu first");
+    assertTrue(state.menu.isOpen());
+    assertEquals("menu", app.focused().key());
+    Script.run("key Escape\nframe\nadvance 0.25\nframe\n", app, out);
+    assertFalse(state.menu.isOpen(), "the next Escape closes the menu");
+    assertTrue(state.popover.isOpen());
+    assertEquals("list", app.focused().key());
+    Script.run("key Escape\nframe\nadvance 0.25\nframe\n", app, out);
+    assertFalse(state.popover.isOpen(), "the next Escape closes the popover");
+    assertEquals("branches", app.focused().key());
+
+    Script.run(
+        "key Enter\nframe\nadvance 0.25\nframe\n"
+            + openMenu
+            + "press role=menuitem label=\"Rebase\"\nframe\nadvance 1\nframe\n",
+        app,
+        out);
+    assertEquals("release", state.chosen);
+    assertFalse(state.menu.isOpen());
+    assertFalse(state.popover.isOpen(), "an item's handler closes the popover too");
+    assertTrue(app.tree().shownOverlays().isEmpty());
+    assertEquals("branches", app.focused().key());
+
+    Script.run(
+        "key Enter\nframe\nadvance 0.25\nframe\n"
+            + openMenu
+            + "press #outside\nframe\nadvance 1\nframe\n",
+        app,
+        out);
+    assertFalse(state.menu.isOpen());
+    assertFalse(state.popover.isOpen(), "a press outside closes the menu and the popover");
+    assertTrue(app.tree().shownOverlays().isEmpty());
+    assertEquals(0, state.outsidePresses);
+  }
 }

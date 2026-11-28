@@ -24,10 +24,14 @@ import java.util.List;
  * the popover itself where it has none, as one that only shows information; when it closes, the
  * focus goes back to where it was, such as the button that opened it, unless Tab took it elsewhere
  * (see the focus rules of overlays in core). A press outside it, Escape and Tab or Shift+Tab out
- * of it close it; Tab walks it right after its anchor. It has the look of a menu: the popup
- * surface, the control border, the medium radius, {@code elevation().popup()} and the fade. It has
- * no arrow to its anchor, since the core draws no triangles. Use {@link #flush} when dividers or
- * section backgrounds need to reach the panel's edges without inner padding. In a tree dump the
+ * of it close it; Tab walks it right after its anchor. A {@link Menu} on an element inside it,
+ * such as a row's context menu, opens over it: a press in the menu or its submenus keeps the
+ * popover open, Escape closes the innermost first, and an item's handler that calls {@link
+ * State#close} closes both, the focus going back to where it was before the popover opened. It
+ * has the look of a menu: the popup surface, the control border, the medium radius, {@code
+ * elevation().popup()} and the fade. It has no arrow to its anchor, since the core draws no
+ * triangles. Use {@link #flush} when dividers or section backgrounds need to reach the panel's
+ * edges without inner padding. In a tree dump the
  * anchor is {@code expanded} while open and {@code expanded=false} while closed, and the panel is
  * an overlay {@code bottom start} on its anchor, {@code role=dialog} with its label.
  */

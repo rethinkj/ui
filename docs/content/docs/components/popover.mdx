@@ -36,6 +36,8 @@ Inside a dialog, the popover also stays inside the dialog along the anchor. With
 
 Opening moves focus to the first focusable element inside the popover; **Escape** closes it and restores previous focus. In the **Tab** order, the popover comes right after its anchor. Pressing **Tab** or **Shift+Tab** out of the popover closes it and leaves focus on the element it moved to.
 
+A [Menu](/docs/components/menu) on an element inside the popover, such as a row's context menu, opens over it: a press in the menu or its submenus keeps the popover open, **Escape** closes the innermost first, and an item's handler that closes the popover's state closes both, the focus going back to where it was before the popover opened.
+
 ## In a tree dump
 
 The anchor is `expanded` while open and `expanded=false` while closed. The panel is an overlay on its anchor with `role=dialog` and its `label`:
