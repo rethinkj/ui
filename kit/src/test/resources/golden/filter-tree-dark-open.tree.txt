@@ -1,0 +1,83 @@
+el 0,0 520x360
+  el #trigger role=button label="main" 12,12 76x24 expanded
+    text label="branch" "\u{F0A6}" 25,16 16x16
+    text "main" 45,16 30x16
+overlay bottom start gap 2 on #trigger role=button label="main" 12,12 76x24
+  el #popover role=dialog label="Branches" 12,37 326x323
+    el 25,50 300x297
+      el 25,50 300x32
+        text #query role=textbox label="Search branches" "" 25,50 300x32
+        text label="search" "\u{EA7C}" 33,58 16x16
+        el 277,56 42x20
+          el role=button label="Collapse all" 277,56 20x20
+            text label="chevron_double_up" "\u{E32C}" 279,58 16x16
+          el role=button label="Settings" 299,56 20x20
+            text label="settings" "\u{F6A8}" 301,58 16x16
+      el #tree role=tree label="Search branches" 25,86 300x261 rows 0-9/10
+        el #row-update role=treeitem label="Update project" 25,86 300x28 level=1 pos=1/5
+          el 29,92 16x16
+            text label="arrow_sync" "\u{E110}" 29,92 16x16
+          text "Update project" 49,92 223x16
+          text "Ctrl+T" 280,92 37x16
+        el #row-commit role=treeitem label="Commit…" 25,114 300x28 level=1 pos=2/5
+          el 29,120 16x16
+            text label="checkmark" "\u{E305}" 29,120 16x16
+          text "Commit…" 49,120 268x16
+        el #separator-2 role=separator 25,142 300x9 pos=3/10
+          el 33,146 284x1
+        el #row-new role=treeitem label="New branch…" 25,151 300x28 level=1 pos=3/5
+          el 29,157 16x16
+            text label="add" "\u{F108}" 29,157 16x16
+          text "New branch…" 49,157 268x16
+        el #row-local role=treeitem label="Local" 25,179 300x28 expanded level=1 pos=4/5
+          el #mark-local 29,179 16x28
+            text label="chevron_down" "\u{F2A2}" 29,185 16x16
+          text "Local" 49,185 268x16
+        el #row-main role=treeitem label="main" 25,207 300x28 selected level=2 pos=1/2
+          el 37,207 1x28
+          el 41,213 16x16
+            text label="branch" "\u{F0A6}" 41,213 16x16
+          el 61,212 236x18
+            text "main" 61,213 29x16
+            el label="current" 94,212 54x18
+              text "current" 100,214 42x15
+          el 301,213 16x16
+            text label="chevron_right" "\u{F2AF}" 301,213 16x16
+        el #row-feat role=treeitem label="feat/" 25,235 300x28 expanded level=2 pos=2/2
+          el 37,235 1x28
+          el #mark-feat 41,235 16x28
+            text label="chevron_down" "\u{F2A2}" 41,241 16x16
+          text "feat/" 61,241 256x16
+        el #row-auth role=treeitem label="auth" 25,263 300x28 level=3 pos=1/2 value="2 commits"
+          el 37,263 1x28
+          el 53,269 16x16
+            text label="branch" "\u{F0A6}" 53,269 16x16
+          text "auth" 73,269 27x16
+          text "2 commits" 108,269 189x16
+          text label="chevron_right" "\u{F2AF}" 301,269 16x16
+        el #row-search role=treeitem label="search" 25,291 300x28 level=3 pos=2/2
+          el 37,291 1x28
+          el 53,297 16x16
+            text label="branch" "\u{F0A6}" 53,297 16x16
+          text "search" 73,297 224x16
+          el 301,297 16x16
+            text label="chevron_right" "\u{F2AF}" 301,297 16x16
+        el #row-remote role=treeitem label="Remote" 25,319 300x28 expanded=false level=1 pos=5/5
+          el #mark-remote 29,319 16x28
+            text label="chevron_right" "\u{F2AF}" 29,325 16x16
+          text "Remote" 49,325 268x16
+overlay right start gap 2 on #row-main role=treeitem label="main" 25,207 300x28
+  el #menu role=menu 327,207 111x87 focused
+    el #item-0 role=menuitem label="Checkout" 332,212 101x24 current
+      el 332,212 101x24
+        el 340,224 16x0
+        text "Checkout" 364,216 61x16
+    el #item-1 role=menuitem label="Rename…" 332,236 101x24
+      el 332,236 101x24
+        el 340,248 16x0
+        text "Rename…" 364,240 61x16
+    el 332,262 101x1
+    el #item-3 role=menuitem label="Delete" 332,265 101x24
+      el 332,265 101x24
+        el 340,277 16x0
+        text "Delete" 364,269 61x16

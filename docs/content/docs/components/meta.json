@@ -34,6 +34,7 @@
     "menu-bar",
     "command-palette",
     "filter-list",
+    "filter-tree",
     "dialog",
     "drawer",
     "popover",

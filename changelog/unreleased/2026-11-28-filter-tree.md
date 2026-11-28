@@ -1,0 +1,1 @@
+- Added `FilterTree` in `rethinkj-ui-kit`, an embeddable search field with optional trailing field actions above mixed action rows, separators, collapsible branches, and per-row flyout submenus for keyboard-driven popovers.

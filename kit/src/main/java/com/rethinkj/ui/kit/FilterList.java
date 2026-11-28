@@ -798,20 +798,7 @@ public final class FilterList {
     // The name keeps its width as the detail gives way, and yields only where it alone overflows.
     El name = label(entry.text()).color(text).ellipsis();
     name.style().minYields = true;
-    int[] at = shown.query().isEmpty() ? null : Fuzzy.positions(shown.query(), entry.text());
-    if (at != null && at.length > 0) {
-      name.highlight(shown.query(), (line, before, spans) -> {
-        for (int k = 0; k < at.length; k++) {
-          int end = k;
-          while (end + 1 < at.length && at[end + 1] == at[end] + 1) {
-            end++;
-          }
-          spans.font(at[k], at[end] + 1, strong);
-          k = end;
-        }
-        return null;
-      });
-    }
+    highlightMatches(name, shown.query(), entry.text(), strong);
     El content = PassiveContent.row(
         theme,
         PassiveContent.flexibleLeading(theme, leading),
@@ -832,6 +819,24 @@ public final class FilterList {
         .child(content);
     return Tooltip.whenShortened(
         option, entry.detail() == null ? entry.text() : entry.text() + " — " + entry.detail());
+  }
+
+  /** Draws the characters of {@code text} that match {@code query} in {@code strong}. */
+  static void highlightMatches(El name, String query, String text, Font strong) {
+    int[] at = query.isEmpty() ? null : Fuzzy.positions(query, text);
+    if (at != null && at.length > 0) {
+      name.highlight(query, (line, before, spans) -> {
+        for (int k = 0; k < at.length; k++) {
+          int end = k;
+          while (end + 1 < at.length && at[end + 1] == at[end] + 1) {
+            end++;
+          }
+          spans.font(at[k], at[end] + 1, strong);
+          k = end;
+        }
+        return null;
+      });
+    }
   }
 
   /**

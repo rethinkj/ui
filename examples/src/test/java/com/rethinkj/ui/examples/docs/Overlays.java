@@ -18,6 +18,7 @@ import com.rethinkj.ui.kit.CommandPalette;
 import com.rethinkj.ui.kit.Dialog;
 import com.rethinkj.ui.kit.Drawer;
 import com.rethinkj.ui.kit.FilterList;
+import com.rethinkj.ui.kit.FilterTree;
 import com.rethinkj.ui.kit.HuePicker;
 import com.rethinkj.ui.kit.Label;
 import com.rethinkj.ui.kit.Markdown;
@@ -46,6 +47,9 @@ final class Overlays {
   final Popover.State modelPopover = new Popover.State();
   final FilterList.State modelFilter = new FilterList.State();
   String model = "Atlas mini";
+  final Popover.State branchPopover = new Popover.State();
+  final FilterTree.State branchTree = new FilterTree.State().open("Local", "Local/feat/");
+  String branch = "main";
   final CommandPalette.State palette = new CommandPalette.State();
   boolean autocommit = true;
   boolean renaming;
@@ -666,6 +670,94 @@ final class Overlays {
             .w(280));
     // docs:end filter-list
     return Frame.of(picker);
+  }
+
+  void updateProject() {
+    said = "update";
+    branchPopover.close();
+  }
+
+  void commitChanges() {
+    said = "commit";
+    branchPopover.close();
+  }
+
+  void newBranch() {
+    said = "new-branch";
+    branchPopover.close();
+  }
+
+  void checkout(String target) {
+    branch = target;
+    branchPopover.close();
+  }
+
+  void renameBranch(String target) {
+    said = "rename:" + target;
+    branchPopover.close();
+  }
+
+  void deleteBranch(String target) {
+    said = "delete:" + target;
+    branchPopover.close();
+  }
+
+  void branchSettings() {
+    said = "settings";
+  }
+
+  private List<Menu.Item> branchMenu(String target) {
+    return List.of(
+        Menu.item("Checkout", () -> checkout(target)),
+        Menu.item("Rename…", () -> renameBranch(target)),
+        Menu.separator(),
+        Menu.item("Delete", () -> deleteBranch(target)).danger());
+  }
+
+  static El filterTree(Overlays state) {
+    // docs:start filter-tree
+    List<Menu.Item> fieldActions = List.of(
+        Menu.item("Collapse all", state.branchTree::collapseAll).icon(Symbol.CHEVRON_DOUBLE_UP),
+        Menu.item("Settings", state::branchSettings).icon(Symbol.SETTINGS));
+    List<FilterTree.Row> rows = List.of(
+        FilterTree.action("Update project", state::updateProject)
+            .icon(Symbol.ARROW_SYNC)
+            .shortcut("Ctrl+T"),
+        FilterTree.action("Commit…", state::commitChanges).icon(Symbol.CHECKMARK),
+        FilterTree.separator(),
+        FilterTree.action("New branch…", state::newBranch).icon(Symbol.ADD),
+        FilterTree.branch(
+            "Local",
+            List.of(
+                FilterTree.action("main", () -> state.checkout("main"))
+                    .icon(Symbol.BRANCH)
+                    .meta(() -> state.branch.equals("main")
+                        ? Badge.badge(Badge.Kind.ACCENT, "current")
+                        : null)
+                    .submenu(state.branchMenu("main")),
+                FilterTree.branch(
+                    "feat/",
+                    List.of(
+                        FilterTree.action("auth", () -> state.checkout("feat/auth"))
+                            .icon(Symbol.BRANCH)
+                            .submenu(state.branchMenu("feat/auth")),
+                        FilterTree.action("search", () -> state.checkout("feat/search"))
+                            .icon(Symbol.BRANCH)
+                            .submenu(state.branchMenu("feat/search")))))),
+        FilterTree.branch(
+            "Remote",
+            List.of(FilterTree.action("origin/main", () -> state.checkout("origin/main"))
+                .icon(Symbol.BRANCH)
+                .submenu(state.branchMenu("origin/main")))));
+    El trigger = Button.button(SECONDARY, Symbol.BRANCH, state.branch, state.branchPopover::toggle);
+    El switcher = Popover.popover(
+        trigger,
+        state.branchPopover,
+        "Branches",
+        FilterTree.filterTree(state.branchTree, "Search branches", rows, fieldActions)
+            .w(300));
+    // docs:end filter-tree
+    return Frame.of(switcher);
   }
 
   static El palette(Overlays state) {

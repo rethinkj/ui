@@ -1,0 +1,15 @@
+size 520 380
+frame
+press role=button label="main"
+frame
+advance 0.3
+frame
+snap open
+type "auth"
+frame
+snap typed
+key ArrowRight
+frame
+advance 0.3
+frame
+snap submenu

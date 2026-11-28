@@ -1,0 +1,65 @@
+---
+title: FilterTree
+description: Embeddable search field above mixed action rows, separators, collapsible branches, and per-row submenus for popovers.
+---
+
+`FilterTree.filterTree` pairs a search field (with optional trailing compact icon actions) with a virtual, fuzzy-filtered hierarchy of action rows, separators, collapsible branches, and per-row flyout submenus in one embeddable element. Use it inside a [Popover](/docs/components/popover) for keyboard-driven switchers such as a Git branch or worktree popup.
+
+For a flat searchable list without collapsible branches or submenus, use [FilterList](/docs/components/filter-list). For a standalone hierarchical tree with lazy loading and drag-and-drop, use [Tree](/docs/components/tree).
+
+Javadoc: [`FilterTree`](/api/com/rethinkj/ui/kit/FilterTree.html), [`FilterTree.State`](/api/com/rethinkj/ui/kit/FilterTree.State.html), [`FilterTree.Row`](/api/com/rethinkj/ui/kit/FilterTree.Row.html).
+
+<Shot src="examples/docs/filter-tree/open-{theme}" alt="A branch switcher popover with a search field, Collapse all and Settings field actions, top-level actions with a shortcut, a divider, and collapsible Local and Remote branch trees" />
+
+## Example
+
+```java snippet="filter-tree"
+```
+
+- Store a `FilterTree.State` in your app state. Pre-open branches with `new FilterTree.State().open("Local", "Local/feat/")`, read the query with `state.branchTree.text()`, and collapse all branches with `state.branchTree.collapseAll()`.
+- Typing filters across both actions and nested tree rows with `Fuzzy`, revealing matching descendants with their ancestors expanded and highlighting matched characters in a heavier weight. Separators and non-matching rows are hidden while filtering.
+- Clearing the search query restores the user's exact manual open/closed branches, even if branches were toggled while filtering.
+- The element defaults to `size().palette()` width; override it with `.w(...)` or `.wFull()`. Inside a `Popover`, the search field receives focus automatically as the first focusable element.
+
+<Shot src="examples/docs/filter-tree/typed-{theme}" alt="The branch switcher narrowed by typing auth, showing Local and feat/ expanded with matching characters highlighted" />
+
+<Shot src="examples/docs/filter-tree/submenu-{theme}" alt="The branch switcher with the submenu for auth open beside the highlighted row showing Checkout, Rename, and Delete" />
+
+## Rows and field actions
+
+Build rows with static factories and chain modifiers:
+
+| Factory / modifier | Purpose |
+| --- | --- |
+| `FilterTree.action(text, onChoose)` | Leaf or action row (`null` disables it unless it has a submenu) |
+| `FilterTree.branch(text, children)` | Collapsible branch row with nested child rows |
+| `FilterTree.separator()` | Thin horizontal divider skipped by the highlight and hidden while filtering |
+| `.icon(Icon)` | Leading icon before the label |
+| `.shortcut(String)` | Muted shortcut text at the right |
+| `.detail(String)` | Muted secondary text after the label (truncates first when narrow) |
+| `.meta(Supplier<El>)` | Passive, non-shrinking element right after the label (such as a [Badge](/docs/components/badge)) |
+| `.trailing(Supplier<El>)` | Non-shrinking element at the right edge (when omitted on a row with a submenu, `Menu.SUBMENU` is shown) |
+| `.submenu(List<Menu.Item>)` | Flyout [Menu](/docs/components/menu) opened beside the row |
+| `.key(String)` | Stable identifier for manual open state and `#row-<key>` in tree dumps (defaults to the row's text path for open state and its index in dumps) |
+
+Pass optional `List<Menu.Item>` `fieldActions` to `FilterTree.filterTree(state, placeholder, rows, fieldActions)` to embed compact icon buttons inside the search field's trailing end. Each button uses the item's `icon`, `label`, and `onChoose` and keeps keyboard focus in the search field.
+
+## Keyboard
+
+Focus stays in the search field throughout navigation, moving only into an open row submenu until it closes:
+
+| Key | Action |
+| --- | --- |
+| Typing | Filter rows with `Fuzzy`, expand matching ancestors, and highlight the best match |
+| Up, Down, Page Up, Page Down, Home, End | Move highlight across visible non-separator rows |
+| Right | Open a closed branch, or open the highlighted row's submenu, or move to an open branch's first child (when the query is empty or the caret is at the end with no selection) |
+| Left | Collapse an open branch, or move to its parent branch (when the query is empty or the caret is at the start with no selection); inside an open submenu, closes the submenu and returns focus to the field |
+| Enter | Run `onChoose`, or else open the row's submenu, or else toggle a branch |
+| Escape | Closes an open submenu first (returning focus to the field); otherwise handled by the parent (closes a surrounding `Popover`) |
+
+## In a tree dump
+
+The search field is `#query role=textbox` and the list is `#tree role=tree` (both labeled with `placeholder`), containing `role=treeitem` rows (`#row-<key>` or `#row-<index>`, `selected`, `expanded` / `expanded=false`, `level`, `pos`, and `#mark-<key>` / `#mark-<index>` chevrons on branches) and `role=separator` dividers:
+
+```text file="examples/src/test/resources/golden/docs/filter-tree/typed.tree.txt" start="overlay" count="23"
+```
