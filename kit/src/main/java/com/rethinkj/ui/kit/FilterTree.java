@@ -664,7 +664,7 @@ public final class FilterTree {
     }
     float maxHeight = CommandPalette.ROWS * rowHeight;
     float totalHeight = shown.totalHeight(rowHeight, sepHeight);
-    float height = Math.max(rowHeight, Math.min(totalHeight, maxHeight));
+    float height = Math.clamp(totalHeight, rowHeight, maxHeight);
     float gutter = totalHeight > maxHeight
         ? theme.scrollbars().thickness() + theme.scrollbars().margin()
         : 0;
