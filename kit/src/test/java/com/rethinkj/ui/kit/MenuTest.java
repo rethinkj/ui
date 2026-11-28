@@ -251,6 +251,55 @@ class MenuTest {
     assertFalse(bench.renaming, "the press that closed the menu pressed nothing");
   }
 
+  @Test
+  void aPressOnADropdownButtonInsideAPopoverOrDialogClosesItsMenu() throws IOException {
+    final class InPopover {
+      final Popover.State popover = new Popover.State();
+      final Menu.State menu = new Menu.State();
+
+      El view() {
+        El content = Menu.dropdown(
+            Button.button(Button.Variant.SECONDARY, "Actions", menu::toggle).key("actions"),
+            menu,
+            List.of(Menu.item("Copy", () -> {})));
+        return col()
+            .wFull()
+            .hFull()
+            .child(Popover.popover(
+                Button.button(Button.Variant.SECONDARY, "Open", popover::toggle).key("open"),
+                popover,
+                "Options",
+                content));
+      }
+    }
+    InPopover inPopover = new InPopover();
+    App<InPopover> popoverApp = new App<>(inPopover, InPopover::view);
+    run(popoverApp, "frame\npress #open\nframe\nadvance 0.3\nframe\npress #actions\nframe\n");
+    assertTrue(inPopover.popover.isOpen());
+    assertTrue(inPopover.menu.isOpen());
+    run(popoverApp, "press #actions\nframe\n");
+    assertFalse(inPopover.menu.isOpen(), "second press closes the menu inside a popover");
+    assertTrue(inPopover.popover.isOpen(), "the popover stays open");
+
+    Menu.State dialogMenu = new Menu.State();
+    App<Menu.State> dialogApp = new App<>(
+        dialogMenu,
+        s -> col()
+            .wFull()
+            .hFull()
+            .overlay(Dialog.dialog(
+                "Edit",
+                Button.menu(
+                        Button.Variant.SECONDARY, "More", s, List.of(Menu.item("Reset", () -> {})))
+                    .key("more"),
+                List.of(),
+                () -> {})));
+    run(dialogApp, "frame\npress #more\nframe\n");
+    assertTrue(dialogMenu.isOpen());
+    run(dialogApp, "press #more\nframe\n");
+    assertFalse(dialogMenu.isOpen(), "second press closes the menu inside a dialog");
+  }
+
   /** A menu of these items, open, in a window of its own; F2 makes the items those of {@code next}. */
   private static final class Changing {
     final Menu.State menu = new Menu.State();

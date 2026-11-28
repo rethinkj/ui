@@ -577,10 +577,12 @@ public final class Menu {
           anchor.onKey(),
           () -> press.press(1, 0, anchor.width() / 2.0, anchor.height() / 2.0)));
     }
-    El menu =
-        state.isOpen() ? menu(state, items).side(side, align, theme.space().xs()) : null;
+    El menu = state.isOpen()
+        ? menu(state, items).dismissGroup(state).side(side, align, theme.space().xs())
+        : null;
     state.opening = 0;
-    return anchor.overlay(menu);
+    // A press on an anchor that toggles the state goes to its toggle, not to the menu's dismissal.
+    return (press != null ? anchor.dismissGroup(state) : anchor).overlay(menu);
   }
 
   /**
