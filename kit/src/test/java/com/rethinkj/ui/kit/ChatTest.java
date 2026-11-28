@@ -168,6 +168,180 @@ class ChatTest {
   }
 
   @Test
+  void toolGroupFoldsWithLatestAndTogglesSteps() throws IOException {
+    final class State {
+      boolean groupOpen;
+      boolean failedStepOpen;
+      int latest = 1;
+    }
+    State state = new State();
+    App<State> app = new App<>(
+            state,
+            s -> col()
+                .wFull()
+                .child(Chat.toolGroup(
+                    "Investigating",
+                    null,
+                    s.groupOpen,
+                    () -> s.groupOpen = !s.groupOpen,
+                    s.latest,
+                    Chat.step(Symbol.SEARCH, "Search orders", Chat.ToolState.DONE, false, null),
+                    null,
+                    Chat.step(Symbol.CODE, "Read orders.sql", Chat.ToolState.DONE, false, null),
+                    Chat.step(
+                        Symbol.DATABASE,
+                        "Check replica",
+                        Chat.ToolState.FAILED,
+                        s.failedStepOpen,
+                        () -> s.failedStepOpen = !s.failedStepOpen,
+                        Label.label(Label.Variant.MUTED, "Replica timed out.")),
+                    Chat.step(Symbol.PLAY, "Verify index", Chat.ToolState.RUNNING, false, null))))
+        .provide(Theme.CURRENT, s -> Theme.DARK);
+    app.textRendering(TextRendering.LINUX);
+
+    // Closed with latest=1 shows the header, the earlier-steps toggle, and only the last step.
+    Script.run("size 500 320\nframe", app, out);
+    String preview = app.tree().dump();
+    assertTrue(preview.contains("role=group label=\"Investigating\""), preview);
+    String header = StructureTest.line(preview, "role=button label=\"Investigating\"");
+    assertTrue(header.contains("expanded=false"), header);
+    assertTrue(header.contains(" busy"), header);
+    assertTrue(header.contains(" invalid"), header);
+    assertTrue(header.contains("value=\"Running · 4 steps · 1 failed\""), header);
+    assertTrue(
+        StructureTest.line(preview, "label=\"Show 3 earlier steps\"").contains("expanded=false"));
+    assertTrue(preview.contains("label=\"Verify index\""), preview);
+    assertFalse(preview.contains("label=\"Search orders\""), preview);
+    assertFalse(preview.contains("label=\"Check replica\""), preview);
+
+    // Pressing the earlier-steps row opens the group and reveals all steps.
+    Script.run(
+        "press role=button label=\"Show 3 earlier steps\"\nframe\nadvance 1\nframe", app, out);
+    assertTrue(state.groupOpen);
+    String opened = app.tree().dump();
+    assertTrue(
+        StructureTest.line(opened, "role=button label=\"Investigating\"").contains(" expanded"));
+    assertFalse(opened.contains("Show 3 earlier steps"), opened);
+    assertTrue(opened.contains("label=\"Search orders\""), opened);
+    assertTrue(opened.contains("label=\"Check replica\""), opened);
+    assertFalse(opened.contains("Replica timed out."), opened);
+
+    // Pressing an individual step opens its details inset.
+    Script.run("press role=button label=\"Check replica\"\nframe", app, out);
+    assertTrue(state.failedStepOpen);
+    assertTrue(app.tree().dump().contains("Replica timed out."));
+
+    // Folding with latest=0 shows only the header row (no track line or steps).
+    state.latest = 0;
+    Script.run("press role=button label=\"Investigating\"\nframe", app, out);
+    assertFalse(state.groupOpen);
+    String folded = app.tree().dump();
+    assertFalse(folded.contains("label=\"Verify index\""), folded);
+    assertFalse(folded.contains("earlier"), folded);
+  }
+
+  @Test
+  void toolGroupKeepsFocusOnItsStepAsStepsArrive() throws IOException {
+    final class State {
+      int count = 4;
+      String pressed;
+    }
+    State state = new State();
+    String[] titles = {"Search", "Read", "Explain", "Check", "Deploy"};
+    App<State> app = new App<>(state, s -> {
+          Chat.Step[] steps = new Chat.Step[s.count];
+          for (int i = 0; i < s.count; i++) {
+            String title = titles[i];
+            steps[i] = Chat.step(null, title, Chat.ToolState.DONE, false, () -> s.pressed = title);
+          }
+          return col().wFull().child(Chat.toolGroup("Turn", null, false, () -> {}, 2, steps));
+        })
+        .provide(Theme.CURRENT, s -> Theme.DARK);
+    app.textRendering(TextRendering.LINUX);
+
+    Script.run("size 500 240\nframe\nfocus role=button label=\"Check\"\nframe", app, out);
+    state.count = 5; // a new step arrives and the shown window slides by one
+    app.invalidate();
+    Script.run("frame\nkey Enter\nframe", app, out);
+    assertEquals("Check", state.pressed);
+  }
+
+  @Test
+  void toolGroupDefaultsTitleMetaAndLocalizes() throws IOException {
+    App<Object> app = new App<>(
+            new Object(),
+            s -> col()
+                .wFull()
+                .gap(Theme.DARK.space().m())
+                .children(
+                    Chat.toolGroup(
+                            null,
+                            null,
+                            false,
+                            () -> {},
+                            0,
+                            Chat.step(Symbol.CODE, "Read file", Chat.ToolState.DONE, false, null))
+                        .key("single"),
+                    Chat.toolGroup(
+                            null,
+                            null,
+                            false,
+                            null,
+                            1,
+                            Chat.step(Symbol.SEARCH, "Find", Chat.ToolState.DONE, false, null),
+                            Chat.step(Symbol.DATABASE, "Check", Chat.ToolState.FAILED, false, null),
+                            Chat.step(Symbol.PLAY, "Run", Chat.ToolState.DONE, false, null))
+                        .key("failed")))
+        .provide(Theme.CURRENT, s -> Theme.DARK);
+    app.textRendering(TextRendering.LINUX);
+
+    Script.run("size 500 240\nframe", app, out);
+    String dump = app.tree().dump();
+    // Single step with null title and meta: title is "1 step", meta omitted, value is "Done".
+    String singleHead = StructureTest.line(dump, "role=button label=\"1 step\"");
+    assertTrue(singleHead.contains("value=\"Done\""), singleHead);
+    assertFalse(singleHead.contains(" invalid"), singleHead);
+    assertFalse(singleHead.contains(" busy"), singleHead);
+
+    // Failed step with null title/meta/onToggle: title is "3 steps", meta is "1 failed", header is
+    // invalid and disabled, and its leading mark stays Done (not an error icon).
+    String failedHead = StructureTest.line(dump, "role=button label=\"3 steps\"");
+    assertTrue(failedHead.contains("value=\"Failed · 1 failed\""), failedHead);
+    assertTrue(failedHead.contains(" invalid"), failedHead);
+    assertTrue(failedHead.contains(" disabled"), failedHead);
+    assertFalse(failedHead.contains(" busy"), failedHead);
+    El failedGroup = findByKey(app.tree(), "failed");
+    assertEquals("Done", failedGroup.children().get(0).children().get(0).label());
+    assertTrue(
+        StructureTest.line(dump, "label=\"Show 2 earlier steps\"").contains(" disabled"), dump);
+
+    // German localization uses GermanTexts for step count, failure count, and earlier-steps row.
+    App<Object> german = new App<>(
+            new Object(),
+            s -> col()
+                .wFull()
+                .child(Chat.toolGroup(
+                    null,
+                    null,
+                    false,
+                    () -> {},
+                    1,
+                    Chat.step(Symbol.SEARCH, "Suchen", Chat.ToolState.DONE, false, null),
+                    Chat.step(Symbol.DATABASE, "Prüfen", Chat.ToolState.FAILED, false, null),
+                    Chat.step(Symbol.PLAY, "Starten", Chat.ToolState.DONE, false, null))))
+        .provide(Theme.CURRENT, s -> Theme.DARK)
+        .provide(Texts.CURRENT, s -> new GermanTexts());
+    german.textRendering(TextRendering.LINUX);
+    Script.run("size 500 200\nframe", german, out);
+    String germanDump = german.tree().dump();
+    assertTrue(
+        StructureTest.line(germanDump, "role=button label=\"3 Schritte\"")
+            .contains("value=\"Fehlgeschlagen · 1 fehlgeschlagen\""),
+        germanDump);
+    assertTrue(germanDump.contains("label=\"2 frühere Schritte anzeigen\""), germanDump);
+  }
+
+  @Test
   void composedUserBubbleSpansBubbleWidthAndCopiesRawText() throws IOException {
     Clipboard clipboard = Clipboard.inMemory();
     Button.Copied copied = new Button.Copied();

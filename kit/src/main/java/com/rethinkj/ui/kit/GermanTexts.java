@@ -1057,6 +1057,21 @@ public class GermanTexts implements Texts {
   }
 
   @Override
+  public String steps(int count) {
+    return count == 1 ? "1 Schritt" : count + " Schritte";
+  }
+
+  @Override
+  public String failedSteps(int count) {
+    return count + " fehlgeschlagen";
+  }
+
+  @Override
+  public String showEarlierSteps(int count) {
+    return count == 1 ? "1 früheren Schritt anzeigen" : count + " frühere Schritte anzeigen";
+  }
+
+  @Override
   public String transcript() {
     return "Verlauf";
   }

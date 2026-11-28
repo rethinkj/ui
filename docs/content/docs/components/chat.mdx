@@ -1,11 +1,11 @@
 ---
 title: Chat
-description: Plain and composed user message bubbles, collapsible context blocks, full-width Markdown agent responses, tool call rows, a working spinner, and a growing composer card.
+description: Plain and composed user message bubbles, collapsible context blocks, full-width Markdown agent responses, tool call rows and groups, a working spinner, and a growing composer card.
 ---
 
-`Chat` provides the building blocks of a chat transcript and composer in the theme's tokens: right-aligned plain or composed user message bubbles up to `Theme.Chat.bubbleWidth()`, collapsible or static context blocks, full-width agent answers rendered with `Markdown.fragment` or composed from parts, collapsible one-line tool call rows, a quiet working indicator with a spinner, and a growing multi-line composer with an action bar.
+`Chat` provides the building blocks of a chat transcript and composer in the theme's tokens: right-aligned plain or composed user message bubbles up to `Theme.Chat.bubbleWidth()`, collapsible or static context blocks, full-width agent answers rendered with `Markdown.fragment` or composed from parts, collapsible one-line tool call rows, quiet collapsible tool call groups with an optional latest-step preview, a quiet working indicator with a spinner, and a growing multi-line composer with an action bar.
 
-Javadoc: [`Chat`](/api/com/rethinkj/ui/kit/Chat.html), [`Chat.Options`](/api/com/rethinkj/ui/kit/Chat.Options.html), [`Chat.ComposerOptions`](/api/com/rethinkj/ui/kit/Chat.ComposerOptions.html), [`Chat.ToolState`](/api/com/rethinkj/ui/kit/Chat.ToolState.html).
+Javadoc: [`Chat`](/api/com/rethinkj/ui/kit/Chat.html), [`Chat.Options`](/api/com/rethinkj/ui/kit/Chat.Options.html), [`Chat.ComposerOptions`](/api/com/rethinkj/ui/kit/Chat.ComposerOptions.html), [`Chat.ToolState`](/api/com/rethinkj/ui/kit/Chat.ToolState.html), [`Chat.Step`](/api/com/rethinkj/ui/kit/Chat.Step.html).
 
 <Shot src="examples/docs/chat/view-{theme}" alt="A chat card showing a right-aligned user bubble, an agent answer with an open tool call, a failed tool call, Markdown prose with SQL, and a running tool call above a working spinner" />
 
@@ -21,8 +21,10 @@ Javadoc: [`Chat`](/api/com/rethinkj/ui/kit/Chat.html), [`Chat.Options`](/api/com
 | `text(text)` | Read-only selectable paragraph in the prose body font that joins the transcript's selection scope |
 | `context(icon, title, meta, open, onToggle, details…)` | Collapsible (or static when `onToggle` is `null`) context block with optional icon, title, right-aligned metadata, and detail elements when open |
 | `agent(document)` / `agent(document, options)` | Full-width agent answer rendered via `Markdown.fragment` |
-| `agent(parts…)` / `agent(options, parts…)` | Full-width agent answer composed of arbitrary parts (`Chat.tool`, `Markdown.fragment`, `Chat.working`); `null` parts are skipped |
+| `agent(parts…)` / `agent(options, parts…)` | Full-width agent answer composed of arbitrary parts (`Chat.tool`, `Chat.toolGroup`, `Markdown.fragment`, `Chat.working`); `null` parts are skipped |
 | `tool(icon, title, state, open, onToggle, details…)` | One-line collapsible tool call row with icon, title, state (`RUNNING`, `DONE`, `FAILED`), and any detail elements when open |
+| `step(icon, title, state, open, onToggle, details…)` | Value describing one tool call step inside a `Chat.toolGroup` |
+| `toolGroup(title, meta, open, onToggle, latest, steps…)` | Quiet collapsible group of `Chat.Step` rows along a vertical track line, folding into a summary row or showing the last `latest` steps behind a toggle |
 | `working()` / `working(text)` | Quiet status row with a spinner and `Texts.working()` (or custom text) for the bottom of an active message |
 | `transcript(count, message, scroll, heights)` / `transcript(count, message, scroll, heights, onLoadOlder)` | Virtual scrollable transcript centered up to `Theme.Prose.measure()` that follows the newest message, shows a floating jump button while scrolled up, and optionally requests older messages at the top |
 | `composer(text, onChange, onSend)` / `composer(text, onChange, onSend, options)` | Composer card with a growing multi-line field and an action bar below it |
@@ -42,7 +44,20 @@ Configure message footers and Markdown rendering with `Chat.options()`:
 
 ## Tool calls
 
-`Chat.tool` is controlled: keep each tool call's `open` boolean in your app state and pass a toggle handler in `onToggle` (or `null` to disable expanding). Closed by default, the row stays on one line with an optional leading icon, an ellipsized title, a state mark (`Progress.spinner()` while `RUNNING`, check mark when `DONE`, error icon when `FAILED`), and a chevron. When `open` is `true`, its detail elements—plain text, monospace output, a `CodeEditor`, or a `DiffView`—render in a panel below a divider.
+`Chat.tool` is controlled: keep each tool call's `open` boolean in your app state and pass a toggle handler in `onToggle` (or `null` to disable expanding). While `open` is `false`, the row stays on one line with an optional leading icon, an ellipsized title, a state mark (`Progress.spinner()` while `RUNNING`, check mark when `DONE`, error icon when `FAILED`), and a chevron. When `open` is `true`, its detail elements—plain text, monospace output, a `CodeEditor`, or a `DiffView`—render in a panel below a divider.
+
+## Tool call groups
+
+When a turn runs many tool calls, pass `Chat.Step` values built with `Chat.step(...)` to `Chat.toolGroup(...)` instead of stacking individual `Chat.tool` cards. Like `Chat.tool`, both the group and each step are controlled by the app (`open` and `onToggle`, or `null` to disable toggling).
+
+While `open` is `false`, `latest` decides how many trailing steps stay visible along the vertical track line below the header: pass `0` once a turn finishes to fold the sequence into a single borderless summary row, or `1` (for example `working ? 1 : 0`) while the turn runs so the newest step stays in view behind a quiet `Show N earlier steps` row that runs the group's `onToggle`. When `open` is `true`, all steps show as flat rows and each step can expand its own details inset.
+
+Passing `null` for `title` falls back to the step count from `Texts` (for example `4 steps`); passing `null` for `meta` falls back to the step count plus any failure count (`4 steps · 1 failed`), or only the failure count when `title` already fell back. The group header shows a spinner while any step is `RUNNING` and a check mark once finished; failed steps are surfaced in the metadata and on each step's own error icon rather than marking the whole group failed.
+
+<Shot src="examples/docs/chat-tool-group/view-{theme}" alt="A chat card with a finished agent turn whose four tool calls are folded into one summary row showing one failure, followed by a running agent turn showing two hidden earlier steps and one active step along a vertical track line" />
+
+```java snippet="chat-tool-group"
+```
 
 ## Context blocks
 
@@ -90,7 +105,7 @@ Configure the composer with `Chat.composerOptions()`:
 
 ## Localization and theming
 
-All built-in labels (`Transcript`, `Jump to newest`, `User message`, `Agent message`, `Copy message`, `Working…`, tool state names, `Write a message`, `Send`, `Stop`, and chip removal labels) come from `Texts.CURRENT`, with German translations in `GermanTexts`. User bubble fill and width fraction live in `Theme.chat()` (`Theme.Chat.DARK` and `Theme.Chat.LIGHT`).
+All built-in labels (`Transcript`, `Jump to newest`, `User message`, `Agent message`, `Copy message`, `Working…`, tool state names, step counts, failure counts, `Show N earlier steps`, `Write a message`, `Send`, `Stop`, and chip removal labels) come from `Texts.CURRENT`, with German translations in `GermanTexts`. User bubble fill and width fraction live in `Theme.chat()` (`Theme.Chat.DARK` and `Theme.Chat.LIGHT`).
 
 User bubble text (`Chat.user` and `Chat.text`), the composer field, and agent Markdown all read their fonts from [`Theme.Prose`](/api/com/rethinkj/ui/kit/Theme.Prose.html), so wrapping a chat (such as `Chat.transcript` and `Chat.composer`) in `Theme.CURRENT.with(theme.withProse(...), ...)` swaps every prose and code font for that part of the view only:
 
@@ -99,7 +114,7 @@ User bubble text (`Chat.user` and `Chat.text`), the composer field, and agent Ma
 
 ## In a tree dump
 
-`Chat.transcript` contains a `role=log` virtual list labeled `Transcript` and, while scrolled away from the end, a `role=button` labeled `Jump to newest`. User and agent messages are `role=article`, tool call headers are `role=button` with `expanded` / `expanded=false` (`busy` while `RUNNING`, `invalid` when `FAILED`) and their state in `value`, context block headers are `role=button` with `expanded` / `expanded=false` and optional metadata in `value` (or `role=group` when `onToggle` is `null`), `Chat.working` is `role=status`, and `Chat.composer` exposes its `role=textbox` field, chip remove buttons, and `Send` / `Stop` button:
+`Chat.transcript` contains a `role=log` virtual list labeled `Transcript` and, while scrolled away from the end, a `role=button` labeled `Jump to newest`. User and agent messages are `role=article`, tool call headers are `role=button` with `expanded` / `expanded=false` (`busy` while `RUNNING`, `invalid` when `FAILED`) and their state in `value`, a `Chat.toolGroup` is `role=group` labeled by its title with a `role=button` header carrying the aggregate state and metadata in `value` (`expanded` / `expanded=false`, `busy` while any step runs, `invalid` when any step failed), an optional `role=button` earlier-steps toggle with `expanded=false`, and visible step rows matching `Chat.tool`, context block headers are `role=button` with `expanded` / `expanded=false` and optional metadata in `value` (or `role=group` when `onToggle` is `null`), `Chat.working` is `role=status`, and `Chat.composer` exposes its `role=textbox` field, chip remove buttons, and `Send` / `Stop` button:
 
 ```text file="examples/src/test/resources/golden/docs/chat/view.tree.txt" start="role=article" count="18"
 ```

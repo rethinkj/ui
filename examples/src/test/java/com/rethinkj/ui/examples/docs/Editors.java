@@ -1379,6 +1379,78 @@ final class Editors {
     return Frame.of(transcript);
   }
 
+  boolean investigateGroupOpen;
+  boolean explainStepOpen = true;
+  boolean migrateGroupOpen;
+  boolean verifyStepOpen;
+  final MarkdownDocument groupReply =
+      Markdown.parse("The `orders` table has no composite index on `status` and `created_at`, "
+          + "so PostgreSQL falls back to a sequential scan.");
+
+  void toggleInvestigateGroup() {
+    investigateGroupOpen = !investigateGroupOpen;
+  }
+
+  void toggleExplainStep() {
+    explainStepOpen = !explainStepOpen;
+  }
+
+  void toggleMigrateGroup() {
+    migrateGroupOpen = !migrateGroupOpen;
+  }
+
+  void toggleVerifyStep() {
+    verifyStepOpen = !verifyStepOpen;
+  }
+
+  static El chatToolGroup(Editors state) {
+    // docs:start chat-tool-group
+    El question =
+        Chat.user("Why did the orders query slow down?", Chat.options().time("14:31"));
+    El investigated = Chat.toolGroup(
+        "Investigated the slow query",
+        null,
+        state.investigateGroupOpen,
+        state::toggleInvestigateGroup,
+        0,
+        Chat.step(Symbol.SEARCH, "Search for \"orders\" in src/", Chat.ToolState.DONE, false, null),
+        Chat.step(Symbol.CODE, "Read queries/orders.sql", Chat.ToolState.DONE, false, null),
+        Chat.step(
+            Symbol.DATABASE,
+            "Inspect EXPLAIN plan",
+            Chat.ToolState.DONE,
+            state.explainStepOpen,
+            state::toggleExplainStep,
+            Label.label(Label.Variant.MONO, "Seq Scan on orders  (cost=0.00..48210.00 rows=1840)")),
+        Chat.step(Symbol.DATABASE, "Check replica lag", Chat.ToolState.FAILED, false, null));
+    El answer = Chat.agent(
+        Chat.options().time("14:32"),
+        investigated,
+        Markdown.fragment(state.groupReply, Markdown.options()));
+    El followUp =
+        Chat.user("Add the index and verify the query plan.", Chat.options().time("14:33"));
+    El migrating = Chat.toolGroup(
+        "Creating composite index",
+        null,
+        state.migrateGroupOpen,
+        state::toggleMigrateGroup,
+        1,
+        Chat.step(Symbol.CODE, "Write migration 043_orders.sql", Chat.ToolState.DONE, false, null),
+        Chat.step(Symbol.PLAY, "Run CREATE INDEX CONCURRENTLY", Chat.ToolState.DONE, false, null),
+        Chat.step(
+            Symbol.DATABASE,
+            "Verify query plan",
+            Chat.ToolState.RUNNING,
+            state.verifyStepOpen,
+            state::toggleVerifyStep,
+            Label.label(
+                Label.Variant.MONO, "EXPLAIN SELECT id FROM orders WHERE status = 'open';")));
+    El running = Chat.agent(migrating, Chat.working());
+    El transcript = Card.card(question, answer, followUp, running).wFull();
+    // docs:end chat-tool-group
+    return Frame.of(transcript);
+  }
+
   final Button.Copied reviewCopied = new Button.Copied();
   boolean ordersContextOpen = true;
   boolean retryContextOpen;

@@ -1,0 +1,59 @@
+el 0,0 580x396
+  el 12,12 556x371
+    el role=article label="User message" 29,29 522x52
+      el 278,29 273x35
+        text role=paragraph "Why did the orders query slow down?" 291,38 247x17 readonly lines 1-1/1
+      el 517,66 34x15
+        text "14:31" 517,66 34x15
+    el role=article label="Agent message" 29,93 522x93
+      el role=group label="Investigated the slow query" 29,93 522x28
+        el role=button label="Investigated the slow query" 29,93 522x28 invalid expanded=false value="Failed · 4 steps · 1 failed"
+          text label="Done" "\u{F297}" 37,99 16x16
+          text "Investigated the slow query" 57,99 168x16
+          text "4 steps · 1 failed" 229,100 294x15
+          text label="chevron_down" "\u{F2A2}" 527,99 16x16
+      el 29,129 522x34
+        text role=paragraph "The orders table has no composite index on status and created_at, so PostgreSQL falls back to a sequential scan." 29,129 522x34 readonly lines 1-1/1
+      el 29,171 34x15
+        text "14:32" 29,171 34x15
+    el role=article label="User message" 29,198 522x52
+      el 263,198 288x35
+        text role=paragraph "Add the index and verify the query plan." 276,207 262x17 readonly lines 1-1/1
+      el 517,235 34x15
+        text "14:33" 517,235 34x15
+    el role=article label="Agent message" 29,262 522x104
+      el role=group label="Creating composite index" 29,262 522x80
+        el role=button label="Creating composite index" 29,262 522x28 busy expanded=false value="Running · 3 steps"
+          el role=progressbar label="Running" 37,268 16x16
+            el 37,268 16x16
+            el 37,268 16x16
+            el 37,268 16x16
+            el 37,268 16x16
+            el 37,268 16x16
+          text "Creating composite index" 57,268 156x16
+          text "3 steps" 217,269 306x15
+          text label="chevron_down" "\u{F2A2}" 527,268 16x16
+        el 29,290 522x52
+          el 45,290 1x52
+          el 55,290 496x52
+            el #earlier role=button label="Show 2 earlier steps" 55,290 496x26 expanded=false
+              text label="more_horizontal" "\u{E823}" 59,295 16x16
+              text "Show 2 earlier steps" 79,295 468x16
+            el #step-2 role=button label="Verify query plan" 55,316 496x26 busy expanded=false value="Running"
+              text label="database" "\u{F0D7}" 59,321 16x16
+              text "Verify query plan" 79,321 428x16
+              el role=progressbar label="Running" 511,321 16x16
+                el 511,321 16x16
+                el 511,321 16x16
+                el 511,321 16x16
+                el 511,321 16x16
+                el 511,321 16x16
+              text label="chevron_down" "\u{F2A2}" 531,321 16x16
+      el role=status label="Working…" 29,350 522x16
+        el role=progressbar label="Loading" 29,350 16x16
+          el 29,350 16x16
+          el 29,350 16x16
+          el 29,350 16x16
+          el 29,350 16x16
+          el 29,350 16x16
+        text "Working…" 49,350 62x16

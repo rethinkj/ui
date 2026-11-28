@@ -1,0 +1,1 @@
+- `Chat` now supports collapsible tool-call groups via `Chat.toolGroup(title, meta, open, onToggle, latest, steps...)` and `Chat.step(icon, title, state, open, onToggle, details...)`, folding multi-step agent turns into a quiet header row with optional latest-step preview along a vertical track line and localized step, failure and earlier-step texts.

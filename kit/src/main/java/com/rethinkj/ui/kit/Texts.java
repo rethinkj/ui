@@ -1009,6 +1009,24 @@ public interface Texts {
     };
   }
 
+  /** Number of steps in a {@link Chat#toolGroup}: {@code 1 step}, {@code 7 steps}. */
+  default String steps(int count) {
+    return count == 1 ? "1 step" : count + " steps";
+  }
+
+  /** Number of failed steps in a {@link Chat#toolGroup}: {@code 1 failed}. */
+  default String failedSteps(int count) {
+    return count + " failed";
+  }
+
+  /**
+   * Toggle row in a closed {@link Chat#toolGroup} that expands hidden earlier steps: {@code Show 1
+   * earlier step}, {@code Show 6 earlier steps}.
+   */
+  default String showEarlierSteps(int count) {
+    return count == 1 ? "Show 1 earlier step" : "Show " + count + " earlier steps";
+  }
+
   // Chat transcript
 
   /** Accessible label of a {@link Chat#transcript} message list. */

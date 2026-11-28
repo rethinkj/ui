@@ -15,6 +15,7 @@ import com.rethinkj.ui.ScrollState;
 import com.rethinkj.ui.Style;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -26,8 +27,10 @@ import java.util.function.IntFunction;
  * the newest message ({@link #transcript}), a user message in a plain or composed bubble at the end
  * side ({@link #user}, {@link #text}), collapsible or static context blocks ({@link #context}), an
  * agent's answer as Markdown prose or composed parts over the full width ({@link #agent}),
- * collapsible one-line tool call rows ({@link #tool}), a spinner line while the agent is still
- * working ({@link #working}), and a growing composer card with an action bar ({@link #composer}).
+ * collapsible one-line tool call rows ({@link #tool}), quiet collapsible tool call groups with an
+ * optional latest-step preview ({@link #toolGroup}, {@link #step}), a spinner line while the agent
+ * is still working ({@link #working}), and a growing composer card with an action bar ({@link
+ * #composer}).
  *
  * <pre>{@code
  * El question = Chat.user(
@@ -50,11 +53,11 @@ import java.util.function.IntFunction;
  *         .onFiles(state::addFiles));
  * }</pre>
  *
- * <p>All state stays in the app: whether a tool call or context block is open is passed in and
- * flipped by its {@code onToggle} handler, copy confirmation uses a caller-owned {@link
- * Button.Copied}, and the composer receives its text, attachments and working flag from the app.
- * Passing a null {@code onToggle} disables expanding a tool call, and turns a context block's
- * header into a static row without a chevron.
+ * <p>All state stays in the app: whether a tool call, tool call group or context block is open is
+ * passed in and flipped by its {@code onToggle} handler, copy confirmation uses a caller-owned
+ * {@link Button.Copied}, and the composer receives its text, attachments and working flag from the
+ * app. Passing a null {@code onToggle} disables expanding a tool call or tool call group, and turns
+ * a context block's header into a static row without a chevron.
  *
  * <p>In a tree dump, {@link #transcript} contains a {@code role=log} virtual list labeled by {@link
  * Texts#transcript} and, while scrolled away from the end, a {@code role=button} labeled by {@link
@@ -62,17 +65,21 @@ import java.util.function.IntFunction;
  * Texts#userMessage} and {@link Texts#agentMessage}, a tool call's header row is {@code
  * role=button} with the title as its label, {@link Texts#toolState} as its {@code value}, {@code
  * expanded} or {@code expanded=false}, {@code busy} while running and {@code invalid} when failed,
- * a toggleable context block's header is {@code role=button} with the title as its label, optional
- * metadata as its {@code value} and {@code expanded} / {@code expanded=false} (or {@code
- * role=group} when static), {@link #working} is {@code role=status}, and {@link #composer} contains
- * a {@code role=textbox} field, removable attachment chips, and a {@code role=button} labeled by
- * {@link Texts#send} or {@link Texts#stop}.
+ * a {@link #toolGroup} is {@code role=group} labeled by its title with a {@code role=button} header
+ * carrying the aggregate {@link Texts#toolState} and metadata in {@code value}, {@code expanded} /
+ * {@code expanded=false}, {@code busy} while any step runs and {@code invalid} when any step
+ * failed, an optional {@code role=button} toggle with {@code expanded=false} for hidden earlier
+ * steps, and visible step rows matching {@link #tool}, a toggleable context block's header is
+ * {@code role=button} with the title as its label, optional metadata as its {@code value} and
+ * {@code expanded} / {@code expanded=false} (or {@code role=group} when static), {@link #working}
+ * is {@code role=status}, and {@link #composer} contains a {@code role=textbox} field, removable
+ * attachment chips, and a {@code role=button} labeled by {@link Texts#send} or {@link Texts#stop}.
  */
 public final class Chat {
 
   private static final int COMPOSER_MAX_LINES = 6;
 
-  /** The execution state shown on a {@link #tool} call row. */
+  /** The execution state shown on a {@link #tool} call row or {@link #toolGroup} step. */
   public enum ToolState {
     /** The tool is running: shows a {@link Progress#spinner} and sets {@code busy}. */
     RUNNING,
@@ -80,6 +87,22 @@ public final class Chat {
     DONE,
     /** The tool failed: shows an error icon in {@link Theme.Status#danger} and sets {@code invalid}. */
     FAILED
+  }
+
+  /**
+   * One tool call step inside a {@link #toolGroup}: its optional icon, title, execution state,
+   * controlled {@code open} flag, optional toggle handler, and optional detail elements shown when
+   * open. Null detail elements are skipped.
+   */
+  public record Step(
+      Icon icon, String title, ToolState state, boolean open, Runnable onToggle, List<El> details) {
+    public Step {
+      Objects.requireNonNull(title, "title");
+      Objects.requireNonNull(state, "state");
+      details = details == null
+          ? List.of()
+          : details.stream().filter(Objects::nonNull).toList();
+    }
   }
 
   /**
@@ -318,7 +341,8 @@ public final class Chat {
 
   /**
    * An agent message composed of full-width parts stacked in order, such as {@link #tool} calls,
-   * {@link Markdown#fragment} blocks and {@link #working}. Null parts are skipped.
+   * {@link #toolGroup}s, {@link Markdown#fragment} blocks and {@link #working}. Null parts are
+   * skipped.
    */
   public static El agent(El... parts) {
     return agent(options(), parts);
@@ -348,29 +372,221 @@ public final class Chat {
     Texts texts = Texts.CURRENT.get();
     boolean enabled = onToggle != null;
     String stateText = texts.toolState(state);
-    El indicator = switch (state) {
-      case RUNNING -> Progress.spinner().label(stateText);
-      case DONE -> icon(Symbol.CHECKMARK_CIRCLE, Icon.Variant.SUCCESS).label(stateText);
-      case FAILED -> icon(Symbol.ERROR_CIRCLE, Icon.Variant.DANGER).label(stateText);
-    };
     return disclosure(
         theme,
         icon,
         title,
-        indicator,
+        toolIndicator(state, stateText),
         open,
         onToggle,
         !enabled,
         true,
         theme.border().subtle(),
         Section.present(details),
-        head -> Tooltip.whenShortened(head, title)
-            .role("button")
-            .value(stateText)
-            .expanded(open)
-            .disabled(!enabled)
-            .busy(state == ToolState.RUNNING)
-            .invalid(state == ToolState.FAILED));
+        head -> configureToolHead(head, title, stateText, state, open, enabled));
+  }
+
+  /**
+   * Creates a {@link Step} for {@link #toolGroup}: controlled like {@link #tool}, with {@code
+   * open} deciding whether {@code details} show, {@code onToggle} running when pressed (or null to
+   * disable toggling), and null detail elements skipped.
+   */
+  public static Step step(
+      Icon icon, String title, ToolState state, boolean open, Runnable onToggle, El... details) {
+    El[] present = details == null ? new El[0] : Section.present(details);
+    return new Step(icon, title, state, open, onToggle, List.of(present));
+  }
+
+  /**
+   * A quiet collapsible group of tool calls ({@link Step}): a borderless header row with an
+   * aggregate mark (a spinner while any step is {@link ToolState#RUNNING}, otherwise a check mark),
+   * a title, optional muted metadata and a chevron. Controlled: when {@code open} is true all
+   * steps show along a vertical track line below the header; when {@code open} is false, the last
+   * {@code latest} steps show behind a quiet toggle row for the hidden earlier steps (or only the
+   * header when {@code latest} is {@code 0}). Null {@code onToggle} disables toggling the group.
+   * Null {@code title} falls back to {@link Texts#steps(int)}; null {@code meta} falls back to the
+   * step count and any failure count (or only the failure count when {@code title} also fell back).
+   * Null steps are skipped.
+   *
+   * @throws IllegalArgumentException if {@code latest} is negative
+   */
+  public static El toolGroup(
+      String title, String meta, boolean open, Runnable onToggle, int latest, Step... steps) {
+    if (latest < 0) {
+      throw new IllegalArgumentException("latest must be 0 or more, was " + latest);
+    }
+    Theme theme = Theme.CURRENT.get();
+    Texts texts = Texts.CURRENT.get();
+    List<Step> present = steps == null
+        ? List.of()
+        : Arrays.stream(steps).filter(Objects::nonNull).toList();
+    int total = present.size();
+    boolean anyRunning = false;
+    int failed = 0;
+    for (Step step : present) {
+      if (step.state() == ToolState.RUNNING) {
+        anyRunning = true;
+      } else if (step.state() == ToolState.FAILED) {
+        failed++;
+      }
+    }
+    ToolState aggregate =
+        anyRunning ? ToolState.RUNNING : failed > 0 ? ToolState.FAILED : ToolState.DONE;
+
+    boolean defaultTitle = title == null;
+    String resolvedTitle = defaultTitle ? texts.steps(total) : title;
+    String resolvedMeta;
+    if (meta != null) {
+      resolvedMeta = meta;
+    } else if (defaultTitle) {
+      resolvedMeta = failed > 0 ? texts.failedSteps(failed) : "";
+    } else {
+      resolvedMeta =
+          failed > 0 ? texts.steps(total) + " · " + texts.failedSteps(failed) : texts.steps(total);
+    }
+    boolean hasMeta = !resolvedMeta.isEmpty();
+    boolean enabled = onToggle != null;
+    String stateText = texts.toolState(aggregate);
+    String headerValue = hasMeta ? stateText + " · " + resolvedMeta : stateText;
+
+    // A failure is shown in the meta text and on individual steps, not as a danger icon here.
+    El aggregateMark = anyRunning
+        ? Progress.spinner().label(texts.toolState(ToolState.RUNNING))
+        : icon(Symbol.CHECKMARK_CIRCLE, Icon.Variant.SUCCESS)
+            .label(texts.toolState(ToolState.DONE));
+
+    El head = disclosureHead(
+            theme,
+            resolvedTitle,
+            theme.space().s(),
+            theme.space().m(),
+            theme.size().control() + theme.space().s(),
+            onToggle)
+        .radius(theme.radius().medium());
+    // The whole text of what may be cut short: the title, and the metadata after it.
+    Tooltip.whenShortened(head, hasMeta ? resolvedTitle + " " + resolvedMeta : resolvedTitle)
+        .role("button")
+        .value(headerValue)
+        .expanded(open)
+        .disabled(!enabled)
+        .busy(anyRunning)
+        .invalid(failed > 0);
+    head.child(aggregateMark);
+    head.child(label(resolvedTitle)
+        .color(enabled ? theme.text().primary() : theme.text().disabled())
+        .maxLines(1)
+        .ellipsis()
+        .grow(hasMeta ? 0 : 1)
+        .minSize(0, 0));
+    if (hasMeta) {
+      // As in a context block: the metadata takes only the room the title leaves.
+      El metaLabel = label(Label.Variant.SMALL, resolvedMeta)
+          .fontFeatures("+tnum")
+          .maxLines(1)
+          .ellipsis()
+          .textAlign(Style.Align.END)
+          .basis(0)
+          .grow(1)
+          .minSize(0, 0);
+      if (!enabled) {
+        metaLabel.color(theme.text().disabled());
+      }
+      head.child(metaLabel);
+    }
+    head.child(icon(
+        open ? Symbol.CHEVRON_UP : Symbol.CHEVRON_DOWN,
+        enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
+
+    El group = col().wFull().role("group").label(resolvedTitle).child(head);
+    group.style().minWidth = Len.ZERO;
+
+    int shown = open ? total : Math.min(latest, total);
+    int hidden = total - shown;
+    if (shown == 0) {
+      return group;
+    }
+
+    El list = col().grow(1).minSize(0, 0).gap(0);
+    if (!open && latest > 0 && hidden > 0) {
+      String earlierText = texts.showEarlierSteps(hidden);
+      El earlier = disclosureHead(
+              theme,
+              earlierText,
+              theme.space().xs(),
+              theme.space().s(),
+              theme.size().control() + theme.space().xs(),
+              onToggle)
+          .radius(theme.radius().small())
+          .role("button")
+          .expanded(false)
+          .disabled(!enabled);
+      Tooltip.whenShortened(earlier, earlierText);
+      earlier.child(
+          icon(Symbol.MORE_HORIZONTAL, enabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
+      El earlierLabel =
+          label(Label.Variant.MUTED, earlierText).maxLines(1).ellipsis().grow(1).minSize(0, 0);
+      if (!enabled) {
+        earlierLabel.color(theme.text().disabled());
+      }
+      earlier.child(earlierLabel);
+      list.child(earlier.key("earlier"));
+    }
+
+    int start = total - shown;
+    for (int i = start; i < total; i++) {
+      Step step = present.get(i);
+      boolean stepEnabled = step.onToggle() != null;
+      String stepStateText = texts.toolState(step.state());
+      El stepRow = disclosureHead(
+              theme,
+              step.title(),
+              theme.space().xs(),
+              theme.space().s(),
+              theme.size().control() + theme.space().xs(),
+              step.onToggle())
+          .radius(theme.radius().small());
+      configureToolHead(
+          stepRow, step.title(), stepStateText, step.state(), step.open(), stepEnabled);
+      if (step.icon() != null) {
+        stepRow.child(icon(step.icon(), stepEnabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
+      }
+      stepRow.child(label(step.title())
+          .color(stepEnabled ? theme.text().primary() : theme.text().disabled())
+          .maxLines(1)
+          .ellipsis()
+          .grow(1)
+          .minSize(0, 0));
+      stepRow.child(toolIndicator(step.state(), stepStateText));
+      stepRow.child(icon(
+          step.open() ? Symbol.CHEVRON_UP : Symbol.CHEVRON_DOWN,
+          stepEnabled ? Icon.Variant.MUTED : Icon.Variant.DISABLED));
+      // Keyed by position in the whole group, so focus stays on its step as the window slides.
+      list.child(stepRow.key("step-" + i));
+      if (step.open() && !step.details().isEmpty()) {
+        float insetStart = step.icon() != null
+            ? theme.size().icon() + theme.space().s() + theme.space().s()
+            : theme.space().s();
+        El inset = col()
+            .fill(theme.surface().band())
+            .radius(theme.radius().small())
+            .padding(theme.space().s(), theme.space().m())
+            .gap(theme.space().s())
+            .margin(0, 0, theme.space().xs(), insetStart)
+            .clip()
+            .children(step.details().toArray(El[]::new));
+        inset.style().minWidth = Len.ZERO;
+        list.child(inset.key("details-" + i));
+      }
+    }
+
+    float lineStart = theme.space().m() + (theme.size().icon() - theme.size().stroke()) / 2;
+    float listStart = Math.max(
+        0, (theme.size().icon() - theme.size().stroke()) / 2 - theme.space().xs());
+    El line =
+        El.el().w(theme.size().stroke()).fill(theme.border().divider()).margin(0, 0, 0, lineStart);
+    El body = row().wFull().gap(theme.space().s()).children(line, list.margin(0, 0, 0, listStart));
+    body.style().minWidth = Len.ZERO;
+    return group.child(body);
   }
 
   /**
@@ -708,6 +924,47 @@ public final class Chat {
     return message;
   }
 
+  private static El toolIndicator(ToolState state, String stateText) {
+    return switch (state) {
+      case RUNNING -> Progress.spinner().label(stateText);
+      case DONE -> icon(Symbol.CHECKMARK_CIRCLE, Icon.Variant.SUCCESS).label(stateText);
+      case FAILED -> icon(Symbol.ERROR_CIRCLE, Icon.Variant.DANGER).label(stateText);
+    };
+  }
+
+  private static void configureToolHead(
+      El head, String title, String stateText, ToolState state, boolean open, boolean enabled) {
+    Tooltip.whenShortened(head, title)
+        .role("button")
+        .value(stateText)
+        .expanded(open)
+        .disabled(!enabled)
+        .busy(state == ToolState.RUNNING)
+        .invalid(state == ToolState.FAILED);
+  }
+
+  private static El disclosureHead(
+      Theme theme, String label, float padY, float padX, float minHeight, Runnable onToggle) {
+    El head = row()
+        .wFull()
+        .label(label)
+        .padding(padY, padX)
+        .gap(theme.space().s())
+        .align(Style.Align.CENTER)
+        .motion(theme.motion().feedback());
+    head.style().minHeight = Len.px(minHeight);
+    if (onToggle != null) {
+      head.focusable()
+          .keepFocus()
+          .focusRing(theme.accent().edge())
+          .cursor(Cursor.POINTER)
+          .onPress(onToggle)
+          .whenHovered(e -> e.fill(theme.surface().hover()))
+          .whenPressed(e -> e.fill(theme.surface().pressed()));
+    }
+    return head;
+  }
+
   private static El disclosure(
       Theme theme,
       Icon icon,
@@ -723,14 +980,13 @@ public final class Chat {
     boolean showDetails = open && details.length > 0;
     float innerRadius = Math.max(0, theme.radius().medium() - theme.size().stroke());
 
-    El head = row()
-        .wFull()
-        .label(title)
-        .padding(theme.space().s(), theme.space().m())
-        .gap(theme.space().s())
-        .align(Style.Align.CENTER)
-        .motion(theme.motion().feedback());
-    head.style().minHeight = Len.px(theme.size().control() + theme.space().s());
+    El head = disclosureHead(
+        theme,
+        title,
+        theme.space().s(),
+        theme.space().m(),
+        theme.size().control() + theme.space().s(),
+        onToggle);
     if (showDetails) {
       head.radius(innerRadius, innerRadius, 0, 0);
     } else {
@@ -754,15 +1010,6 @@ public final class Chat {
       head.child(icon(
           open ? Symbol.CHEVRON_UP : Symbol.CHEVRON_DOWN,
           disabled ? Icon.Variant.DISABLED : Icon.Variant.MUTED));
-    }
-    if (onToggle != null) {
-      head.focusable()
-          .keepFocus()
-          .focusRing(theme.accent().edge())
-          .cursor(Cursor.POINTER)
-          .onPress(onToggle)
-          .whenHovered(e -> e.fill(theme.surface().hover()))
-          .whenPressed(e -> e.fill(theme.surface().pressed()));
     }
 
     El box = col()
