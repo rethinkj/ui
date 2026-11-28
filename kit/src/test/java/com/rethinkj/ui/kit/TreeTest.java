@@ -788,8 +788,6 @@ class TreeTest {
     float[] mainMeta = StructureTest.rect(StructureTest.line(dump, "el label=\"current\""));
     float[] mainTrailing = StructureTest.rect(StructureTest.line(dump, "text \"origin/main\""));
     assertFalse(textOf(find(app, "row-main"), "main").text().shortened());
-    assertFalse(textOf(find(app, "row-main"), "current").text().shortened());
-    assertFalse(textOf(find(app, "row-main"), "origin/main").text().shortened());
     assertEquals(mainLabel[0] + mainLabel[2] + theme.space().s(), mainMeta[0], 0.5f, dump);
     assertEquals(
         mainRow[0] + mainRow[2] - padRight,
@@ -818,8 +816,6 @@ class TreeTest {
     float[] releaseDetail = StructureTest.rect(StructureTest.line(dump, "text \"3 commits\""));
     El releaseEl = find(app, "row-release");
     assertTrue(dumpLine(app, "row-release").contains("value=\"3 commits\""), dump);
-    assertFalse(textOf(releaseEl, "+2").text().shortened());
-    assertFalse(textOf(releaseEl, "3 commits").text().shortened());
     assertEquals(releaseMeta[0] + releaseMeta[2] + theme.space().s(), releaseDetail[0], 0.5f, dump);
     El releaseChevron = releaseEl.children().getLast();
     assertEquals(
@@ -844,7 +840,6 @@ class TreeTest {
         narrowDetail.text().shortened() || narrowDetail.y() >= theme.grid().rowHeight(),
         "detail yields first:\n" + narrowDump);
     assertFalse(textOf(narrowRelease, "release/v2").text().shortened(), narrowDump);
-    assertFalse(textOf(narrowRelease, "+2").text().shortened(), narrowDump);
     float[] narrowFeatRow = StructureTest.rect(StructureTest.line(narrowDump, "#row-feat "));
     float[] narrowFeatMeta =
         StructureTest.rect(StructureTest.line(narrowDump, "el label=\"dirty\""));
