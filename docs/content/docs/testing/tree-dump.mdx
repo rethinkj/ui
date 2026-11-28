@@ -18,7 +18,7 @@ Fields appear in this order:
 4. **Text content:** Quoted string for `text` elements (`\n`, `\r`, `\t`, and private-use icon code points like `\u{E305}`). Strings over 200 characters show the first 100 and last 40 characters plus total length.
 5. **Window chrome:** `window=<part>` for custom title bar parts (`drag`, `minimize`, `maximize`, `close`, `control`, or `content`).
 6. **Bounds:** `x,y widthxheight` in window coordinates (accounting for parent scroll offsets).
-7. **States:** Active states in fixed order (table below), followed by `value="<text>"`, `error="<message>"` (`El.errorMessage`), and `warning="<message>"` (`El.warningMessage`).
+7. **States:** Active states in fixed order (table below), followed by `value="<text>"`, `tone=<tone>` (`El.tone`, shown in dumps only; selectors do not match it), `error="<message>"` (`El.errorMessage`), and `warning="<message>"` (`El.warningMessage`).
 8. **Extra details:** Scroll offsets, virtual row ranges, or text editor line counts (see below).
 9. **Interaction flags:** `hovered` (under mouse), `focused` (keyboard focus, plus cursor/selection for text fields), and `exiting` (fading out after removal).
 

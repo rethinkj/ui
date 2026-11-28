@@ -16,6 +16,7 @@ import com.rethinkj.ui.Style;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
@@ -91,11 +92,12 @@ import java.util.function.Predicate;
  * could not be read ({@link #failed}), that row is {@code role=treeitem} and {@code invalid},
  * with the message as its label and as {@code error="<message>"}, and its action is {@code
  * role=button} with its text as the label. A label, a loading text or a message longer than its
- * row ends in an ellipsis, and a tooltip after the theme's delay shows it whole. A muted row
- * ({@link Model#muted}) says nothing more in a dump: only its label's color differs. The row of
- * a node being dragged is {@code grabbed}, with its label muted, and the line in the accent's
- * edge that shows where it goes, or the outline around the row it goes into, is {@code #marker}
- * in a row.
+ * row ends in an ellipsis, and a tooltip after the theme's delay shows it whole. A toned row
+ * ({@link Model#tone}) carries {@code tone=<name>} in lower case, such as {@code tone=accent}. A
+ * muted row ({@link Model#muted}) says nothing more in a dump: only its label's color differs. The
+ * row of a node being dragged is {@code grabbed}, with its label muted, and the line in the
+ * accent's edge that shows where it goes, or the outline around the row it goes into, is {@code
+ * #marker} in a row.
  */
 public final class Tree {
 
@@ -104,6 +106,21 @@ public final class Tree {
 
   /** The mark of a node that is open. */
   public static final Symbol OPEN = Symbol.CHEVRON_DOWN;
+
+  /**
+   * The color tone of a node's label ({@link Model#tone}), taken from the theme's link and status
+   * colors.
+   */
+  public enum Tone {
+    /** The color of links, as for a modified file in a VCS tree. */
+    ACCENT,
+    /** Success color, as for an added file in a VCS tree. */
+    SUCCESS,
+    /** Warning color, as for a node that needs attention. */
+    WARNING,
+    /** Danger color, as for an untracked or conflicted file in a VCS tree. */
+    DANGER
+  }
 
   /**
    * Where the tree gets its nodes from. The app implements it over the data it holds; nodes are
@@ -173,6 +190,19 @@ public final class Tree {
      */
     default boolean muted(N node) {
       return false;
+    }
+
+    /**
+     * The color tone of the node's label, or {@code null} (the default) for normal text. Asked only
+     * for the rows that are built. Colors only the label text: the icon, detail, meta, trailing
+     * element, selection bar and hover stay as they are. For VCS file trees: modified files use
+     * {@link Tone#ACCENT}, added files {@link Tone#SUCCESS}, untracked or conflicted files {@link
+     * Tone#DANGER}, and ignored files use {@link #muted}. A non-null tone wins over {@link #muted};
+     * a grabbed (dragged) row's label stays muted regardless. In a tree dump, a toned row carries
+     * {@code tone=<name>} in lower case, such as {@code tone=accent}.
+     */
+    default Tone tone(N node) {
+      return null;
     }
 
     /**
@@ -513,8 +543,14 @@ public final class Tree {
       if (icon != null) {
         r.child(icon);
       }
-      Label.Variant variant =
-          grabbed || model.muted(node) ? Label.Variant.MUTED : Label.Variant.NORMAL;
+      Tone tone = model.tone(node);
+      if (tone != null) {
+        r.tone(tone.name().toLowerCase(Locale.ROOT));
+      }
+      Label.Variant variant = grabbed || (tone == null && model.muted(node))
+          ? Label.Variant.MUTED
+          : Label.Variant.NORMAL;
+      Tone labelTone = grabbed ? null : tone;
       El meta = model.meta(node);
       El trailing = model.trailing(node);
       if (meta != null || trailing != null) { // the slots stay clear of the scrollbar's strip
@@ -522,7 +558,7 @@ public final class Tree {
       }
       String detail = model.detail(node);
       if (detail == null) {
-        El name = Label.label(variant, label).ellipsis().minSize(0, 0);
+        El name = label(theme, variant, labelTone, label);
         // With meta, both in a box that clips, so that the trailing element stays in view.
         r.child(
             meta == null
@@ -535,7 +571,7 @@ public final class Tree {
                     .children(name, meta.shrink(0).inert()));
         whole(theme, r, name, null, label, height);
       } else {
-        detail(theme, r.value(detail), variant, label, meta, detail, height);
+        detail(theme, r.value(detail), variant, labelTone, label, meta, detail, height);
       }
       if (trailing != null) {
         trailing.shrink(0);
@@ -886,6 +922,20 @@ public final class Tree {
         .shadow(more);
   }
 
+  private static int toneColor(Theme theme, Tone tone) {
+    return switch (tone) {
+      case ACCENT -> theme.prose().link(); // the accent's text color, 4.5:1 on a selection too
+      case SUCCESS -> theme.status().success();
+      case WARNING -> theme.status().warning();
+      case DANGER -> theme.status().danger();
+    };
+  }
+
+  private static El label(Theme theme, Label.Variant variant, Tone tone, String text) {
+    El el = Label.label(variant, text).ellipsis().minSize(0, 0);
+    return tone == null ? el : el.color(toneColor(theme, tone));
+  }
+
   /**
    * The label (with any {@code meta} after it) and the detail after them in a box that wraps and
    * clips at the row's height, as the data grid's header gives way with its type: the label and
@@ -898,11 +948,12 @@ public final class Tree {
       Theme theme,
       El row,
       Label.Variant variant,
+      Tone tone,
       String label,
       El meta,
       String detail,
       float height) {
-    El name = Label.label(variant, label).ellipsis().minSize(0, 0);
+    El name = label(theme, variant, tone, label);
     El head;
     if (meta == null) {
       name.shrink(0);

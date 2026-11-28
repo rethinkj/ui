@@ -2218,6 +2218,15 @@ public final class DataGrid {
       GridFind.go(this, -1);
     }
 
+    /**
+     * Searches again in the next build, after the app changed the rows' contents other than
+     * through {@link Options#changes}, such as new rows at the same count. Unlike {@link #open}, it
+     * leaves the focus where it is.
+     */
+    public void refresh() {
+      resetSearch();
+    }
+
     void cancel() {
       gen++;
       scheduled = false;
@@ -2659,7 +2668,7 @@ public final class DataGrid {
      * Rows that are not loaded ({@link #loading}) are skipped and never asked for; the count then
      * ends in {@code +}. The count and the order of the matches are those of the last search:
      * changes through {@link #changes} search again, and after the app changes cells otherwise,
-     * {@link Find#open} does. Needs {@link #select}.
+     * {@link Find#refresh} does. Needs {@link #select}.
      */
     public Options find(App<?> app, Find find) {
       this.findApp = Objects.requireNonNull(app, "app");
