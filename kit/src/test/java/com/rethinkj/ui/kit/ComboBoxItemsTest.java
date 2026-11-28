@@ -4,6 +4,9 @@ import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.kit.Label.label;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
@@ -289,11 +292,11 @@ class ComboBoxItemsTest {
     List<FilterList.Entry> first = typedState.entries;
     typedApp.invalidate();
     Script.run("frame", typedApp, out.resolve("same-2"));
-    assertTrue(first == typedState.entries, "unchanged items keep entries");
+    assertSame(first, typedState.entries, "unchanged items keep entries");
     withFont.set(true);
     typedApp.invalidate();
     Script.run("frame", typedApp, out.resolve("same-3"));
-    assertTrue(first != typedState.entries, "adding a font rebuilds entries");
-    assertTrue(typedState.entries.get(0).font() != null);
+    assertNotSame(first, typedState.entries, "adding a font rebuilds entries");
+    assertNotNull(typedState.entries.get(0).font());
   }
 }
