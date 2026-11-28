@@ -535,8 +535,15 @@ class DocCommentRenderTest {
 
   @Test
   void renderedDocIndentFollowsTabSize() throws IOException {
-    String text = "class A {\n\t/// Tab doc.\n\tint a;\n        /// Eight spaces.\n        int b;\n"
-        + "    /// Four spaces.\n    int c;\n}";
+    String text = """
+        class A {
+        \t/// Tab doc.
+        \tint a;
+                /// Eight spaces.
+                int b;
+            /// Four spaces.
+            int c;
+        }""";
     Doc doc = new Doc(text);
     doc.editor.readerMode(true);
     App<Doc> app = new App<>(
