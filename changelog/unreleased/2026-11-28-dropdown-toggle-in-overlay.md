@@ -1,0 +1,1 @@
+- Pressing the button of an open `Menu.dropdown` inside a `Popover` or `Dialog` now closes the menu instead of reopening it.
