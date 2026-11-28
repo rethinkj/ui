@@ -4,6 +4,7 @@ import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.el;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
@@ -11,6 +12,7 @@ import com.rethinkj.ui.Script;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -109,7 +111,7 @@ class FilterListTest {
   @Test
   void aLongListFindsTheBestMatchAsTheTextGrowsAndAnew() {
     String[] tables = {"orders", "order_items", "customers", "customer_notes", "invoices"};
-    List<FilterList.Entry> entries = new java.util.ArrayList<>();
+    List<FilterList.Entry> entries = new ArrayList<>();
     for (int i = 0; entries.size() < 2 * FilterList.PARALLEL; i++) {
       String table = "s" + i / 50 + "." + tables[i % tables.length] + "_" + i / tables.length;
       for (String column : List.of("", ".id", ".status", ".note")) {
@@ -220,7 +222,7 @@ class FilterListTest {
   /** Entries found on another thread under a name, which tells one source from another. */
   static final class Sources {
     final FilterList.State list = new FilterList.State();
-    final List<String> asked = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
+    final List<String> asked = java.util.Collections.synchronizedList(new ArrayList<>());
     String name = "tables";
     App<Sources> app;
 
@@ -259,5 +261,42 @@ class FilterListTest {
     tree = run(sources.app, "frame\nawait\nframe");
     assertEquals(List.of("columns:fi"), ComboBoxTest.options(tree));
     assertEquals(List.of("tables:fi", "columns:fi"), sources.asked, "each source asked once");
+  }
+
+  @Test
+  void scrollingByKeyKeepsTheHighlightUnderARestingPointerUntilThePointerMoves()
+      throws IOException {
+    TextLibraries.assumeLoaded();
+    FilterList.State listState = new FilterList.State();
+    String[] chosen = {null};
+    List<FilterList.Entry> items = new ArrayList<>();
+    for (int i = 0; i < 30; i++) {
+      String name = "Item " + i;
+      items.add(FilterList.entry(name, () -> chosen[0] = name));
+    }
+    FilterList.Entries entries = FilterList.Entries.of(items);
+    App<FilterList.State> app = new App<>(
+        listState, s -> col().child(FilterList.filterList(s, "Search", entries).w(280)));
+
+    String rested = run(app, """
+        size 320 320
+        frame
+        press role=textbox label="Search"
+        frame
+        move #option-2""");
+    assertTrue(StructureTest.line(rested, "#option-2 ").contains(" selected"), rested);
+    float[] at = StructureTest.rect(StructureTest.line(rested, "#option-2 "));
+
+    String scrolled = run(app, "key End\nframe\nkey Enter");
+    assertEquals("Item 29", chosen[0], scrolled);
+    assertTrue(StructureTest.line(scrolled, "#option-29 ").contains(" selected"), scrolled);
+
+    int x = Math.round(at[0] + at[2] / 2) + 2;
+    int y = Math.round(at[1] + at[3] / 2);
+    String moved = run(app, "move " + x + "," + y + "\nframe\nkey Enter");
+    String hovered = StructureTest.line(moved, " hovered");
+    assertTrue(hovered.contains("role=option") && hovered.contains(" selected"), moved);
+    assertFalse(StructureTest.line(moved, "#option-29 ").contains(" selected"), moved);
+    assertNotEquals("Item 29", chosen[0], moved);
   }
 }

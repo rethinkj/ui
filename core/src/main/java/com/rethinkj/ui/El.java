@@ -4384,9 +4384,12 @@ public final class El {
   /**
    * Runs {@code handler} once the pointer has rested over this element, or over elements inside
    * it, for {@code seconds} of the app's clock; once per stay, and not after a press until the
-   * pointer has left and come back. With 0 it runs in the frame that finds the pointer there. Like
-   * {@link #onPress}, it runs in {@link App#frame}, which then builds the view again; a menu
-   * follows the pointer with it and opens a submenu after a delay.
+   * pointer has left and come back. A stay begins only on pointer motion ({@link App#pointerMove}
+   * or {@link App#wheel}): an element that merely comes under a still pointer, as when a key
+   * scrolls a list or an overlay opens, waits until the pointer moves or the wheel turns over it.
+   * With 0 it runs in the frame of that move or wheel. Like {@link #onPress}, it runs in {@link
+   * App#frame}, which then builds the view again; a menu follows the pointer with it and opens a
+   * submenu after a delay.
    *
    * @param handler runs once the pointer has stayed, or null for none
    */
