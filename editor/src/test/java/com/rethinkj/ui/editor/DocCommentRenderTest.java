@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
+import com.rethinkj.ui.El;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.Spans;
 import com.rethinkj.ui.kit.Find;
@@ -498,8 +499,8 @@ class DocCommentRenderTest {
   @Test
   void editedToggleSplitAcrossScanBoundaryKeepsSecondPartRaw() {
     CodeEditor.DocToggle edited = new CodeEditor.DocToggle(100, 300, true);
-    CodeEditor.DocRange first = new CodeEditor.DocRange(100, 180, 10, 12, 0);
-    CodeEditor.DocRange second = new CodeEditor.DocRange(220, 300, 20, 22, 0);
+    CodeEditor.DocRange first = new CodeEditor.DocRange(100, 180, 10, 12);
+    CodeEditor.DocRange second = new CodeEditor.DocRange(220, 300, 20, 22);
 
     List<CodeEditor.DocToggle> afterFirstScan =
         CodeEditor.reconcileDocToggles(List.of(edited), List.of(first), 200);
@@ -518,8 +519,8 @@ class DocCommentRenderTest {
     // When a bound comment already starts at the boundary, the remainder advances past it so
     // sortedDocToggles does not swallow the bound toggle.
     CodeEditor.DocToggle atBoundary = new CodeEditor.DocToggle(200, 400, true);
-    CodeEditor.DocRange boundAtBoundary = new CodeEditor.DocRange(200, 260, 20, 22, 0);
-    CodeEditor.DocRange trailing = new CodeEditor.DocRange(320, 400, 30, 32, 0);
+    CodeEditor.DocRange boundAtBoundary = new CodeEditor.DocRange(200, 260, 20, 22);
+    CodeEditor.DocRange trailing = new CodeEditor.DocRange(320, 400, 30, 32);
     List<CodeEditor.DocToggle> mid =
         CodeEditor.reconcileDocToggles(List.of(atBoundary), List.of(boundAtBoundary), 200);
     assertEquals(
@@ -530,5 +531,47 @@ class DocCommentRenderTest {
         List.of(
             new CodeEditor.DocToggle(200, 260, false), new CodeEditor.DocToggle(320, 400, false)),
         CodeEditor.reconcileDocToggles(mid, List.of(boundAtBoundary, trailing), Integer.MAX_VALUE));
+  }
+
+  @Test
+  void renderedDocIndentFollowsTabSize() throws IOException {
+    String text = "class A {\n\t/// Tab doc.\n\tint a;\n        /// Eight spaces.\n        int b;\n"
+        + "    /// Four spaces.\n    int c;\n}";
+    Doc doc = new Doc(text);
+    doc.editor.readerMode(true);
+    App<Doc> app = new App<>(
+            doc,
+            state -> col()
+                .wFull()
+                .hFull()
+                .padding(12)
+                .child(codeEditor(
+                        state.app,
+                        state.text,
+                        state.editor,
+                        state.language,
+                        value -> state.text = value)
+                    .key("code")
+                    .lines(10)
+                    .wFull()
+                    .tabSize(8)))
+        .provide(Theme.CURRENT, state -> Theme.DARK);
+    doc.app = app;
+    app.textRendering(TextRendering.LINUX);
+
+    Script.run("size 560 320 scale 2\nframe\n", app, out);
+    El field = doc.editor.editor();
+    float tabIndent = findBlock(field, "doc-1").children().getFirst().x();
+    float eightSpaces = findBlock(field, "doc-3").children().getFirst().x();
+    float fourSpaces = findBlock(field, "doc-5").children().getFirst().x();
+    assertEquals(eightSpaces, tabIndent, 0.01f, "tab doc comment aligns at 8 columns");
+    assertTrue(tabIndent > fourSpaces, "tab doc comment is indented past 4 columns");
+  }
+
+  private static El findBlock(El field, String key) {
+    return field.children().stream()
+        .filter(c -> key.equals(c.key()))
+        .findFirst()
+        .orElseThrow(() -> new AssertionError("No block " + key));
   }
 }
