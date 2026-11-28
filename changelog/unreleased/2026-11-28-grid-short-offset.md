@@ -1,0 +1,1 @@
+- `DataGrid` cell editing, its column filters, and `ConditionBuilder` now accept short time offsets such as `+01` or `+00` (as `Format.Offset.SHORT` writes them) on `TIME` and `DATE_TIME` columns, alongside `Z` and `+01:00`.

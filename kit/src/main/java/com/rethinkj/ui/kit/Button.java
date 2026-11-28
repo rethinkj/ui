@@ -842,6 +842,7 @@ public final class Button {
         held(theme, more, look);
       }
       more.onKey(Menu.opener(state, more.onKey(), toggle));
+      more.dismissGroup(state); // the whole split, its anchor, has no press of its own
     }
     El whole = row().key("split").shrink(0).child(main);
     if (variant == Variant.PRIMARY) {

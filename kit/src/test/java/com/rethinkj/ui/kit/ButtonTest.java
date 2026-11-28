@@ -304,6 +304,9 @@ class ButtonTest {
     run(app, "advance 1\nframe\nkey Escape\nframe\npress #arrow");
     assertTrue(app.state().menu.isOpen());
     assertEquals(-1, app.state().menu.active(), "the pointer: none");
+    run(app, "advance 1\nframe\npress #main\nframe");
+    assertFalse(app.state().menu.isOpen(), "a press on the main half closes the menu");
+    assertEquals(0, app.state().presses, "and presses nothing");
   }
 
   @Test
