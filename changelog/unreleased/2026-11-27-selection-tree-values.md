@@ -1,0 +1,1 @@
+- Select and ComboBox keep their current value in tree dumps when given a custom label. Tree dumps leave out `value=` where it repeats the element's label; script selectors still match it.

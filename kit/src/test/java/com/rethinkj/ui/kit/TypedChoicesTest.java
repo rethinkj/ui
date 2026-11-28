@@ -166,6 +166,53 @@ class TypedChoicesTest {
     assertNull(Segmented.segmented(LEVELS, Level.LOW, l -> l.label, null).onKey());
   }
 
+  @Test
+  void aSelectKeepsItsValueWhenRelabeled() {
+    for (Level selected : new Level[] {Level.MEDIUM, null}) {
+      for (boolean enabled : new boolean[] {true, false}) {
+        El select = Select.select(
+            LEVELS, selected, l -> l.label, new Menu.State(), enabled ? told::add : null);
+        assertEquals(selected == Level.MEDIUM ? "Medium" : "", select.label());
+        select.label("Level");
+        String dump = select.dump().lines().findFirst().orElseThrow();
+        assertTrue(dump.contains("label=\"Level\""));
+        assertTrue(dump.contains("value=\"" + (selected == Level.MEDIUM ? "Medium" : "") + "\""));
+      }
+    }
+    El missing = Select.select(
+        List.of(Level.LOW, Level.HIGH), Level.MEDIUM, l -> l.label, new Menu.State(), null);
+    missing.label("Level");
+    String dump = missing.dump().lines().findFirst().orElseThrow();
+    assertTrue(dump.contains("value=\"\""));
+  }
+
+  @Test
+  void aComboBoxKeepsItsValueWhenRelabeled() {
+    for (boolean open : new boolean[] {true, false}) {
+      for (boolean itemVariant : new boolean[] {true, false}) {
+        ComboBox.State state = new ComboBox.State();
+        if (open) {
+          state.open();
+        }
+        El comboBox = itemVariant
+            ? ComboBox.items(LEVELS, Level.MEDIUM, l -> ComboBox.item(l.label), state, told::add)
+            : ComboBox.comboBox(LEVELS, Level.MEDIUM, l -> l.label, state, told::add);
+        assertEquals("Medium", comboBox.label());
+        comboBox.label("Level");
+        String dump = comboBox.dump().lines().findFirst().orElseThrow();
+        assertTrue(dump.contains("label=\"Level\""));
+        assertTrue(dump.contains("value=\"Medium\""));
+      }
+    }
+    ComboBox.State state = new ComboBox.State();
+    El nullSelection = ComboBox.comboBox(LEVELS, null, l -> l.label, state, told::add);
+    assertEquals("", nullSelection.label());
+    nullSelection.label("Level");
+    String dump = nullSelection.dump().lines().findFirst().orElseThrow();
+    assertTrue(dump.contains("label=\"Level\""));
+    assertTrue(dump.contains("value=\"\""));
+  }
+
   enum Page {
     GENERAL(Symbol.SETTINGS, "General", null),
     EDITOR(Symbol.CODE, "Editor", null),

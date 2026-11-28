@@ -47,6 +47,8 @@ These rules apply across `Select`, [ComboBox](/docs/components/combo-box), [Radi
 
 ## In a tree dump
 
+A custom `.label("Level")` names the control while its current choice stays in the tree dump as `value="..."`. Without a custom label, the choice remains the label too.
+
 `role=combobox` with `expanded` or `expanded=false` (labeled by `.label(...)` or the current choice):
 
 ```text file="examples/src/test/resources/golden/docs/choices/view.tree.txt" start="label=\"Driver\"" count="2"

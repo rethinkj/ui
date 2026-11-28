@@ -637,6 +637,7 @@ public final class ComboBox {
     }
     El box = el().role("combobox")
         .label(value)
+        .value(value)
         .expanded(state.open)
         .disabled(!enabled)
         .w(theme.size().field())

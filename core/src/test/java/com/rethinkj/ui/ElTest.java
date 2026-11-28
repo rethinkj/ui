@@ -112,6 +112,17 @@ class ElTest {
   }
 
   @Test
+  void omitsValueWhenItEqualsLabelInDump() {
+    assertEquals("el label=\"same\"\n", el().label("same").value("same").dump());
+    assertEquals("el value=\"\"\n", el().value("").dump(), "empty value still dumps");
+    assertEquals(
+        "el label=\"label\" value=\"value\"\n",
+        el().label("label").value("value").dump(),
+        "distinct value dumps");
+    assertEquals("el\n", el().value(null).dump(), "null value omits value");
+  }
+
+  @Test
   void aNullChildIsLeftOut() {
     El a = El.el().key("a");
     El b = El.el().key("b");

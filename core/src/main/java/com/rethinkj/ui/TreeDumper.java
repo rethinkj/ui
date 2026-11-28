@@ -110,7 +110,7 @@ final class TreeDumper {
       number(out, el.height());
     }
     states(out, el);
-    if (el.value() != null) {
+    if (el.value() != null && !el.value().equals(label)) {
       out.append(" value=").append(quote(el.value()));
     }
     if (el.tone() != null) {

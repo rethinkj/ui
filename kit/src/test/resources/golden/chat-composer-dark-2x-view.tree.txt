@@ -17,7 +17,7 @@ el 0,0 520x160
         el #attach role=button label="Attach file" 21,113 24x24
           text label="add" "\u{F108}" 25,117 16x16
       el #end 351,113 120x24
-        el #model role=combobox label="Model" 351,113 120x24 expanded=false
+        el #model role=combobox label="Model" 351,113 120x24 expanded=false value="Sonnet"
           text "Sonnet" 360,117 82x16
           text label="chevron_down" "\u{F2A2}" 446,117 16x16
       el #action role=button label="Send" 475,113 24x24

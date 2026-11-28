@@ -207,6 +207,7 @@ public final class Select {
     El box = row()
         .role("combobox")
         .label(text)
+        .value(text)
         .disabled(!enabled)
         .w(theme.size().field())
         .h(theme.size().control())

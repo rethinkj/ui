@@ -73,6 +73,8 @@ While closed or disabled, the typed forms map only the selected value, or none i
 
 ## In a tree dump
 
+A custom `.label("Database")` names the control while its current value stays in the tree dump as `value="..."`. Without a custom label, the value remains the label too.
+
 `role=combobox` with `expanded` or `expanded=false`. When open, contains `role=textbox` and `role=listbox` with `role=option` items (`selected` on the highlighted item). On `ComboBox.free`, the dropdown arrow is `role=button` `label="Open"`.
 
 ```text file="examples/src/test/resources/golden/docs/combos/typed.tree.txt" start="overlay" count="4"

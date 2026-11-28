@@ -1,5 +1,5 @@
 el 0,0 360x420
-  el role=combobox label="Isolation" 12,12 200x24 expanded=false
+  el role=combobox label="Isolation" 12,12 200x24 expanded=false value="Read committed"
     text "Read committed" 21,16 162x16
     text label="chevron_down" "\u{F2A2}" 187,16 16x16
   el role=radiogroup label="Level" 8,42 132x60
@@ -20,10 +20,10 @@ el 0,0 360x420
       text "Repeatable read" 152,112 100x16
     el #choice-2 role=radio label="Serializable" 266,111 94x18 checked=false
       text "Serializable" 278,112 70x16
-  el role=combobox label="Schema" 12,140 200x24 expanded=false focused
+  el role=combobox label="Schema" 12,140 200x24 expanded=false value="sales" focused
     text "sales" 21,144 162x16
     text label="chevron_down" "\u{F2A2}" 187,144 16x16
-  el role=combobox label="Owned schema" 12,172 200x24 expanded=false
+  el role=combobox label="Owned schema" 12,172 200x24 expanded=false value=""
     text "" 21,176 162x16
     text label="chevron_down" "\u{F2A2}" 187,176 16x16
 overlay bottom stretch gap 4 on role=combobox label="Schema" 12,140 200x24

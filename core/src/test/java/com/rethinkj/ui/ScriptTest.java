@@ -456,7 +456,7 @@ class ScriptTest {
         l -> col()
             .wFull()
             .children(
-                el().role("row").label("a").h(10).onPress(() -> l.add("a")),
+                el().role("row").label("a").value("a").h(10).onPress(() -> l.add("a")),
                 el().role("row").label("b").h(10).selected(true).onPress(() -> l.add("b")),
                 el().role("checkbox").label("c").h(10).checked(false).onPress(() -> l.add("c")),
                 el().role("checkbox").label("d").h(10).checked(true).onPress(() -> l.add("d")),
@@ -475,9 +475,10 @@ class ScriptTest {
         press checked=true
         press expanded=false level=2
         press value="first 240"
+        press value="a"
         frame
         """, app, out);
-    assertEquals(List.of("b", "c", "d", "e", "f"), log);
+    assertEquals(List.of("b", "c", "d", "e", "f", "a"), log);
 
     assertEquals("""
         line 3: press role=checkbox checked=mixed

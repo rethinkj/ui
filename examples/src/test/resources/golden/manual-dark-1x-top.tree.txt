@@ -103,7 +103,7 @@ el 0,0 960x640
           text role=paragraph "Links come inline, by reference, as autolinks such as https://spec.commonmark.org and as bare addres" … " there; any other one shows its address." length 219 281,409 646x51 readonly lines 1-1/1
             el #link-0 role=link label="inline" 359,409 34.25x17 value="https://commonmark.org"
             el #link-1 role=link label="reference" 420.75,409 63x17 value="https://spec.commonmark.org/0.31.2/"
-            el #link-2 role=link label="https://spec.commonmark.org" 626.25,409 198.75x17 value="https://spec.commonmark.org"
+            el #link-2 role=link label="https://spec.commonmark.org" 626.25,409 198.75x17
             el #link-3 role=link label="www.example.com" 377.75,426 124.25x17 value="http://www.example.com"
             el #link-4 role=link label="back to the top" 691.5,426 97.25x17 value="#writing-documents"
         el 281,472 646x61 pos=8/39
