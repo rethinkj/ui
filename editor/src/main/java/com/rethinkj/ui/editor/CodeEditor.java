@@ -72,9 +72,6 @@ public final class CodeEditor {
 
   private CodeEditor() {}
 
-  /** The columns of a step of indentation, at which guides stand: four, as the field's tabs. */
-  private static final int INDENT = 4;
-
   /** The markup layer of {@link Command#HIGHLIGHT_USAGES}. */
   private static final String USAGES_LAYER = "usages";
 
@@ -1742,7 +1739,8 @@ public final class CodeEditor {
    * State#blockOutline} on also outlines its text in the code area. The caret's line has
    * {@code code().line()} behind it, the bracket before or after the caret and the one that matches
    * it ({@link El#matchingBracket}, among those the highlighter marks) {@code code().bracket()},
-   * and the white space that starts a line {@code code().guide()} at each step of four columns.
+   * and the white space that starts a line {@code code().guide()} at each multiple of the field's
+   * {@link El#tabSize tab size}.
    *
    * @param value the code, from the app's state
    * @param state the app's state of this editor
@@ -1888,7 +1886,7 @@ public final class CodeEditor {
               && line <= state.dragLines.last()) {
             out.lineBackground(code.note());
           }
-          guides(text, code.guide(), out);
+          guides(text, editor.text().tabSize(), code.guide(), out);
           for (int at : pair) {
             out.background(at - start, at - start + 1, code.bracket());
           }
@@ -2206,7 +2204,7 @@ public final class CodeEditor {
           if (row != null) {
             return CodeVision.row(theme, editor, block.first(), row);
           }
-          return renderedDoc(theme, state, docs.get(block), space);
+          return renderedDoc(theme, state, editor, docs.get(block), space);
         },
         block -> {
           if (extraSet.contains(block)) {
@@ -2257,18 +2255,18 @@ public final class CodeEditor {
     return false;
   }
 
-  /** Guides at each step of indentation in the white space that starts {@code text}. */
-  private static void guides(String text, int color, Spans out) {
+  /** Guides at each multiple of {@code tabSize} in the white space that starts {@code text}. */
+  private static void guides(String text, int tabSize, int color, Spans out) {
     int column = 0;
     for (int i = 0; i < text.length(); i++) {
       char c = text.charAt(i);
       if (c != ' ' && c != '\t') {
         return;
       }
-      if (column % INDENT == 0) {
+      if (column % tabSize == 0) {
         out.guide(i, color);
       }
-      column = c == '\t' ? (column / INDENT + 1) * INDENT : column + 1;
+      column = c == '\t' ? (column / tabSize + 1) * tabSize : column + 1;
     }
   }
 
@@ -3406,10 +3404,14 @@ public final class CodeEditor {
   }
 
   /** Builds the rendered view of one doc comment, indented to its column in the comment color. */
-  private static El renderedDoc(Theme theme, State state, DocRange doc, float spaceWidth) {
+  private static El renderedDoc(
+      Theme theme, State state, El editor, DocRange doc, float spaceWidth) {
     String raw = state.builtText.substring(doc.start(), doc.end());
     DocComment parsed = state.docComment(state.language, raw);
-    float indent = doc.indentColumns() * spaceWidth;
+    int firstStart = state.builtText.lastIndexOf('\n', doc.start() - 1) + 1;
+    float indent =
+        indentColumns(state.builtText, firstStart, doc.start(), editor.text().tabSize())
+            * spaceWidth;
     El container = El.col()
         .key("doc-" + doc.firstLine())
         .gap(theme.space().m())
@@ -3559,7 +3561,7 @@ public final class CodeEditor {
   }
 
   /** One standalone doc comment eligible to render, in the normalized text of the last build. */
-  record DocRange(int start, int end, int firstLine, int lastLine, int indentColumns) {}
+  record DocRange(int start, int end, int firstLine, int lastLine) {}
 
   /** One per-comment override of {@link State#readerMode}, tracked by character offsets. */
   record DocToggle(int start, int end, boolean edited) {}
@@ -3594,7 +3596,7 @@ public final class CodeEditor {
     for (DocRange d : docs) {
       int at = edits.mapRange(d.start(), d.end());
       if (at >= 0) { // its lines are counted again
-        out.add(new DocRange(at, at + d.end() - d.start(), -1, -1, 0));
+        out.add(new DocRange(at, at + d.end() - d.start(), -1, -1));
       }
     }
     return out;
@@ -3636,13 +3638,18 @@ public final class CodeEditor {
       if (!hasDocContent(text, c.start(), c.end())) {
         continue;
       }
-      int indent = 0;
-      for (int i = firstStart; i < c.start(); i++) {
-        indent = text.charAt(i) == '\t' ? (indent / INDENT + 1) * INDENT : indent + 1;
-      }
-      out.add(new DocRange(c.start(), c.end(), firstLine, lastLine, indent));
+      out.add(new DocRange(c.start(), c.end(), firstLine, lastLine));
     }
     return out;
+  }
+
+  /** Columns of the spaces and tabs in {@code text[from, to)}, with stops every {@code tabSize}. */
+  private static int indentColumns(String text, int from, int to, int tabSize) {
+    int columns = 0;
+    for (int i = from; i < to; i++) {
+      columns = text.charAt(i) == '\t' ? (columns / tabSize + 1) * tabSize : columns + 1;
+    }
+    return columns;
   }
 
   private static boolean isHorizontalSpace(String text, int from, int to) {
