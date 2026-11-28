@@ -113,9 +113,27 @@ class FormatTest {
         Format.OFFSET_DATE_TIME,
         OffsetDateTime.of(2026, 11, 13, 14, 30, 0, 0, ZoneOffset.ofHours(1)),
         "2026-11-13 14:30+01:00");
-    // The grid's checks take a time with an offset or without.
-    assertTrue(Format.ANY_TIME.parseText("14:30+01:00").valid());
-    assertTrue(Format.ANY_DATE_TIME.parseText("2026-11-13 14:30").valid());
+    // The grid's checks take a time with an offset in any spelling of Offset, or without.
+    for (String text : List.of("14:30", "14:30+01:00", "14:30+01", "14:30+05:30", "14:30z")) {
+      assertTrue(Format.ANY_TIME.parseText(text).valid(), text);
+    }
+    for (String text : List.of("14:30+", "14:30+25", "14:60+01", "14:30x")) {
+      assertFalse(Format.ANY_TIME.parseText(text).valid(), text);
+    }
+    for (String text : List.of(
+        "2026-11-13 14:30",
+        "2026-11-13 14:30:00+01",
+        "2026-11-13 14:30+00:00",
+        "2026-11-13T14:30+05:30",
+        "2026-11-13 14:30Z")) {
+      assertTrue(Format.ANY_DATE_TIME.parseText(text).valid(), text);
+    }
+    for (String text : List.of("2026-02-30 14:30+01", "2026-11-13 14:30+", "2026-11-13 14:30+25")) {
+      assertFalse(Format.ANY_DATE_TIME.parseText(text).valid(), text);
+    }
+    assertTrue(ValueInputs.above(
+        DataType.DATE_TIME, null, "2026-11-13 10:00:00+01", "2026-11-13 10:00:00+02"));
+    assertTrue(ValueInputs.above(DataType.TIME, null, "14:30+01", "14:30+02"));
   }
 
   @Test
