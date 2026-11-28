@@ -70,6 +70,12 @@ final class GridFind {
       return;
     }
     f.build = b;
+    if (b.o.findApp != f.app) {
+      // A slice queued on the previous App may never run if its window closed; drop it so the new
+      // App schedules the rest, keeping a running jump and the scan's progress.
+      f.gen++;
+      f.scheduled = false;
+    }
     f.app = b.o.findApp;
     f.texts = b.texts;
     if (!f.open) {

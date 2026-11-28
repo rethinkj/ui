@@ -1,0 +1,1 @@
+- `DataGrid.Find.refresh()` searches a grid's rows again after the app replaced their contents at the same count, leaving the focus where it is, and a grid's find no longer stops for good when its grid moves to another window.
