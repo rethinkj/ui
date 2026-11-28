@@ -4,6 +4,7 @@ import static com.rethinkj.ui.El.col;
 import static com.rethinkj.ui.El.el;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.rethinkj.ui.App;
@@ -296,6 +297,6 @@ class FilterListTest {
     String hovered = StructureTest.line(moved, " hovered");
     assertTrue(hovered.contains("role=option") && hovered.contains(" selected"), moved);
     assertFalse(StructureTest.line(moved, "#option-29 ").contains(" selected"), moved);
-    assertFalse("Item 29".equals(chosen[0]), moved);
+    assertNotEquals("Item 29", chosen[0], moved);
   }
 }
