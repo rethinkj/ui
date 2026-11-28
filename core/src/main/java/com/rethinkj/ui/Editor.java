@@ -941,7 +941,7 @@ final class Editor {
         if (!plain) {
           return false;
         }
-        delete(word ? wordStart() : previous(caret));
+        delete(word ? wordBackspace() : previous(caret));
         return true;
       }
       case "Delete" -> {
@@ -2111,6 +2111,18 @@ final class Editor {
   /** Where Ctrl+Left goes from the caret; to the start in a masked field, one word. */
   private int wordStart() {
     return wordStart(caret);
+  }
+
+  /** Where Ctrl+Backspace deletes to; code fields join a line start without taking the word before it. */
+  private int wordBackspace() {
+    if (multiline()
+        && el.isCodeWords()
+        && !masked()
+        && caret > 0
+        && text.charAt(caret - 1) == '\n') {
+      return previous(caret);
+    }
+    return wordStart();
   }
 
   private int wordStart(int at) {

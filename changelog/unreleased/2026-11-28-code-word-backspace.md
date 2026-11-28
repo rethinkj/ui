@@ -1,0 +1,1 @@
+- Fix Ctrl+Backspace in multi-line code fields: at column 1 it now deletes only the preceding line break, leaving the previous word intact.

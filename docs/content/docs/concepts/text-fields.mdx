@@ -49,7 +49,7 @@ To let two multi-line fields scroll together, give each a `ScrollState` and call
 | `maxLength(n)` | Maximum length in Unicode code points |
 | `masked()` | Password field (displays `•`) |
 | `placeholder(text, argb)` | Placeholder text shown when empty |
-| `codeWords()` | Treats letters, digits, `_`, and any extra characters from the highlighter (`Highlighter.wordCharacters()`, such as `$`) as word characters for Ctrl+Arrow and double-click |
+| `codeWords()` | Treats letters, digits, `_`, and any extra characters from the highlighter (`Highlighter.wordCharacters()`, such as `$`) as word characters for Ctrl+Arrow and double-click. In a multi-line code field, Ctrl+Backspace at the start of a line deletes only the preceding line break, leaving the previous word intact |
 | `highlight(key, highlighter)` | Syntax highlighting (colors, fonts, backgrounds, underlines) |
 | `decorate(decorator)`, `alsoDecorate(decorator)` | Multi-line only: adds line highlights, search matches, or error underlines (`alsoDecorate` layers on top of an existing decorator) |
 | `gutter(line -> cell)`, `gutter(cells, rail)` | Adds a left gutter (line numbers, markers) with an optional background rail |

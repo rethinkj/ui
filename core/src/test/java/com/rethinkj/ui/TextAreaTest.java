@@ -218,6 +218,41 @@ class TextAreaTest {
   }
 
   @Test
+  void codeWordsBackspaceAtLineStartDeletesOnlyTheNewline() {
+    App<Model> app = focused("one two\nthree", field -> field.codeWords());
+    key(app, "End", CONTROL);
+    key(app, "ArrowLeft", CONTROL);
+    key(app, "ArrowLeft", CONTROL);
+    assertEquals(
+        "one |two\nthree", show(app), "Ctrl+Left crosses the line to the previous word start");
+    key(app, "End", CONTROL);
+    key(app, "Home");
+    assertEquals("one two\n|three", show(app), "Home moves to line start after Ctrl+End");
+    key(app, "Backspace", CONTROL);
+    assertEquals("one two|three", show(app), "Ctrl+Backspace at column 1 deletes only the newline");
+    assertEquals("one twothree", app.state().value, "app string has no caret marker");
+    key(app, "Z", CONTROL);
+    assertEquals("one two\n|three", show(app), "undo restores newline without joining words");
+    key(app, "Y", CONTROL);
+    assertEquals("one two|three", show(app), "redo deletes the newline again");
+  }
+
+  @Test
+  void codeWordsBackspaceAtDocumentStartAndBlankLineBoundaries() {
+    App<Model> app = focused("first\n\n", field -> field.codeWords());
+    key(app, "Backspace", CONTROL);
+    assertEquals("|first\n\n", show(app), "Ctrl+Backspace at document start does nothing");
+    key(app, "End");
+    key(app, "ArrowRight");
+    key(app, "ArrowRight");
+    assertEquals("first\n\n|", show(app), "caret at end after two line feeds");
+    key(app, "Backspace", CONTROL);
+    assertEquals("first\n|", show(app), "Ctrl+Backspace over an empty line deletes its newline");
+    key(app, "Z", CONTROL);
+    assertEquals("first\n\n|", show(app), "undo restores the empty line");
+  }
+
+  @Test
   void wrappedLinesMoveByRows() {
     // 22 characters a row: "the quick brown fox ", "and jumps over the dog ", "and the lazy cat
     // today".
