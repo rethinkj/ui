@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.function.IntPredicate;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -302,6 +303,105 @@ class GridFindTest {
     assertTrue(GridFind.stepScan(find, find.build, expired));
     assertTrue(find.complete);
     assertEquals(rows / 16, find.matchCount);
+  }
+
+  @Test
+  void refreshRescansReplacedRowsWithoutMovingFocus() {
+    String[] values = {"Ada", "Grace", "Ada", "Linus"};
+    DataGrid.Selection selection = new DataGrid.Selection(DataGrid.Mode.CELLS);
+    DataGrid.Find find = new DataGrid.Find();
+    App<?>[] holder = new App<?>[1];
+    App<Void> app = new App<>(null, ignored -> {
+      List<DataGrid.Column> columns =
+          List.of(new DataGrid.Column("name", 140, DataGrid.DataType.TEXT, r -> values[r]));
+      DataGrid.Options options = DataGrid.options().select(selection).find(holder[0], find);
+      return col()
+          .wFull()
+          .hFull()
+          .child(dataGrid(columns, values.length, options).key("grid").grow(1));
+    });
+    holder[0] = app;
+    app.textRendering(TextRendering.LINUX);
+    app.resize(560, 220, 2);
+
+    app.frame();
+    find.query = "Ada";
+    find.open();
+    app.invalidate();
+    app.frame();
+    assertEquals("find-field", app.focused().key());
+    // Move focus off the find field so we can verify refresh() leaves focus untouched.
+    app.focus(findByKey(app.tree(), "grid"));
+    app.frame();
+    assertEquals("grid", app.focused().key());
+    assertEquals("1 of 2", count(app.tree().dump()));
+
+    // Replacing cell contents at the same row count leaves the cached count stale until refresh().
+    values[1] = "Ada";
+    values[3] = "Ada";
+    app.invalidate();
+    app.frame();
+    assertEquals("1 of 2", count(app.tree().dump()));
+
+    find.refresh();
+    app.invalidate();
+    app.frame();
+    assertEquals("1 of 4", count(app.tree().dump()));
+    assertEquals("grid", app.focused().key());
+  }
+
+  @Test
+  void scanContinuesAfterMovingToAnotherApp() {
+    int rows = 1_000_000;
+    int needleRow = 999_995;
+    DataGrid.Selection selection = new DataGrid.Selection(DataGrid.Mode.CELLS);
+    DataGrid.Find find = new DataGrid.Find();
+    Supplier<App<Void>> makeApp = () -> {
+      App<?>[] holder = new App<?>[1];
+      App<Void> created = new App<>(null, ignored -> {
+        List<DataGrid.Column> columns = List.of(
+            new DataGrid.Column("id", 90, DataGrid.DataType.INTEGER, r -> String.valueOf(r + 1)),
+            new DataGrid.Column(
+                "name",
+                180,
+                DataGrid.DataType.TEXT,
+                r -> r == needleRow ? "UniqueNeedle" : "Grace " + r));
+        DataGrid.Options options = DataGrid.options().select(selection).find(holder[0], find);
+        return col()
+            .wFull()
+            .hFull()
+            .child(dataGrid(columns, rows, options).key("big").grow(1));
+      });
+      holder[0] = created;
+      created.textRendering(TextRendering.LINUX);
+      created.resize(560, 220, 2);
+      return created;
+    };
+
+    App<Void> appA = makeApp.get();
+    find.open = true;
+    find.query = "UniqueNeedle";
+    appA.frame();
+    find.next();
+    assertFalse(find.complete, "first slice on A should leave work pending");
+    assertTrue(find.scheduled);
+    assertNotNull(find.jump, "jump across a million rows spans slices");
+    int scannedOnA = find.scanRow;
+
+    // Move the grid (and its Find state) to a second App without ever running A's pending callback.
+    App<Void> appB = makeApp.get();
+    appB.frame();
+    assertTrue(find.scanRow >= scannedOnA, "moving to B preserves scan progress");
+    assertNotNull(find.jump, "moving to B preserves a running jump");
+
+    int frames = 0;
+    while ((find.jump != null || !find.complete) && frames < 2000) {
+      appB.frame();
+      frames++;
+    }
+    assertTrue(find.complete, "scan finished on B");
+    assertEquals(needleRow, selection.row(), "jump finished on B");
+    assertEquals("1 of 1", count(appB.tree().dump()));
   }
 
   private static String line(String dump, String key) {

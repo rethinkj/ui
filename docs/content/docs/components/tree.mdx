@@ -46,7 +46,8 @@ Right-clicking selects the row before opening a `Menu.contextMenu(tree, menuStat
 | `meta(node)` | Optional passive, non-shrinking element right after the label, e.g., a badge (`null` by default) |
 | `detail(node)` | Optional muted trailing text such as type or row count (`null` by default) |
 | `trailing(node)` | Optional non-shrinking element aligned to the row's right edge, e.g., a tracking branch or count (`null` by default) |
-| `muted(node)` | Renders label in muted color, e.g., for system schemas (`false` by default) |
+| `muted(node)` | Renders label in muted color, e.g., for system schemas or ignored files (`false` by default) |
+| `tone(node)` | Optional label color tone from `Tree.Tone` (`ACCENT`, `SUCCESS`, `WARNING`, `DANGER`); wins over `muted` (`null` by default) |
 | `key(node)` | Optional stable unique row key (no spaces/quotes, not digits-only) |
 
 ## Loading and error rows
@@ -82,6 +83,15 @@ Override `meta(node)` to place a passive, non-shrinking element immediately afte
 ```
 
 <Shot src="kit/tree-{theme}-slots" alt="A branches tree with inline status badges in meta, a right-aligned tracking branch label, count badges, and a long branch name truncated with an ellipsis while its dirty badge and origin/feat label stay whole" />
+
+## Label tones
+
+Override `tone(node)` to color a row's label using the theme's semantic tokens (`Tree.Tone.ACCENT`, `SUCCESS`, `WARNING`, `DANGER`)—for example, VCS file status in a file explorer (modified `ACCENT`, added `SUCCESS`, untracked or conflicted `DANGER`, with ignored files using `muted(node)`). Only the label text changes color; icons, details, `meta`, `trailing`, selection bars, and hover fills stay as they are. A non-null tone wins over `muted(node)`, while a dragged (`grabbed`) row stays muted.
+
+```java snippet="tree-tone"
+```
+
+<Shot src="kit/tree-{theme}-tones" alt="A files tree with colored labels by VCS status: src and selected App.java in accent blue, Tree.java in success green, Config.java in warning amber, Draft.java and Merge.java (with conflict detail) in danger red, README.md in normal text, and target in muted text" />
 
 ## Drag and drop
 
@@ -127,7 +137,7 @@ Use `at bottom-2` to aim below a row, following the rules above. On the last row
 
 ## In a tree dump
 
-`role=tree` containing `role=treeitem` rows (`#row-<index>` or `#row-<key>`, `expanded` / `expanded=false`, `level`, `pos`, `selected`, `value="<detail>"`, with any `meta` and `trailing` elements as children) and chevrons (`#mark-<index>` or `#mark-<key>`). While you drag a node, its row is marked `grabbed`, and the drop line or outline appears as `#marker` inside a row:
+`role=tree` containing `role=treeitem` rows (`#row-<index>` or `#row-<key>`, `expanded` / `expanded=false`, `level`, `pos`, `selected`, `value="<detail>"`, `tone=<tone>`, with any `meta` and `trailing` elements as children) and chevrons (`#mark-<index>` or `#mark-<key>`). While you drag a node, its row is marked `grabbed`, and the drop line or outline appears as `#marker` inside a row:
 
 ```text file="examples/src/test/resources/golden/docs/tree/selected.tree.txt" start="#schema" count="16"
 ```
