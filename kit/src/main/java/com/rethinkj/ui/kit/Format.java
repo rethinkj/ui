@@ -94,21 +94,24 @@ public final class Format<T> {
       Pattern.compile("[-+]?\\d*(?:\\.\\d*)?([eE][-+]?\\d*)?");
   private static final DateTimeFormatter ISO_DATE =
       DateTimeFormatter.ISO_LOCAL_DATE.withResolverStyle(ResolverStyle.STRICT);
-  private static final DateTimeFormatter ISO_TIME =
-      DateTimeFormatter.ISO_TIME.withResolverStyle(ResolverStyle.STRICT);
   private static final DateTimeFormatter ISO_LOCAL_TIME =
       DateTimeFormatter.ISO_LOCAL_TIME.withResolverStyle(ResolverStyle.STRICT);
+  // A time with an offset in any of the spellings of Offset (Z, +00:00, +00) or without.
+  private static final DateTimeFormatter ISO_TIME_ANY_OFFSET = new DateTimeFormatterBuilder()
+      .parseCaseInsensitive()
+      .append(DateTimeFormatter.ISO_LOCAL_TIME)
+      .optionalStart()
+      .parseLenient()
+      .appendOffset("+HH:MM:ss", "Z")
+      .toFormatter(Locale.ROOT)
+      .withResolverStyle(ResolverStyle.STRICT);
   // A date, one T (in either case) or one space, and a time with an offset or without:
   // 2026-11-13 14:30.
   private static final Function<String, TemporalAccessor> ISO_DATE_TIME =
       dateTimeParser(DateTimeFormatter.ISO_TIME);
   // The same with an offset in any of the spellings of Offset: Z, +00:00, +00.
   private static final Function<String, TemporalAccessor> ISO_DATE_TIME_ANY_OFFSET =
-      dateTimeParser(new DateTimeFormatterBuilder()
-          .append(DateTimeFormatter.ISO_LOCAL_TIME)
-          .parseLenient()
-          .appendOffset("+HH:MM:ss", "Z")
-          .toFormatter(Locale.ROOT));
+      dateTimeParser(ISO_TIME_ANY_OFFSET);
 
   // A number, then a unit: b, kb or kib and so on, in any case.
   private static final Pattern BYTES_TEXT = Pattern.compile(
@@ -409,9 +412,13 @@ public final class Format<T> {
 
   // The grid's checks of TIME and DATE_TIME columns, which take a time with an offset or without.
   static final Format<TemporalAccessor> ANY_TIME =
-      temporal(Object::toString, ISO_TIME, t -> t, Texts::expectedTime, DataType.TIME);
+      temporal(Object::toString, ISO_TIME_ANY_OFFSET, t -> t, Texts::expectedTime, DataType.TIME);
   static final Format<TemporalAccessor> ANY_DATE_TIME = temporal(
-      Object::toString, ISO_DATE_TIME, t -> t, Texts::expectedDateTime, DataType.DATE_TIME);
+      Object::toString,
+      ISO_DATE_TIME_ANY_OFFSET,
+      t -> t,
+      Texts::expectedDateTime,
+      DataType.DATE_TIME);
 
   private final Function<? super T, String> text;
   private final Function<String, Parsed<T>> parse; // of a text that is not empty

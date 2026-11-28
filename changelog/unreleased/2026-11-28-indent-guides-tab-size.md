@@ -1,0 +1,1 @@
+- `CodeEditor` indent guides and rendered doc comment indentation now follow the field's `El.tabSize` instead of a fixed width of 4 columns.

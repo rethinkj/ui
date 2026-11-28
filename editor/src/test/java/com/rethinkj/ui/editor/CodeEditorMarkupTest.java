@@ -931,6 +931,32 @@ class CodeEditorMarkupTest {
     assertTrue(undone.contains("\"looks good\""), undone);
   }
 
+  @Test
+  void indentGuidesFollowTabSize() throws IOException {
+    TextLibraries.assumeLoaded();
+    Theme theme = Theme.DARK;
+    Doc doc = new Doc("if (a) {\n  if (b) {\n    x();\n  }\n}");
+    App<Doc> app = new App<>(
+        doc,
+        state -> col()
+            .wFull()
+            .hFull()
+            .padding(12)
+            .fill(theme.surface().window())
+            .child(
+                codeEditor(state.app, state.text, state.editor, null, value -> state.text = value)
+                    .key("code")
+                    .lines(5)
+                    .wFull()
+                    .tabSize(2)));
+    doc.app = app;
+    app.provide(Theme.CURRENT, state -> theme);
+    app.textRendering(TextRendering.LINUX);
+
+    List<Path> files = Script.run("size 320 140 scale 2\nframe\nsnap view", app, out);
+    Golden.assertSnaps("indent-guides-tab-size-dark-2x-", files, "view");
+  }
+
   /** The x coordinate of the block element with key {@code key} in {@code tree}. */
   private static int blockX(String tree, String key) {
     String line = tree.lines()
