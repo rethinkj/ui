@@ -158,6 +158,7 @@ public final class Button {
   /** What a button is beyond its variant, text and handler; {@link #options()} is a plain one. */
   public static final class Options {
     private Icon icon;
+    private El mark;
     private String subtitle;
     private Subtitle subtitleLayout = Subtitle.INLINE;
     private State state = State.READY;
@@ -181,6 +182,16 @@ public final class Button {
      */
     public Options icon(Icon icon) {
       this.icon = icon;
+      return this;
+    }
+
+    /**
+     * An element shown before the text in place of an icon, such as a square {@link Avatar}; null
+     * for none. Takes precedence over {@link #icon(Icon)} when both are set. Not for {@link
+     * #icon(Variant, Icon, String, Runnable, Options)}, which shows no text.
+     */
+    public Options mark(El mark) {
+      this.mark = mark;
       return this;
     }
 
@@ -292,6 +303,7 @@ public final class Button {
     Options copy() {
       Options copy = new Options();
       copy.icon = icon;
+      copy.mark = mark;
       copy.subtitle = subtitle;
       copy.subtitleLayout = subtitleLayout;
       copy.state = state;
@@ -363,7 +375,7 @@ public final class Button {
    *
    * @param text what the button says, also its label (joined with its subtitle, if any)
    * @param onPress runs when the button is pressed; null disables the button unless it is busy
-   * @param options its icon, subtitle, state, busy text, progress, tone, size and shortcut
+   * @param options its icon or mark, subtitle, state, busy text, progress, tone, size and shortcut
    */
   public static El button(Variant variant, String text, Runnable onPress, Options options) {
     Theme theme = Theme.CURRENT.get();
@@ -392,12 +404,15 @@ public final class Button {
           .minSize(0, 0)
           .children(label, plainContent(theme, text, options).w(0).opacity(0));
     }
-    // The spinner stands in the icon's place.
+    boolean hasLeading = options.mark != null || options.icon != null;
+    // The spinner stands in the icon's or mark's place.
     El lead = busy
         ? spinner(theme, variant, look, options.progress)
-        : options.icon == null
-            ? null
-            : icon(theme, variant, options.tone, state, look, options.icon);
+        : options.mark != null
+            ? options.mark.shrink(0)
+            : options.icon == null
+                ? null
+                : icon(theme, variant, options.tone, state, look, options.icon);
     if (options.busyText != null) {
       El now = row().gap(theme.space().s()).center().minSize(0, 0);
       if (lead != null) {
@@ -408,13 +423,15 @@ public final class Button {
       El other = row().gap(theme.space().s()).h(0).opacity(0).minSize(0, 0);
       if (!busy) {
         other.child(el().w(theme.size().icon()).shrink(0)); // the spinner's room
+      } else if (options.mark != null) {
+        other.child(options.mark.shrink(0));
       } else if (options.icon != null) {
         other.child(icon(theme, variant, options.tone, state, look, options.icon));
       }
       // Without an ellipsis: cut short by a narrow view, it would show the tooltip of a cut text.
       other.child(busy ? plainContent(theme, text, options) : text(theme, options.busyText));
       button.child(col().minSize(0, 0).child(now.child(label)).child(other));
-    } else if (busy && options.icon == null) {
+    } else if (busy && !hasLeading) {
       // Over the middle of the text, which keeps its place unseen: the width stays. Out of the
       // flow and without a place of its own, it lies where the button centers its content,
       // whatever size the view gives the button.
@@ -457,7 +474,7 @@ public final class Button {
    * @param label what the button does, such as "Add connection"
    * @param onPress runs when the button is pressed; null disables the button unless it is busy
    * @param options its state, progress, tone, size and shortcut; no icon, which is {@code
-   *     icon}, and no subtitle; a busy text does not show
+   *     icon}, no mark and no subtitle; a busy text does not show
    */
   public static El icon(
       Variant variant, Icon icon, String label, Runnable onPress, Options options) {
@@ -465,6 +482,9 @@ public final class Button {
     if (options.icon != null) {
       throw new IllegalArgumentException(
           "an icon button's icon is its parameter, not an option: " + options.icon);
+    }
+    if (options.mark != null) {
+      throw new IllegalArgumentException("an icon button shows an icon alone and takes no mark");
     }
     if (options.hasSubtitle()) {
       throw new IllegalArgumentException(
@@ -786,8 +806,8 @@ public final class Button {
    * ({@link State#DISABLED}), both halves are off and there is no menu: one that was open closes.
    * The tone and the size apply to both halves, the shortcut to the main one.
    *
-   * @param options the main half's icon, subtitle, state, busy text, progress and shortcut, the
-   *     tone and size of both, and where the menu opens
+   * @param options the main half's icon or mark, subtitle, state, busy text, progress and shortcut,
+   *     the tone and size of both, and where the menu opens
    */
   public static El split(
       Variant variant,
@@ -857,8 +877,8 @@ public final class Button {
    * A menu button with its options. Busy or off, it opens nothing, and a menu that was open
    * closes.
    *
-   * @param options its icon, subtitle, state, busy text, progress, tone, size, shortcut and where
-   *     the menu opens
+   * @param options its icon or mark, subtitle, state, busy text, progress, tone, size, shortcut and
+   *     where the menu opens
    */
   public static El menu(
       Variant variant, String text, Menu.State state, List<Menu.Item> items, Options options) {

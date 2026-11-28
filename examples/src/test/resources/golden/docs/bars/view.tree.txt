@@ -6,14 +6,13 @@ el 0,0 720x160
           el 9,13 14x14
             text "\u{F0D7}" 11,15 10x10
       text "Workbench" 32,12 71x16
-      el 103,20 79x0
-      el role=button label="Search commands" 182,8 258x24
-        text label="search" "\u{EA7C}" 191,12 16x16
-        text "Search commands" 215,12 114x16
-        el 337,8 94x24
-          el 337,8 0x24
-          text "Ctrl+Shift+P" 361,13 70x15
-      el 440,20 78x0
+      el 103,0 415x40
+        el role=button label="Search commands" 182,8 258x24
+          text label="search" "\u{EA7C}" 191,12 16x16
+          text "Search commands" 215,12 114x16
+          el 337,8 94x24
+            el 337,8 0x24
+            text "Ctrl+Shift+P" 361,13 70x15
     el 518,20 24x0
     el 542,0 40x40
       el 542,8 24x24

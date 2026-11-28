@@ -68,6 +68,7 @@ class DocsExamplesTest {
       Map.entry("meter-usage", List.of("view")),
       Map.entry("bars", List.of("view")),
       Map.entry("title-bar-glow", List.of("view")),
+      Map.entry("title-bar-compact", List.of("view")),
       Map.entry("title-bar-rail", List.of("view")),
       Map.entry("title-bar-wash", List.of("view")),
       Map.entry("cards-window", List.of("view")),
@@ -209,6 +210,7 @@ class DocsExamplesTest {
     layouts(all, "meter-usage", state -> Layouts.meterUsage(), 720, 371);
     layouts(all, "bars", Layouts::bars, 720, 160);
     layouts(all, "title-bar-glow", Layouts::titleBarGlow, 640, 200);
+    layouts(all, "title-bar-compact", Layouts::titleBarCompact, 880, 200);
     layouts(all, "title-bar-rail", Layouts::titleBarRail, 640, 240);
     layouts(all, "title-bar-wash", Layouts::titleBarWash, 640, 240);
     layouts(all, "details", Layouts::details, 520, 280);

@@ -36,6 +36,7 @@ Here `state.running` and `state.pinned` are booleans, `state.runs` is a counter,
 | Option | Description |
 | --- | --- |
 | `icon(icon)` | Shows an icon before the text (not used with `Button.icon`, which takes the icon directly) |
+| `mark(element)` | Shows a custom element before the text in place of an icon, such as a square [Avatar](/docs/components/avatar). Takes precedence over `icon` when both are set; not for `Button.icon` |
 | `subtitle(text)`, `subtitle(text, layout)` | Secondary text after the title (`Subtitle.INLINE`, default) in muted color (the title's color on `PRIMARY`) keeping the button's height, or smaller below it (`Subtitle.STACKED`) growing the button to fit both lines. Included in the tree-dump label and tooltips; cuts before the title in a narrow view. Not for `Button.icon` |
 | `state(READY)` | Normal clickable state (default) |
 | `state(BUSY)` | Shows a spinner while an action runs. Ignores clicks, Enter, and Space, keeps its width and focus, and works even with a `null` handler |

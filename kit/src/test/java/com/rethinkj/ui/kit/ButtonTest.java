@@ -507,6 +507,47 @@ class ButtonTest {
         "shortcut tooltip shows title and subtitle: " + app.tree().dump());
   }
 
+  @Test
+  void aMarkReplacesTheIconBeforeTheTextAndYieldsToTheSpinnerWhenBusy() throws IOException {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> Button.icon(
+            GHOST,
+            Symbol.ADD,
+            "Add",
+            () -> {},
+            Button.options().mark(Avatar.avatar("Shop", null, T.size().icon()))));
+
+    App<Clicks> app = app(c -> row()
+        .gap(4)
+        .children(
+            button(
+                    GHOST,
+                    "hooricode",
+                    c::press,
+                    Button.options()
+                        .icon(Symbol.FOLDER)
+                        .mark(Avatar.avatar("hooricode", null, T.size().icon())
+                            .radius(T.radius().small())))
+                .key("marked"),
+            button(
+                    GHOST,
+                    "hooricode",
+                    c::press,
+                    Button.options()
+                        .mark(Avatar.avatar("hooricode", null, T.size().icon()))
+                        .state(Button.State.BUSY))
+                .key("busy")));
+    run(app, "press #marked");
+    assertEquals(1, app.state().presses);
+    String dump = app.tree().dump();
+    assertTrue(dump.contains("role=img label=\"hooricode\""), "mark shows before text: " + dump);
+    assertFalse(dump.contains("label=\"folder\""), "mark takes precedence over icon: " + dump);
+    El busy = find(app, "busy");
+    assertEquals(
+        "progressbar", busy.children().getFirst().role(), "spinner replaces mark when busy");
+  }
+
   private static Button.Options danger() {
     return Button.options().tone(Button.Tone.DANGER);
   }

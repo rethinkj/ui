@@ -15,14 +15,13 @@ el 0,0 1000x600
           text "View" 195,12 30x16
         el #title-3 role=menuitem label="Query" 233,8 54x24 expanded=false
           text "Query" 241,12 38x16
-      el 287,20 126x0
-      el role=button label="Search commands" 413,8 258x24
-        text label="search" "\u{EA7C}" 422,12 16x16
-        text "Search commands" 446,12 115x16
-        el 569,8 93x24
-          el 569,8 0x24
-          text "Ctrl+Shift+P" 593,13 69x15
-      el 671,20 127x0
+      el 287,0 511x40
+        el role=button label="Search commands" 413,8 258x24
+          text label="search" "\u{EA7C}" 422,12 16x16
+          text "Search commands" 446,12 115x16
+          el 569,8 93x24
+            el 569,8 0x24
+            text "Ctrl+Shift+P" 593,13 69x15
     el 798,20 24x0
     el 822,0 40x40
       el 822,8 24x24

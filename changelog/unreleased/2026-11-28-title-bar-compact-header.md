@@ -1,0 +1,1 @@
+- `TitleBar.titleBar` takes a `null` or blank title for a compact header that starts with the app's own controls, such as project and branch switchers: they sit closer together and shorten their text in a narrow window after the middle gives way. `Button.options().mark(element)` shows an element, such as a square `Avatar`, before a button's text in place of an icon.
