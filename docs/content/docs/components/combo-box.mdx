@@ -6,7 +6,7 @@ description: Searchable dropdown with fuzzy filtering, free-text suggestions, an
 `ComboBox.comboBox` shows the current choice and a chevron when closed, and opens a searchable dropdown with fuzzy filtering when clicked or typed into. It looks like a [Select](/docs/components/select) in every state, also while you type into it, so the two sit side by side in a form or a toolbar. Use it when there are many choices or when users know the name they want.
 
 - `ComboBox.free` is an editable text field with autocomplete suggestions (any typed text is accepted).
-- `ComboBox.items` displays choices with icons, images, custom leading elements, and secondary detail text.
+- `ComboBox.items` displays choices with icons, images, custom leading elements, secondary detail text, and per-item fonts.
 
 Javadoc: [`ComboBox`](/api/com/rethinkj/ui/kit/ComboBox.html), [`ComboBox.State`](/api/com/rethinkj/ui/kit/ComboBox.State.html).
 
@@ -27,7 +27,7 @@ Store a `ComboBox.State` in your app state for each combo box. Call `comboBoxSta
 | `comboBox(choices, selected, comboBoxState, onSelect)` | Pick one option by index |
 | `comboBox(entries, current, comboBoxState, onClear)` | Choices from a `FilterList.Entries` (fixed, on demand, or background) with groups, disabled entries, and an optional clear button |
 | `free(value, suggestions, comboBoxState, onChange)` | Free-text input with optional suggestion list |
-| `items(items, selected, comboBoxState, onSelect)` | Rich items built with `ComboBox.item(text).icon(symbol)`, `.image(image)`, `.leading(...)`, `.detail(text)` |
+| `items(items, selected, comboBoxState, onSelect)` | Rich items built with `ComboBox.item(text).icon(symbol)`, `.image(image)`, `.leading(...)`, `.detail(text)`, `.font(supplier)` (loaded lazily for visible rows and the closed box, with fallback to the theme's body font) |
 
 Passing a `null` `onSelect` or `onChange` (or `null` entries) disables the combo box; a `null` `onClear` only leaves out the clear button. Reuse the same choices list when unchanged so filter results stay cached.
 

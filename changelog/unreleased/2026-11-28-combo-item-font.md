@@ -1,0 +1,1 @@
+- `ComboBox.Item.font(...)` and `FilterList.Entry.font(...)` draw an item's text in a font of its own, as a font picker shows each family in its typeface. The font is built only for the rows that show and the closed box's choice, characters it lacks fall back to the theme's font, and typed matches are marked behind the text.
