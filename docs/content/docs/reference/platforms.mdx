@@ -19,7 +19,7 @@ All native libraries are packaged into one JAR per platform and load on first us
 | SDL | 3.4.20 | Windows, input, clipboard, and file dialogs |
 | wgpu-native | 29.0.1.1 | GPU rendering |
 | FreeType | 2.15.0 | Glyph rasterization (with static libpng 1.6.59 and zlib 1.4 for PNG bitmaps in CBDT color emoji fonts) |
-| HarfBuzz | 15.1.0 | Text shaping |
+| HarfBuzz | 15.2.0 | Text shaping |
 | DirectX Shader Compiler | 1.9.2609 | Fast shader compilation on Direct3D 12 (Windows only) |
 
 On Windows, the DirectX Shader Compiler (`dxcompiler.dll`, LLVM Release License) speeds up initial shader compilation and adds about 10 MB to the Windows JAR. If you ship pre-extracted natives via `rethinkj.ui.natives.dir` and omit `dxcompiler.dll` from `manifest.txt`, Windows falls back to its built-in FXC compiler. Third-party license files are included in each natives JAR under `META-INF/rethinkj-ui/natives/<platform>/licenses/`.
