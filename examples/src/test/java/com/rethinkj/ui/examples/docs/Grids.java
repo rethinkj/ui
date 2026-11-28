@@ -716,6 +716,46 @@ final class Grids {
   }
   // docs:end tree-failure
 
+  /** What a model overrides to add an inline meta badge and a right-aligned trailing element. */
+  static Tree.Model<Node> modelWithSlots() {
+    Tree.Model<Node> base = model();
+    return new Tree.Model<>() {
+      @Override
+      public List<Node> roots() {
+        return base.roots();
+      }
+
+      @Override
+      public Tree.Children<Node> children(Node node) {
+        return base.children(node);
+      }
+
+      @Override
+      public boolean isLeaf(Node node) {
+        return base.isLeaf(node);
+      }
+
+      @Override
+      public String label(Node node) {
+        return base.label(node);
+      }
+
+      // docs:start tree-slots
+      @Override
+      public El meta(Node node) { // right after the label, passive and non-shrinking
+        return node.name().equals("public") ? Badge.badge(Badge.Kind.ACCENT, "default") : null;
+      }
+
+      @Override
+      public El trailing(Node node) { // at the row's right edge, non-shrinking
+        return node.children() == null
+            ? null
+            : Badge.badge(String.valueOf(node.children().size()));
+      }
+      // docs:end tree-slots
+    };
+  }
+
   // docs:start tree-handlers
   void selected(Node value) {
     selected = value;

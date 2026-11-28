@@ -43,7 +43,9 @@ Right-clicking selects the row before opening a `Menu.contextMenu(tree, menuStat
 | `isLeaf(node)` | Returns `true` for leaf nodes (hides expand chevron) |
 | `label(node)` | Row label text |
 | `icon(node)` | Optional leading element/icon (`null` by default) |
+| `meta(node)` | Optional passive, non-shrinking element right after the label, e.g., a badge (`null` by default) |
 | `detail(node)` | Optional muted trailing text such as type or row count (`null` by default) |
+| `trailing(node)` | Optional non-shrinking element aligned to the row's right edge, e.g., a tracking branch or count (`null` by default) |
 | `muted(node)` | Renders label in muted color, e.g., for system schemas (`false` by default) |
 | `key(node)` | Optional stable unique row key (no spaces/quotes, not digits-only) |
 
@@ -71,6 +73,15 @@ In narrow containers, trailing `detail` text truncates first (then hides), follo
 <Shot src="kit/tree-{theme}-long" alt="A narrow schema tree with a table name that ends in an ellipsis, and below it a tooltip with the whole name" />
 
 Each nesting level indents a row further, up to half the row width. Deeper rows stay at that maximum indent so their chevrons and labels remain visible at any depth. In a tree dump, `level` still reports the real depth.
+
+## Meta and trailing slots
+
+Override `meta(node)` to place a passive, non-shrinking element immediately after the label (such as a [Badge](/docs/components/badge) or status indicator), and `trailing(node)` to align a non-shrinking element to the row's right edge (such as a tracking branch label, count badge, or submenu chevron). Both are asked only for rows that are built. When a row is narrow, `detail` gives way first and then the label truncates with an ellipsis (with its full-text tooltip) before `meta` or `trailing` are clipped.
+
+```java snippet="tree-slots"
+```
+
+<Shot src="kit/tree-{theme}-slots" alt="A branches tree with inline status badges in meta, a right-aligned tracking branch label, count badges, and a long branch name truncated with an ellipsis while its dirty badge and origin/feat label stay whole" />
 
 ## Drag and drop
 
@@ -116,7 +127,7 @@ Use `at bottom-2` to aim below a row, following the rules above. On the last row
 
 ## In a tree dump
 
-`role=tree` containing `role=treeitem` rows (`#row-<index>` or `#row-<key>`, `expanded` / `expanded=false`, `level`, `pos`, `selected`, `value="<detail>"`) and chevrons (`#mark-<index>` or `#mark-<key>`). While you drag a node, its row is marked `grabbed`, and the drop line or outline appears as `#marker` inside a row:
+`role=tree` containing `role=treeitem` rows (`#row-<index>` or `#row-<key>`, `expanded` / `expanded=false`, `level`, `pos`, `selected`, `value="<detail>"`, with any `meta` and `trailing` elements as children) and chevrons (`#mark-<index>` or `#mark-<key>`). While you drag a node, its row is marked `grabbed`, and the drop line or outline appears as `#marker` inside a row:
 
 ```text file="examples/src/test/resources/golden/docs/tree/selected.tree.txt" start="#schema" count="16"
 ```

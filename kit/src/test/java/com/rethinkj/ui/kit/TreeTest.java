@@ -15,6 +15,7 @@ import com.rethinkj.ui.Key;
 import com.rethinkj.ui.Script;
 import com.rethinkj.ui.kit.Button.Variant;
 import com.rethinkj.ui.kit.Catalog.Node;
+import com.rethinkj.ui.text.TextRendering;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -674,6 +675,205 @@ class TreeTest {
     run(app, "leave\nframe\nmove #row-2\nframe\nadvance 1\nframe");
     assertFalse(textOf(find(app, "row-2"), "deep").text().shortened());
     assertFalse(app.tree().dump().contains("role=tooltip"), app.tree().dump());
+  }
+
+  // Meta and trailing slots
+
+  @ParameterizedTest
+  @ValueSource(strings = {"dark", "light"})
+  void metaAndTrailingKeepTheirWidthWhileALongLabelShortens(String name) throws IOException {
+    Theme theme = name.equals("dark") ? Theme.DARK : Theme.LIGHT;
+    String longBranch = "feat/support-rich-row-slots-in-tree-model";
+    String[] selected = {"main"};
+    Tree.Model<String> model = new Tree.Model<>() {
+      @Override
+      public List<String> roots() {
+        return List.of("branches", "tags");
+      }
+
+      @Override
+      public Tree.Children<String> children(String node) {
+        return node.equals("branches")
+            ? Tree.ready(List.of("main", "release", "feat"))
+            : Tree.ready(List.of());
+      }
+
+      @Override
+      public boolean isLeaf(String node) {
+        return !node.equals("branches") && !node.equals("tags");
+      }
+
+      @Override
+      public String label(String node) {
+        return switch (node) {
+          case "branches" -> "Branches";
+          case "tags" -> "Tags";
+          case "release" -> "release/v2";
+          case "feat" -> longBranch;
+          default -> node;
+        };
+      }
+
+      @Override
+      public El icon(String node) {
+        Symbol symbol = switch (node) {
+          case "branches" -> Symbol.FOLDER;
+          case "tags" -> Symbol.TAG;
+          default -> Symbol.BRANCH;
+        };
+        return Icon.icon(symbol, Icon.Variant.MUTED);
+      }
+
+      @Override
+      public El meta(String node) {
+        return switch (node) {
+          case "main" -> Badge.badge(Badge.Kind.ACCENT, "current");
+          case "release" -> Badge.badge(Badge.Kind.SUCCESS, "+2");
+          case "feat" -> Badge.badge(Badge.Kind.WARNING, "dirty");
+          default -> null;
+        };
+      }
+
+      @Override
+      public String detail(String node) {
+        return node.equals("release") ? "3 commits" : null;
+      }
+
+      @Override
+      public El trailing(String node) {
+        return switch (node) {
+          case "branches" -> Badge.badge("3");
+          case "tags" -> Badge.badge("12");
+          case "main" -> Label.label(Label.Variant.MUTED, "origin/main");
+          case "release" -> Icon.icon(Symbol.CHEVRON_RIGHT, Icon.Variant.MUTED);
+          case "feat" -> Label.label(Label.Variant.MUTED, "origin/feat");
+          default -> null;
+        };
+      }
+
+      @Override
+      public String key(String node) {
+        return node;
+      }
+    };
+    App<String[]> app = new App<>(
+            selected,
+            s -> col()
+                .wFull()
+                .hFull()
+                .padding(theme.space().m())
+                .fill(theme.surface().panel())
+                .child(Tree.tree(
+                        model,
+                        new Tree.Options<String>()
+                            .open("branches"::equals, null)
+                            .select(s[0], n -> s[0] = n))
+                    .key("branches")
+                    .label("Branches")
+                    .grow(1)))
+        .provide(Theme.CURRENT, s -> theme);
+    app.textRendering(TextRendering.LINUX);
+
+    List<Path> files =
+        Script.run("size 280 144 scale 2\nframe\nsnap slots\n", app, out.resolve("slots-" + name));
+    Golden.assertSnaps("tree-" + name + "-", files, "slots");
+
+    String dump = app.tree().dump();
+    // The row's padding, or the scrollbar's strip where that is wider.
+    float padRight = Math.max(theme.space().s(), theme.scrollbars().strip());
+
+    // Short label: meta sits immediately after label; trailing sits at the right edge.
+    float[] mainRow = StructureTest.rect(StructureTest.line(dump, "#row-main "));
+    float[] mainLabel = StructureTest.rect(StructureTest.line(dump, "text \"main\""));
+    float[] mainMeta = StructureTest.rect(StructureTest.line(dump, "el label=\"current\""));
+    float[] mainTrailing = StructureTest.rect(StructureTest.line(dump, "text \"origin/main\""));
+    assertFalse(textOf(find(app, "row-main"), "main").text().shortened());
+    assertFalse(textOf(find(app, "row-main"), "current").text().shortened());
+    assertFalse(textOf(find(app, "row-main"), "origin/main").text().shortened());
+    assertEquals(mainLabel[0] + mainLabel[2] + theme.space().s(), mainMeta[0], 0.5f, dump);
+    assertEquals(
+        mainRow[0] + mainRow[2] - padRight,
+        mainTrailing[0] + mainTrailing[2],
+        0.5f,
+        "trailing aligned to the right edge:\n" + dump);
+
+    // Long label: truncates with ellipsis while meta and trailing keep full width and positions.
+    float[] featRow = StructureTest.rect(StructureTest.line(dump, "#row-feat "));
+    float[] featLabel = StructureTest.rect(StructureTest.line(dump, "text \"" + longBranch + "\""));
+    float[] featMeta = StructureTest.rect(StructureTest.line(dump, "el label=\"dirty\""));
+    float[] featTrailing = StructureTest.rect(StructureTest.line(dump, "text \"origin/feat\""));
+    assertTrue(textOf(find(app, "row-feat"), longBranch).text().shortened(), dump);
+    assertFalse(textOf(find(app, "row-feat"), "dirty").text().shortened(), dump);
+    assertFalse(textOf(find(app, "row-feat"), "origin/feat").text().shortened(), dump);
+    assertEquals(featLabel[0] + featLabel[2] + theme.space().s(), featMeta[0], 0.5f, dump);
+    assertEquals(
+        featRow[0] + featRow[2] - padRight,
+        featTrailing[0] + featTrailing[2],
+        0.5f,
+        "trailing aligned to the right edge on a long row:\n" + dump);
+
+    // Meta + detail + trailing: in reading order, detail carries row value, trailing at right edge.
+    float[] releaseRow = StructureTest.rect(StructureTest.line(dump, "#row-release "));
+    float[] releaseMeta = StructureTest.rect(StructureTest.line(dump, "el label=\"+2\""));
+    float[] releaseDetail = StructureTest.rect(StructureTest.line(dump, "text \"3 commits\""));
+    El releaseEl = find(app, "row-release");
+    assertTrue(dumpLine(app, "row-release").contains("value=\"3 commits\""), dump);
+    assertFalse(textOf(releaseEl, "+2").text().shortened());
+    assertFalse(textOf(releaseEl, "3 commits").text().shortened());
+    assertEquals(releaseMeta[0] + releaseMeta[2] + theme.space().s(), releaseDetail[0], 0.5f, dump);
+    El releaseChevron = releaseEl.children().getLast();
+    assertEquals(
+        releaseRow[2] - padRight,
+        releaseChevron.x() + releaseChevron.width(),
+        0.5f,
+        "trailing chevron aligned to the right edge:\n" + dump);
+
+    // Pressing the passive meta selects its row.
+    float mx = featMeta[0] + featMeta[2] / 2;
+    float my = featMeta[1] + featMeta[3] / 2;
+    Script.run(
+        "size 280 144\npress " + mx + "," + my + "\nframe\n", app, out.resolve("press-" + name));
+    assertEquals("feat", selected[0], "pressing passive meta selects its row");
+
+    // In a narrower tree, detail gives way first while label, meta and trailing stay whole.
+    Script.run("size 205 144\nframe\nadvance 1\nframe\n", app, out.resolve("narrow-" + name));
+    String narrowDump = app.tree().dump();
+    El narrowRelease = find(app, "row-release");
+    El narrowDetail = textOf(narrowRelease, "3 commits");
+    assertTrue(
+        narrowDetail.text().shortened() || narrowDetail.y() >= theme.grid().rowHeight(),
+        "detail yields first:\n" + narrowDump);
+    assertFalse(textOf(narrowRelease, "release/v2").text().shortened(), narrowDump);
+    assertFalse(textOf(narrowRelease, "+2").text().shortened(), narrowDump);
+    float[] narrowFeatRow = StructureTest.rect(StructureTest.line(narrowDump, "#row-feat "));
+    float[] narrowFeatMeta =
+        StructureTest.rect(StructureTest.line(narrowDump, "el label=\"dirty\""));
+    float[] narrowFeatTrailing =
+        StructureTest.rect(StructureTest.line(narrowDump, "text \"origin/feat\""));
+    assertEquals(featMeta[2], narrowFeatMeta[2], 0.5f, "meta keeps full width in narrow tree");
+    assertEquals(
+        featTrailing[2], narrowFeatTrailing[2], 0.5f, "trailing keeps full width in narrow tree");
+    assertEquals(
+        narrowFeatRow[0] + narrowFeatRow[2] - padRight,
+        narrowFeatTrailing[0] + narrowFeatTrailing[2],
+        0.5f,
+        "trailing stays at the right edge in narrow tree:\n" + narrowDump);
+
+    // Narrower still: release/v2 shortens while its meta badge (+2) keeps its full width.
+    Script.run("size 170 144\nframe\nadvance 1\nframe\n", app, out.resolve("tight-" + name));
+    String tightDump = app.tree().dump();
+    assertTrue(textOf(find(app, "row-release"), "release/v2").text().shortened(), tightDump);
+    float[] tightReleaseMeta = StructureTest.rect(StructureTest.line(tightDump, "el label=\"+2\""));
+    assertEquals(
+        releaseMeta[2], tightReleaseMeta[2], 0.5f, "meta keeps full width when label+detail cut");
+    float[] tightFeatRow = StructureTest.rect(StructureTest.line(tightDump, "#row-feat "));
+    float[] tightFeatTrailing =
+        StructureTest.rect(StructureTest.line(tightDump, "text \"origin/feat\""));
+    assertEquals(
+        tightFeatRow[0] + tightFeatRow[2] - padRight,
+        tightFeatTrailing[0] + tightFeatTrailing[2],
+        0.5f,
+        "meta gives way before the trailing element leaves the row:\n" + tightDump);
   }
 
   /** The text element inside {@code el} whose string is {@code string}. */

@@ -82,7 +82,8 @@ import java.util.function.Predicate;
  * <p>In a tree dump the tree is {@code role=tree}, and its rows are {@code role=treeitem} with the
  * node's label and the key {@code row-<key>}, where the key is the model's {@link Model#key}, or
  * else the row's index, counted from 0 in the order shown; and the model's {@link Model#detail}
- * as {@code value="<detail>"}. A node that can have children has a mark with the key {@code
+ * as {@code value="<detail>"}, with any {@link Model#meta} and {@link Model#trailing} elements as
+ * children. A node that can have children has a mark with the key {@code
  * mark-<key>}, which shows the {@link Icon} {@link #CLOSED} while it is closed and {@link #OPEN}
  * while it is open; the marks need the icon font, {@code rethinkj-ui-icons}. The row that stands
  * for children not known yet has the key {@code row-<index>}, is {@code role=status} with the
@@ -138,12 +139,30 @@ public final class Tree {
     }
 
     /**
+     * An element placed immediately after the label without shrinking, such as a {@link Badge} or
+     * status indicator; null, the default, for none. Asked only for the rows that are built. The
+     * supplied element is passive ({@link El#inert}) so presses select or activate the row.
+     */
+    default El meta(N node) {
+      return null;
+    }
+
+    /**
      * A text shown after the label in muted text, such as a column's type or the number of tables
      * in a schema; null, the default, for none. Asked only for the rows that are built. Where the
      * row is narrow it gives way first: it ends in an ellipsis and is left out before the label
      * is cut, and a tooltip then shows both whole. In a tree dump it is the row's {@code value}.
      */
     default String detail(N node) {
+      return null;
+    }
+
+    /**
+     * An element placed at the right edge of the row without shrinking, such as a tracking branch
+     * label, count badge or submenu chevron, no higher than the row; null, the default, for none.
+     * Asked only for the rows that are built.
+     */
+    default El trailing(N node) {
       return null;
     }
 
@@ -429,6 +448,8 @@ public final class Tree {
     boolean presses = onSelect != null || onToggle != null || onActivate != null;
     // The rows are built after the tree's focus look has run, so they can read what it found.
     boolean[] focused = {false};
+    // What a row's last element keeps clear of on the right: the scrollbar's strip.
+    float clear = Math.max(0, theme.scrollbars().strip() - theme.space().s());
     El tree = col()
         .role("tree")
         .scrollbars(theme.scrollbars())
@@ -447,7 +468,6 @@ public final class Tree {
       if (rows.nodes[i] instanceof Pending pending) { // the children of the row's parent
         r.key("row-" + i).child(el().w(mark).shrink(0));
         if (pending.children() instanceof Children.Failed<?> failure) {
-          float clear = Math.max(0, theme.scrollbars().strip() - theme.space().s());
           r.role("treeitem").level(depth + 1).position(1, 1);
           return failed(theme, r, failure, height, clear);
         }
@@ -495,12 +515,34 @@ public final class Tree {
       }
       Label.Variant variant =
           grabbed || model.muted(node) ? Label.Variant.MUTED : Label.Variant.NORMAL;
+      El meta = model.meta(node);
+      El trailing = model.trailing(node);
+      if (meta != null || trailing != null) { // the slots stay clear of the scrollbar's strip
+        r.style().paddingRight = Len.px(theme.space().s() + clear);
+      }
       String detail = model.detail(node);
       if (detail == null) {
         El name = Label.label(variant, label).ellipsis().minSize(0, 0);
-        whole(theme, r.child(name), name, null, label, height);
+        // With meta, both in a box that clips, so that the trailing element stays in view.
+        r.child(
+            meta == null
+                ? name
+                : row()
+                    .gap(theme.space().s())
+                    .align(Style.Align.CENTER)
+                    .minSize(0, 0)
+                    .clip()
+                    .children(name, meta.shrink(0).inert()));
+        whole(theme, r, name, null, label, height);
       } else {
-        detail(theme, r.value(detail), variant, label, detail, height);
+        detail(theme, r.value(detail), variant, label, meta, detail, height);
+      }
+      if (trailing != null) {
+        trailing.shrink(0);
+        if (detail == null) {
+          trailing.style().marginLeft = Len.AUTO;
+        }
+        r.child(trailing);
       }
       if (isSelected) {
         // Last, so that selecting a row leaves the places of its other children as they were.
@@ -845,16 +887,36 @@ public final class Tree {
   }
 
   /**
-   * The label and the detail after it in a box that wraps and clips at the row's height, as the
-   * data grid's header gives way with its type: the label keeps its width up to the box's, the
-   * detail shrinks to an ellipsis after its first character and below that wraps to a second line,
-   * which the box clips away. A zero-width strut as high as the row makes the first line that high,
-   * so that both texts sit in its middle. The tooltip names both where either is cut or gone.
+   * The label (with any {@code meta} after it) and the detail after them in a box that wraps and
+   * clips at the row's height, as the data grid's header gives way with its type: the label and
+   * meta keep their width up to the box's (where the label shrinks before meta does), the detail
+   * shrinks to an ellipsis after its first character and below that wraps to a second line, which
+   * the box clips away. A zero-width strut as high as the row makes the first line that high, so
+   * that all sit in its middle. The tooltip names both where either is cut or gone.
    */
   private static void detail(
-      Theme theme, El row, Label.Variant variant, String label, String detail, float height) {
-    El name = Label.label(variant, label).ellipsis().minSize(0, 0).shrink(0);
-    name.style().maxWidth = Len.percent(1);
+      Theme theme,
+      El row,
+      Label.Variant variant,
+      String label,
+      El meta,
+      String detail,
+      float height) {
+    El name = Label.label(variant, label).ellipsis().minSize(0, 0);
+    El head;
+    if (meta == null) {
+      name.shrink(0);
+      name.style().maxWidth = Len.percent(1);
+      head = name;
+    } else {
+      head = row()
+          .gap(theme.space().s())
+          .align(Style.Align.CENTER)
+          .shrink(0)
+          .minSize(0, 0)
+          .children(name, meta.shrink(0).inert());
+      head.style().maxWidth = Len.percent(1);
+    }
     El more = Label.label(Label.Variant.MUTED, detail)
         .ellipsis()
         .minSize(0, 0)
@@ -868,7 +930,7 @@ public final class Tree {
         .h(height)
         .align(Style.Align.CENTER)
         .clip()
-        .children(el().size(0, height), name, more);
+        .children(el().size(0, height), head, more);
     box.style().alignContent = Style.Content.START;
     whole(theme, row.child(box), name, more, label + " " + detail, height);
   }

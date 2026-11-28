@@ -1,0 +1,1 @@
+- `Tree.Model` adds optional `meta(node)` (a passive, non-shrinking element placed immediately after the label) and `trailing(node)` (a non-shrinking element aligned to the row's right edge); long labels truncate with an ellipsis before either slot is clipped.
