@@ -1,0 +1,1 @@
+- `El.onHoverFor` now begins its stay only when the pointer moves or the scroll wheel turns over the element, so scrolling a `FilterList`, `ComboBox`, `CommandPalette`, or `FilterTree` with the keyboard no longer lets a row passing under a resting pointer steal the highlight.

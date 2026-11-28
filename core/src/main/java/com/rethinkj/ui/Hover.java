@@ -60,7 +60,7 @@ final class Hover {
     return modifiers;
   }
 
-  private static int modifierBit(String name) {
+  static int modifierBit(String name) {
     return switch (name) {
       case "Shift" -> Key.SHIFT;
       case "Control" -> Key.CONTROL;

@@ -77,7 +77,7 @@ Style an element dynamically based on hover, press, or focus state (combine with
 | `onFocusIn(handler)` | Runs when keyboard focus moves from outside this element into it or a descendant (by pointer, Tab, or code) |
 | `whenHoveredFor(seconds, element -> …)` | Applies styles or attaches an overlay after hovering for a delay (used by [Tooltip](/docs/components/tooltip)) |
 | `whenFocusVisibleFor(seconds, element -> …)` | Same as above for keyboard focus (clears on blur or non-navigation key press) |
-| `onHoverFor(seconds, handler)` | Runs a handler once after hovering for a delay (`0` runs immediately on hover) |
+| `onHoverFor(seconds, handler)` | Runs a handler once after hovering for a delay (`0` runs immediately); starts only when the pointer moves or the wheel turns over the element, not when scrolling by key or a rebuild brings it under a still pointer |
 
 Hover delays run on the app clock (advanced with `advance` in scripts). After clicking an element, delayed hover effects wait until the mouse leaves and re-enters. Once a delayed hover overlay (like a tooltip) has appeared, hovering adjacent items shows their tooltips immediately without waiting again.
 

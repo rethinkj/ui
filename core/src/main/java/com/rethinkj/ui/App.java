@@ -372,6 +372,7 @@ public final class App<S> {
   }
   // Since when the elements under the pointer with whenHoveredFor or onHoverFor have been there.
   private final Map<Object, Rest> resting = new HashMap<>();
+  private boolean pointerMoved; // a pointerMove or wheel arrived since rest() last looked
   private double restDue = Double.POSITIVE_INFINITY; // when the next of their looks or handlers is
   // When a whenHoveredFor look that attached overlays, such as a tooltip, last went because the
   // pointer left its element; a stay that begins within its delay of that shows its look at once.
@@ -395,18 +396,21 @@ public final class App<S> {
   }
 
   /**
-   * Since when the pointer has been over an element; whether its onHoverFor handler has run;
-   * whether its whenHoveredFor look shows at once, as another one's has just gone; the overlays
-   * that look attached to the tree on screen.
+   * Since when the pointer has been over an element; since when its onHoverFor stay began (NaN
+   * while waiting for pointer motion, POSITIVE_INFINITY after a press); whether its onHoverFor
+   * handler has run; whether its whenHoveredFor look shows at once, as another one's has just gone;
+   * the overlays that look attached to the tree on screen.
    */
   private static final class Rest {
     double since;
+    double handlerSince;
     boolean ran;
     boolean warm;
     List<El> attached = List.of();
 
-    Rest(double since) {
+    Rest(double since, double handlerSince) {
       this.since = since;
+      this.handlerSince = handlerSince;
     }
   }
 
@@ -468,6 +472,7 @@ public final class App<S> {
 
   private boolean move(float x, float y, int modifiers) {
     hover.move(x, y, modifiers); // the frame looks at what is under the pointer anyway
+    pointerMoved = true;
     if (rowsPending
         && (dragging() != null || capture instanceof Selecting || capture instanceof Grab)) {
       settle(); // the held element may be in a row; a scroll alone moved the rows that exist
@@ -513,6 +518,7 @@ public final class App<S> {
   public void pointerLeave() {
     enqueue(() -> {
       hover.leave();
+      pointerMoved = false;
       Dragging d = dragging();
       if (resting(d) && d.overApp == this) { // no OVER again where the pointer was
         drop(d, Drag.Phase.MOVE, null, Float.NaN, Float.NaN);
@@ -775,6 +781,7 @@ public final class App<S> {
   }
 
   private boolean up(float x, float y) {
+    pointerMoved = false; // as after a press: what the release opens waits for a move
     settle();
     Capture held = capture;
     // A press holds while its handlers run, without its drag; all else ends before them.
@@ -965,6 +972,7 @@ public final class App<S> {
    */
   public void secondaryUp(float x, float y) {
     enqueue(() -> {
+      pointerMoved = false; // as for the primary button: the menu it opens waits for a move
       settle();
       Target target = target(x, y, this::opensMenu);
       boolean ran = target != null && target.id().equals(secondary);
@@ -1020,15 +1028,17 @@ public final class App<S> {
    * stay has not begun yet, as when the pointer came in the same frame.
    */
   private void restAfterPress(float x, float y) {
+    pointerMoved = false;
     List<El> path = root == null ? List.of() : hit(x, y);
     List<Object> ids = Animator.identities(path);
     for (int i = 0; i < path.size(); i++) {
       if (path.get(i).restLook() != null || path.get(i).onHoverFor() != null) {
-        resting.computeIfAbsent(ids.get(i), id -> new Rest(time));
+        resting.computeIfAbsent(ids.get(i), id -> new Rest(time, Double.POSITIVE_INFINITY));
       }
     }
     for (Rest rest : resting.values()) {
       rest.since = Double.POSITIVE_INFINITY;
+      rest.handlerSince = Double.POSITIVE_INFINITY;
       rest.attached = List.of();
     }
     for (TextHover th : textHovered.values()) {
@@ -1694,6 +1704,9 @@ public final class App<S> {
     enqueue(() -> {
       keyScroll = true; // also for what its handlers ask, as App.focus, and the field it wakes
       hover.keyDown(key);
+      if (Hover.modifierBit(key.name()) == 0) { // a modifier alone moves nothing
+        pointerMoved = false; // a move before the key does not arm what the key brings under it
+      }
       rowGoals.clear();
       if (edits(key)) {
         wakeField();
@@ -1945,6 +1958,7 @@ public final class App<S> {
   public void textInput(String text) {
     Objects.requireNonNull(text, "text");
     enqueue(() -> {
+      pointerMoved = false; // as for a key: the text may filter other rows under the pointer
       wakeField();
       if (focus.element() != null && focus.element().editor() != null) {
         boolean changed = focus.element().editor().type(text);
@@ -3567,6 +3581,7 @@ public final class App<S> {
       if (dismiss(x, y, false)) {
         return false; // outside a modal overlay
       }
+      pointerMoved |= hover.in() && x == hover.x() && y == hover.y(); // a wheel at the pointer
       List<El> areas = hit(x, y).reversed();
       boolean sideways = deltaX == 0;
       for (El el : areas) {
@@ -8284,6 +8299,8 @@ public final class App<S> {
    * is due.
    */
   private List<Object> rest(List<El> path, List<Object> ids) {
+    boolean moved = pointerMoved;
+    pointerMoved = false;
     resting
         .entrySet()
         .removeIf(
@@ -8305,10 +8322,13 @@ public final class App<S> {
         continue;
       }
       Rest rest = resting.computeIfAbsent(ids.get(i), id -> {
-        Rest stay = new Rest(time);
+        Rest stay = new Rest(time, moved ? time : Double.NaN);
         stay.warm = el.restLook() != null && time - lookLeft <= el.restDelay();
         return stay;
       });
+      if (moved && Double.isNaN(rest.handlerSince)) {
+        rest.handlerSince = time;
+      }
       if (el.restLook() != null) {
         double due = lookDue(rest, el);
         if (due <= time) {
@@ -8317,8 +8337,8 @@ public final class App<S> {
           restDue = Math.min(restDue, due);
         }
       }
-      if (el.onHoverFor() != null && !rest.ran) {
-        double due = rest.since + el.hoverDelay();
+      if (el.onHoverFor() != null && !rest.ran && !Double.isNaN(rest.handlerSince)) {
+        double due = rest.handlerSince + el.hoverDelay();
         if (due <= time) {
           rest.ran = true;
           hoversRun++;
